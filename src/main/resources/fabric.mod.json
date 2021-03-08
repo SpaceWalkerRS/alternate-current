@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "fastredstone",
+  "version": "${version}",
+
+  "name": "Fast Redstone",
+  "description": "An efficient and non-locational redstone dust implementation.",
+  "authors": [
+    "Space Walker"
+  ],
+  "contact": {
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+
+  "license": "MIT Licence",
+  "icon": "assets/fast/redstone/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "fast.redstone.FastRedstone"
+    ]
+  },
+  "mixins": [
+    "fastredstone.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.7.4",
+    "fabric": "*",
+    "minecraft": "1.16.x"
+  }
+}
