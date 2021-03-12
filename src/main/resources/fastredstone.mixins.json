@@ -4,6 +4,12 @@
   "package": "fast.redstone.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+  	"ChunkSectionMixin",
+  	"CommandManagerMixin",
+  	"RedstoneWireBlockMixin",
+  	"WorldChunkMixin",
+  	"WorldMixin",
+  	"ServerWorldMixin"
   ],
   "client": [
   ],
