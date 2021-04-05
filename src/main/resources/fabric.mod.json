@@ -18,7 +18,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "fast.redstone.FastRedstone"
+      "fast.redstone.FastRedstoneMod"
     ]
   },
   "mixins": [

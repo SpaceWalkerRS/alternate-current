@@ -3,7 +3,7 @@ package fast.redstone.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import fast.redstone.FastRedstone;
+import fast.redstone.FastRedstoneMod;
 
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -27,16 +27,16 @@ public class FastRedstoneCommand {
 	}
 	
 	private static int query(ServerCommandSource source) {
-		source.sendFeedback(new TranslatableText(String.format("Fast Redstone is currently %s", FastRedstone.ACTIVE ? "enabled" : "disabled")), false);
+		source.sendFeedback(new TranslatableText(String.format("Fast Redstone is currently %s", FastRedstoneMod.ENABLED ? "enabled" : "disabled")), false);
 		
 		return 1;
 	}
 	
 	private static int fastRedstone(ServerCommandSource source, boolean enable) {
-		if (enable == FastRedstone.ACTIVE) {
+		if (enable == FastRedstoneMod.ENABLED) {
 			source.sendFeedback(new TranslatableText(String.format("Fast Redstone is already %s!", enable ? "enabled" : "disabled")), false);
 		} else {
-			FastRedstone.ACTIVE = enable;
+			FastRedstoneMod.ENABLED = enable;
 			
 			source.sendFeedback(new TranslatableText(String.format("Fast Redstone has been %s!", enable ? "enabled" : "disabled")), false);
 		}

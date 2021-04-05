@@ -1,14 +1,11 @@
 package fast.redstone.interfaces.mixin;
 
-import fast.redstone.RedstoneWireHandler;
-import net.minecraft.util.math.BlockPos;
+import fast.redstone.Wire;
 
 public interface IChunkSection {
 	
-	public RedstoneWireHandler getWireHandler(BlockPos pos);
+	public Wire getWire(int x, int y, int z);
 	
-	public void addRedstoneWireHandler(RedstoneWireHandler wireHandler);
-	
-	public void removeRedstoneWireHandler(RedstoneWireHandler wireHandler);
+	public Wire setWire(int x, int y, int z, Wire wire);
 	
 }

@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import fast.redstone.FastRedstone;
+import fast.redstone.FastRedstoneMod;
 import fast.redstone.interfaces.mixin.IWorld;
 import net.minecraft.server.world.ServerWorld;
 
@@ -24,7 +24,7 @@ public class ServerWorldMixin {
 		int count = ((IWorld)this).getCount();
 		
 		if (count > 0) {
-			FastRedstone.LOGGER.info(count);
+			FastRedstoneMod.LOGGER.info(count);
 		}
 	}
 }

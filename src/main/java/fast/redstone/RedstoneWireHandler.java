@@ -2,8 +2,6 @@ package fast.redstone;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -11,448 +9,224 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 
-import fast.redstone.interfaces.mixin.IRedstoneWire;
+import fast.redstone.interfaces.mixin.IWireBlock;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 public class RedstoneWireHandler {
 	
-	private final Block wireBlock;
-	private final World world;
-	private final Map<BlockPos, Integer> chunkCoords;
+	public final int MAX_POWER = 15;
 	
+	private final Block wireBlock;
+	private final List<Wire> wires;
 	private final Map<BlockPos, Wire> network;
 	private final Queue<Wire> poweredWires;
-	private final Set<BlockPos> updatedWires;
 	private final Set<BlockPos> blockUpdates;
 	
-	private boolean isUpdatingPower;
+	private World world;
+	private boolean updatingPower;
 	
-	public RedstoneWireHandler(World world) {
-		this(Blocks.REDSTONE_WIRE, world);
-	}
-	
-	public RedstoneWireHandler(Block wireBlock, World world) {
+	public RedstoneWireHandler(Block wireBlock) {
 		this.wireBlock = wireBlock;
-		this.world = world;
-		this.chunkCoords = new HashMap<>();
-		
+		this.wires = new ArrayList<>();
 		this.network = new HashMap<>();
 		this.poweredWires = new PriorityQueue<>();
-		this.updatedWires = new HashSet<>();
 		this.blockUpdates = new LinkedHashSet<>();
 	}
 	
-	public RedstoneWireHandler(World world, BlockPos pos, BlockState state) {
-		this(Blocks.REDSTONE_WIRE, world, pos, state);
-	}
-	
-	public RedstoneWireHandler(Block wireBlock, World world, BlockPos pos, BlockState state) {
-		this(wireBlock, world);
-		
-		updateNetworkConnections(pos, state);
-	}
-	
-	public Set<BlockPos> getChunkCoords(){
-		return chunkCoords.keySet();
-	}
-	
-	private BlockPos getChunkPos(BlockPos pos) {
-		int x = pos.getX() >> 4;
-		int y = pos.getY() >> 4;
-		int z = pos.getZ() >> 4;
-		
-		return new BlockPos(x, y, z);
-	}
-	
-	private void wireAdded(BlockPos blockPos) {
-		chunkCoords.compute(getChunkPos(blockPos), (pos, count) -> count == null ? 1 : count + 1);
-	}
-	
-	private void wireRemoved(BlockPos blockPos) {
-		chunkCoords.compute(getChunkPos(blockPos), (pos, count) -> count == 1 ? null : count - 1);
-	}
-	
-	public boolean isPosInNetwork(BlockPos pos) {
-		return network.containsKey(pos);
-	}
-	
-	public void updateNetworkConnections(BlockPos pos, BlockState state) {
-		if (isUpdatingPower) {
-			return;
-		}
-		
-		Wire wire = network.get(pos);
-		
-		if (wire == null) {
-			if (!state.isOf(wireBlock)) {
-				return;
+	public void updatePower(Wire sourceWire) {
+		if (updatingPower) {
+			if (!sourceWire.inNetwork() && !network.containsKey(sourceWire.getPos())) {
+				addToNetwork(sourceWire);
+				updateNetwork();
 			}
 			
-			wire = addWireToNetwork(pos, state);
-		} else {
-			wire.updateState(state);
-		}
-		
-		wire.updateConnections(true);
-	}
-	
-	private Wire addWireToNetwork(BlockPos pos, BlockState state) {
-		Wire wire = new Wire(pos, state);
-		
-		network.put(pos, wire);
-		wireAdded(pos);
-		
-		return wire;
-	}
-	
-	private Wire getOrAddWire(BlockPos pos, BlockState state) {
-		Wire wire = network.get(pos);
-		
-		if (wire == null) {
-			return addWireToNetwork(pos, state);
-		}
-		
-		wire.updateState(state);
-		
-		return wire;
-	}
-	
-	private void removeWireFromNetwork(Wire wire) {
-		if (network.remove(wire.pos, wire) && chunkCoords.containsKey(wire.pos)) {
-			wireRemoved(wire.pos);
-		}
-	}
-	
-	public void updateNetworkPower(BlockPos sourcePos) {
-		if (isUpdatingPower) {
 			return;
 		}
 		
-		Wire sourceWire = network.get(sourcePos);
+		world = sourceWire.getWorld();
+		updatingPower = true;
 		
-		if (sourceWire == null) {
-			return;
-		}
-		
-		collectPowerSources(sourceWire);
+		buildNetwork(sourceWire);
+		findPoweredWires(sourceWire);
 		letPowerFlow();
 		
-		blockUpdates.removeAll(updatedWires);
+		updatingPower = false;
 		
-		for (BlockPos pos : blockUpdates) {
-			world.updateNeighbor(pos, wireBlock, sourcePos);
+		blockUpdates.removeAll(network.keySet());
+		List<BlockPos> positions = new ArrayList<>(blockUpdates);
+		
+		wires.clear();
+		network.clear();
+		blockUpdates.clear();
+		
+		BlockPos sourcePos = sourceWire.getPos();
+		
+		for (int index = positions.size() - 1; index >= 0; index--) {
+			world.updateNeighbor(positions.get(index), wireBlock, sourcePos);
 		}
-		
-		cleanUp();
 	}
 	
-	private void collectPowerSources(Wire sourceWire) {
-		((IRedstoneWire)wireBlock).setWiresGivePower(false);
-		
-		addToCurrentSubNetwork(sourceWire, 0);
-		
-		((IRedstoneWire)wireBlock).setWiresGivePower(true);
+	private void buildNetwork(Wire sourceWire) {
+		addToNetwork(sourceWire);
+		updateNetwork();
 	}
 	
-	private void addToCurrentSubNetwork(Wire wire, int range) {
-		if (wire.inCurrentSubNetwork) {
-			return;
+	private void updateNetwork() {
+		for (int index = wires.size() - 1; index < wires.size(); index++) {
+			Wire wire = wires.get(index);
+			
+			for (WireConnection connection : wire.getConnections()) {
+				if (connection.out) {
+					Wire connectedWire = connection.wire;
+					
+					if (!connectedWire.inNetwork()) {
+						addToNetwork(connectedWire);
+					}
+				}
+			}
 		}
+	}
+	
+	private void addToNetwork(Wire wire) {
+		wires.add(wire);
+		network.put(wire.getPos(), wire);
+		wire.addToNetwork();
+	}
+	
+	private void findPoweredWires(Wire sourceWire) {
+		((IWireBlock)wireBlock).setWiresGivePower(false);
 		
-		wire.inCurrentSubNetwork = true;
+		poweredWires.add(sourceWire);
 		
-		if ((range = wire.setInitialPower(range)) < 0) {
-			return;
-		}
-		
-		for (WireConnection connection : wire.connections) {
-			if (connection.out) {
-				addToCurrentSubNetwork(connection.connectedWire, range);
+		for (Wire wire : wires) {
+			int power = world.getReceivedRedstonePower(wire.getPos());
+			
+			for (WireConnection connection : wire.getConnections()) {
+				if (power >= MAX_POWER) {
+					break;
+				}
+				
+				if (connection.in) {
+					Wire connectedWire = connection.wire;
+					
+					if (!connectedWire.inNetwork()) {
+						int powerFromWire = connectedWire.getPower() - 1;
+						
+						if (powerFromWire > power) {
+							power = powerFromWire;
+						}
+					}
+				}
+			}
+			
+			wire.setPower(power);
+			
+			if (power > 0) {
+				poweredWires.add(wire);
 			}
 		}
 		
-		wire.validatePower();
+		((IWireBlock)wireBlock).setWiresGivePower(true);
+	}
+	
+	private void addPoweredWire(Wire wire) {
+		poweredWires.add(wire);
+		wire.addPowerSource();
 	}
 	
 	private void letPowerFlow() {
-		isUpdatingPower = true;
-		
-		Wire wire;
-		while ((wire = poweredWires.poll()) != null) {
-			wire.updatePowerInWorld();
-		}
-		
-		isUpdatingPower = false;
-	}
-	
-	private void cleanUp() {
-		poweredWires.clear();
-		updatedWires.clear();
-		blockUpdates.clear();
-	}
-	
-	private class Wire implements Comparable<Wire> {
-		
-		private final BlockPos pos;
-		private final List<WireConnection> connections;
-		
-		private BlockState state;
-		private int power;
-		
-		private boolean inCurrentSubNetwork;
-		
-		public Wire(BlockPos pos, BlockState state) {
-			this.pos = pos;
-			this.connections = new ArrayList<>();
+		while (!poweredWires.isEmpty()) {
+			Wire wire = poweredWires.poll();
 			
-			this.state = state;
-			this.power = state.get(Properties.POWER);
-		}
-		
-		@Override
-		public int hashCode() {
-			return pos.hashCode();
-		}
-		
-		@Override
-		public int compareTo(Wire wire) {
-			int c = Integer.compare(wire.power, power);
+			if (!wire.inNetwork()) {
+				continue;
+			}
 			
-			if (c == 0) {
-				c = Integer.compare(pos.getY(), wire.pos.getY());
-				
-				if (c == 0) {
-					c = Integer.compare(pos.getZ(), wire.pos.getZ());
+			int nextPower = wire.getPower() - 1;
+			
+			updateWireState(wire);
+			
+			wire.removeFromNetwork();
+			wire.removePowerSource();
+			
+			for (WireConnection connection : wire.getConnections()) {
+				if (connection.out) {
+					Wire connectedWire = connection.wire;
 					
-					if (c == 0) {
-						c = Integer.compare(pos.getX(), wire.pos.getX());
+					if (connectedWire.inNetwork() && !connectedWire.isPowerSource()) {
+						connectedWire.setPower(nextPower);
+						addPoweredWire(connectedWire);
 					}
 				}
 			}
-			
-			return c;
-		}
-		
-		public void updateState(BlockState newState) {
-			state = newState;
-			
-			if (!state.isOf(wireBlock)) {
-				removeWireFromNetwork(this);
-				
-				List<WireConnection> oldConnections = new ArrayList<>(connections);
-				connections.clear();
-				
-				onConnectionsChanged(oldConnections);
-			}
-		}
-		
-		public void updateConnections(boolean propagate) {
-			List<WireConnection> oldConnections = new ArrayList<>(connections);
-			connections.clear();
-			
-			for (Direction dir : Direction.Type.HORIZONTAL) {
-				BlockPos side = pos.offset(dir);
-				BlockState sideState = world.getBlockState(side);
-				
-				if (sideState.isOf(wireBlock)) {
-					addConnection(side, sideState, true, true);
-					
-					continue;
-				}
-				
-				boolean sideIsSolid = sideState.isSolidBlock(world, side);
-				
-				BlockPos above = pos.up();
-				BlockState aboveState = world.getBlockState(above);
-				
-				if (!aboveState.isSolidBlock(world, above)) {
-					BlockPos aboveSide = side.up();
-					BlockState aboveSideState = world.getBlockState(aboveSide);
-					
-					if (aboveSideState.isOf(wireBlock)) {
-						addConnection(aboveSide, aboveSideState, true, sideIsSolid);
-					}
-				}
-				
-				if (!sideIsSolid) {
-					BlockPos belowSide = side.down();
-					BlockState belowSideState = world.getBlockState(belowSide);
-					
-					if (belowSideState.isOf(wireBlock)) {
-						BlockPos below = pos.down();
-						BlockState belowState = world.getBlockState(below);
-						
-						boolean belowIsSolid = belowState.isSolidBlock(world, below);
-						
-						addConnection(belowSide, belowSideState, belowIsSolid, true);
-					}
-				}
-			}
-			
-			if (propagate) {
-				onConnectionsChanged(oldConnections);
-			}
-		}
-		
-		private void addConnection(BlockPos pos, BlockState state, boolean out, boolean in) {
-			connections.add(new WireConnection(getOrAddWire(pos, state), out, in));
-		}
-		
-		private void onConnectionsChanged(List<WireConnection> oldConnections) {
-			for (WireConnection newConnection : connections) {
-				Iterator<WireConnection> it = oldConnections.iterator();
-				
-				boolean found = false;
-				
-				while (it.hasNext() && !found) {
-					WireConnection oldConnection = it.next();
-					
-					if (oldConnection.connectedWire == newConnection.connectedWire) {
-						if (oldConnection.out != newConnection.out || oldConnection.in != newConnection.in) {
-							oldConnection.connectedWire.updateConnections(false);
-						}
-						
-						it.remove();
-						
-						found = true;
-					}
-				}
-				
-				if (!found) {
-					newConnection.connectedWire.updateConnections(false);
-				}
-			}
-			
-			for (WireConnection oldConnection : oldConnections) {
-				oldConnection.connectedWire.updateConnections(false);
-			}
-		}
-		
-		public int setInitialPower(int range) {
-			int externalPower = world.getReceivedRedstonePower(pos);
-			
-			if (power != externalPower) {
-				if (externalPower != 0) {
-					range = (power > externalPower) ? (power - externalPower) : (externalPower - power);
-				}
-				
-				power = externalPower;
-			}
-			
-			return range - 1;
-		}
-		
-		private int getPowerFromWires() {
-			int power = 0;
-			
-			for (WireConnection connection : connections) {
-				Wire wire = connection.connectedWire;
-				
-				if (connection.in && !wire.inCurrentSubNetwork) {
-					if (power < wire.power) {
-						power = wire.power - 1;
-					}
-				}
-				
-				if (power >= 15) {
-					break;
-				}
-			}
-			
-			return power;
-		}
-		
-		public void validatePower() {
-			int wirePower = getPowerFromWires();
-			
-			if (wirePower > power) {
-				power = wirePower;
-			}
-			
-			if (power > 0) {
-				poweredWires.add(this);
-			}
-		}
-		
-		public void updatePowerInWorld() {
-			if (inCurrentSubNetwork) {
-				inCurrentSubNetwork = false;
-				
-				if (power < 0) {
-					power = 0;
-				}
-				
-				BlockState newState = state.with(Properties.POWER, power);
-				
-				if (state != newState) {
-					state = newState;
-					
-					world.setBlockState(pos, state, 2);
-					
-					queueBlockUpdates();
-				}
-				
-				updatedWires.add(pos);
-			}
-		}
-		
-		private void queueBlockUpdates() {
-			BlockPos down = pos.down();
-			BlockPos up = pos.up();
-			BlockPos north = pos.north();
-			BlockPos south = pos.south();
-			BlockPos west = pos.west();
-			BlockPos east = pos.east();
-			
-			blockUpdates.add(down);
-			blockUpdates.add(up);
-			blockUpdates.add(north);
-			blockUpdates.add(south);
-			blockUpdates.add(west);
-			blockUpdates.add(east);
-			
-			blockUpdates.add(down.north());
-			blockUpdates.add(up.south());
-			blockUpdates.add(down.south());
-			blockUpdates.add(up.north());
-			blockUpdates.add(down.west());
-			blockUpdates.add(up.east());
-			blockUpdates.add(down.east());
-			blockUpdates.add(up.west());
-			
-			blockUpdates.add(north.west());
-			blockUpdates.add(south.east());
-			blockUpdates.add(west.south());
-			blockUpdates.add(east.north());
-			
-			blockUpdates.add(down.down());
-			blockUpdates.add(up.up());
-			blockUpdates.add(north.north());
-			blockUpdates.add(south.south());
-			blockUpdates.add(west.west());
-			blockUpdates.add(east.east());
 		}
 	}
 	
-	private class WireConnection {
-		
-		public final Wire connectedWire;
-		// true if power can flow from this wire to the connected wire
-		public final boolean out;
-		// true if power can flow from the connected wire to this wire
-		public final boolean in;
-		
-		public WireConnection(Wire wire, boolean out, boolean in) {
-			this.connectedWire = wire;
-			this.out = out;
-			this.in = in;
+	private void updateWireState(Wire wire) {
+		if (wire.getPower() < 0) {
+			wire.setPower(0);
 		}
+		
+		BlockState oldState = wire.getState();
+		BlockState newState = oldState.with(Properties.POWER, wire.getPower());
+		
+		if (newState != oldState) {
+			BlockPos pos = wire.getPos();
+			
+			wire.updateState(newState);
+			world.setBlockState(pos, newState, 2);
+			
+			queueBlockUpdates(pos);
+		}
+	}
+	
+	private void queueBlockUpdates(BlockPos pos) {
+		blockUpdates.addAll(collectNeighborPositions(pos));
+	}
+	
+	public List<BlockPos> collectNeighborPositions(BlockPos pos) {
+		List<BlockPos> positions = new ArrayList<>();
+		
+		BlockPos down = pos.down();
+		BlockPos up = pos.up();
+		BlockPos north = pos.north();
+		BlockPos south = pos.south();
+		BlockPos west = pos.west();
+		BlockPos east = pos.east();
+		
+		positions.add(down);
+		positions.add(up);
+		positions.add(north);
+		positions.add(south);
+		positions.add(west);
+		positions.add(east);
+		
+		positions.add(down.north());
+		positions.add(up.south());
+		positions.add(down.south());
+		positions.add(up.north());
+		positions.add(down.west());
+		positions.add(up.east());
+		positions.add(down.east());
+		positions.add(up.west());
+		
+		positions.add(north.west());
+		positions.add(south.east());
+		positions.add(west.south());
+		positions.add(east.north());
+		
+		positions.add(down.down());
+		positions.add(up.up());
+		positions.add(north.north());
+		positions.add(south.south());
+		positions.add(west.west());
+		positions.add(east.east());
+		
+		return positions;
 	}
 }
