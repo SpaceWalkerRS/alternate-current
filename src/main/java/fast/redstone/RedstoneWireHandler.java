@@ -1,10 +1,10 @@
 package fast.redstone;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
@@ -22,8 +22,8 @@ public class RedstoneWireHandler {
 	public final int MAX_POWER = 15;
 	
 	private final Block wireBlock;
-	private final List<Wire> wires;
-	private final Map<BlockPos, Wire> network;
+	private final Queue<Wire> wires;
+	private final Set<BlockPos> network;
 	private final Queue<Wire> poweredWires;
 	private final Set<BlockPos> blockUpdates;
 	
@@ -32,17 +32,17 @@ public class RedstoneWireHandler {
 	
 	public RedstoneWireHandler(Block wireBlock) {
 		this.wireBlock = wireBlock;
-		this.wires = new ArrayList<>();
-		this.network = new HashMap<>();
+		this.wires = new LinkedList<>();
+		this.network = new HashSet<>();
 		this.poweredWires = new PriorityQueue<>();
 		this.blockUpdates = new LinkedHashSet<>();
 	}
 	
 	public void updatePower(Wire sourceWire) {
 		if (updatingPower) {
-			if (!sourceWire.inNetwork() && !network.containsKey(sourceWire.getPos())) {
-				addToNetwork(sourceWire);
-				updateNetwork();
+			if (!sourceWire.inNetwork() && !network.contains(sourceWire.getPos())) {
+				buildNetwork(sourceWire);
+				findPoweredWires(sourceWire);
 			}
 			
 			return;
@@ -57,10 +57,9 @@ public class RedstoneWireHandler {
 		
 		updatingPower = false;
 		
-		blockUpdates.removeAll(network.keySet());
+		blockUpdates.removeAll(network);
 		List<BlockPos> positions = new ArrayList<>(blockUpdates);
 		
-		wires.clear();
 		network.clear();
 		blockUpdates.clear();
 		
@@ -77,8 +76,8 @@ public class RedstoneWireHandler {
 	}
 	
 	private void updateNetwork() {
-		for (int index = wires.size() - 1; index < wires.size(); index++) {
-			Wire wire = wires.get(index);
+		while (!wires.isEmpty()) {
+			Wire wire = wires.poll();
 			
 			for (WireConnection connection : wire.getConnections()) {
 				if (connection.out) {
@@ -94,7 +93,7 @@ public class RedstoneWireHandler {
 	
 	private void addToNetwork(Wire wire) {
 		wires.add(wire);
-		network.put(wire.getPos(), wire);
+		network.add(wire.getPos());
 		wire.addToNetwork();
 	}
 	
@@ -149,10 +148,10 @@ public class RedstoneWireHandler {
 			
 			int nextPower = wire.getPower() - 1;
 			
-			updateWireState(wire);
-			
 			wire.removeFromNetwork();
 			wire.removePowerSource();
+			
+			updateWireState(wire);
 			
 			for (WireConnection connection : wire.getConnections()) {
 				if (connection.out) {
@@ -178,9 +177,7 @@ public class RedstoneWireHandler {
 		if (newState != oldState) {
 			BlockPos pos = wire.getPos();
 			
-			wire.updateState(newState);
 			world.setBlockState(pos, newState, 2);
-			
 			queueBlockUpdates(pos);
 		}
 	}

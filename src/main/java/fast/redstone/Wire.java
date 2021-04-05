@@ -1,7 +1,7 @@
 package fast.redstone;
 
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 import fast.redstone.interfaces.mixin.IWireBlock;
@@ -36,7 +36,7 @@ public class Wire implements Comparable<Wire> {
 		
 		this.world = world;
 		this.pos = pos.toImmutable(); // Sometimes this BlockPos is actually a Mutable...
-		this.connections = new LinkedList<>();
+		this.connections = new ArrayList<>();
 		
 		this.state = state;
 		this.power = state.get(Properties.POWER);
@@ -82,6 +82,10 @@ public class Wire implements Comparable<Wire> {
 	}
 	
 	public void updateState(BlockState state) {
+		if (!state.isOf(wireBlock)) {
+			throw new IllegalArgumentException(String.format("The given BlockState must be of block %s", wireBlock));
+		}
+		
 		this.state = state;
 	}
 	
@@ -122,7 +126,7 @@ public class Wire implements Comparable<Wire> {
 			return;
 		}
 		
-		List<WireConnection> oldConnections = new LinkedList<>(connections);
+		List<WireConnection> oldConnections = new ArrayList<>(connections);
 		connections.clear();
 		
 		for (Direction dir : Direction.Type.HORIZONTAL) {

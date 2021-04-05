@@ -3,8 +3,8 @@ package fast.redstone.mixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.At.Shift;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import fast.redstone.FastRedstoneMod;
@@ -102,11 +102,6 @@ public abstract class RedstoneWireBlockMixin extends Block implements IWireBlock
 	private void onNeighborUpdateInjectBeforeUpdate(BlockState state, World world, BlockPos pos, Block fromBlock, BlockPos fromPos, boolean notify, CallbackInfo ci) {
 		if (FastRedstoneMod.ENABLED) {
 			Wire wire = getWire(world, pos, state, true, true);
-			
-			if (fromBlock != (Block)(Object)this) {
-				wire.updateConnections();
-			}
-			
 			tryUpdatePower(wire);
 			
 			ci.cancel();
@@ -131,13 +126,37 @@ public abstract class RedstoneWireBlockMixin extends Block implements IWireBlock
 	}
 	
 	private void tryUpdatePower(Wire wire) {
-		if (shouldUpdatePower(wire)) {
+		int receivedPower = getReceivedPower(wire);
+		
+		if (wire.getPower() != receivedPower) {
 			wireHandler.updatePower(wire);
+			
+			/*World world = wire.getWorld();
+			BlockPos pos = wire.getPos();
+			
+			BlockState newState = wire.getState().with(Properties.POWER, receivedPower);
+			world.setBlockState(pos, newState, 2);
+			
+			wire.setPower(receivedPower);
+			
+			Set<BlockPos> notifiers = new HashSet<>();
+			Set<BlockPos> blockUpdates = new LinkedHashSet<>();
+			
+			notifiers.add(pos);
+			
+			for (Direction dir : Direction.values()) {
+				notifiers.add(pos.offset(dir));
+			}
+			for (BlockPos notifier : notifiers) {
+				for (Direction dir : Direction.values()) {
+					blockUpdates.add(notifier.offset(dir));
+				}
+			}
+			
+			for (BlockPos neighborPos : blockUpdates) {
+				world.updateNeighbor(neighborPos, wire.getWireBlock(), pos);
+			}*/
 		}
-	}
-	
-	private boolean shouldUpdatePower(Wire wire) {
-		return wire.getPower() != getReceivedPower(wire);
 	}
 	
 	private int getReceivedPower(Wire wire) {
