@@ -19,7 +19,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
-public class RedstoneWireHandler {
+public class RedstoneWireHandlerOld {
 	
 	private static final Direction[] DIRECTIONS = new Direction[] {
 			Direction.DOWN,
@@ -39,64 +39,51 @@ public class RedstoneWireHandler {
 	public final int MAX_POWER = 15;
 	
 	private final Block wireBlock;
-	private final List<Node> nodes;
 	private final List<Wire> wires;
-	private final Map<BlockPos, Node> posToNode;
+	private final Map<BlockPos, Node> nodes;
 	private final Queue<Wire> poweredWires;
 	private final List<BlockPos> updatedWires;
 	private final Set<BlockPos> blockUpdates;
 	
-	private int nodeCount;
-	private int wireCount;
-	
 	private World world;
 	private boolean updatingPower;
 	
-	public RedstoneWireHandler(Block wireBlock) {
+	public RedstoneWireHandlerOld(Block wireBlock) {
 		if (!(wireBlock instanceof IWireBlock)) {
 			throw new IllegalArgumentException(String.format("The given Block must implement %s", IWireBlock.class));
 		}
 		
 		this.wireBlock = wireBlock;
-		this.nodes = new ArrayList<>();
 		this.wires = new ArrayList<>();
-		this.posToNode = new HashMap<>();
+		this.nodes = new HashMap<>();
 		this.poweredWires = new PriorityQueue<>();
 		this.updatedWires = new ArrayList<>();
 		this.blockUpdates = new LinkedHashSet<>();
 	}
 	
-	public void updatePower(World world, BlockPos pos, BlockState state) {
-		if (updatingPower) {
+	public void updatePower(World world, BlockPos sourcePos, BlockState sourceState) {
+		this.world = world;
+		Wire sourceWire = addSourceWire(sourcePos, sourceState);
+		
+		if (validPowerState(sourceWire)) {
+			wires.clear();
+			nodes.clear();
+			
+			if (!updatingPower) {
+				poweredWires.clear();
+			}
+			
 			return;
 		}
 		
-		this.world = world;
-		
-		nodeCount = 0;
-		wireCount = 0;
-		
-		Node node = addNode(pos, state);
-		
-		if (node.isWire()) {
-			Wire wire = (Wire)node;
-			findNeighborsAndConnections(wire, true);
-			
-			if (wire.power == getReceivedPower(wire, false)) {
-				posToNode.clear();
-				return;
-			} else {
-				wire.inNetwork = true;
-				updateNetwork();
-			}
-		} else {
-			posToNode.clear();
-			return; // We should never get here
-		}
-		
+		updateNetwork();
 		findPoweredWires();
 		
-		posToNode.clear();
+		nodes.clear();
+		
+		if (updatingPower) {
+			return;
+		}
 		
 		letPowerFlow();
 		
@@ -114,48 +101,73 @@ public class RedstoneWireHandler {
 		start = System.nanoTime();
 		
 		for (int index = positions.size() - 1; index >= 0; index--) {
-			world.updateNeighbor(positions.get(index), wireBlock, pos);
+			world.updateNeighbor(positions.get(index), wireBlock, sourcePos);
 		}
 		
 		System.out.println("t: " + (System.nanoTime() - start));
+	}
+	
+	private Wire addSourceWire(BlockPos pos, BlockState state) {
+		Wire wire = new Wire(pos, state);
+		
+		nodes.put(pos, wire);
+		addWireToNetwork(wire);
+		findNeighborsAndConnections(wire);
+		
+		return wire;
+	}
+	
+	private boolean validPowerState(Wire sourceWire) {
+		int powerReceived = getReceivedRedstonePower(sourceWire);
+		
+		if (sourceWire.power == powerReceived) {
+			return true;
+		}
+		
+		sourceWire.power = powerReceived;
+		poweredWires.add(sourceWire);
+		
+		return false;
 	}
 	
 	private void updateNetwork() {
 		System.out.println("updating network");
 		long start = System.nanoTime();
 		
-		for (int index = 1; index < wireCount; index++) {
-			Wire wire = wires.get(index);
-			findNeighborsAndConnections(wire, wire.inNetwork);
+		for (int index = 1; index < wires.size(); index++) {
+			findNeighborsAndConnections(wires.get(index));
 		}
 		
-		System.out.println("t: " + (System.nanoTime() - start) + " - network size: " + wireCount);
+		System.out.println("t: "  + (System.nanoTime() - start));
 	}
 	
-	private void findNeighborsAndConnections(Wire wire, boolean findConnections) {
+	private void findNeighborsAndConnections(Wire wire) {
 		BlockPos pos = wire.pos;
 		
 		for (int index = 0; index < DIRECTIONS.length; index++) {
 			Direction dir = DIRECTIONS[index];
 			BlockPos side = pos.offset(dir);
 			
-			Node node = getOrAddNode(side);
-			wire.neighbors[index] = node;
+			Node sideNode = getOrAddNode(side);
+			wire.neighbors[index] = sideNode;
 			
-			if (findConnections && dir.getAxis().isHorizontal()) {
-				if (node.isWire()) {
-					addConnection(wire, (Wire)node, true, true);
+			if (dir.getAxis().isHorizontal()) {
+				if (sideNode.isWire()) {
+					addWireToNetwork((Wire)sideNode);
+					wire.addConnection((Wire)sideNode, true, true);
+					
 					continue;
 				}
 				
-				boolean sideIsSolid = (node.type == NodeType.SOLID_BLOCK);
+				boolean sideIsSolid = sideNode.type == Node.Type.SOLID_BLOCK;
 				
-				if (wire.aboveNode().type != NodeType.SOLID_BLOCK) {
+				if (wire.aboveNode().type != Node.Type.SOLID_BLOCK) {
 					BlockPos aboveSide = side.up();
 					Node aboveSideNode = getOrAddNode(aboveSide);
 					
 					if (aboveSideNode.isWire()) {
-						addConnection(wire, (Wire)aboveSideNode, true, sideIsSolid);
+						addWireToNetwork((Wire)aboveSideNode);
+						wire.addConnection((Wire)aboveSideNode, true, sideIsSolid);
 					}
 				}
 				if (!sideIsSolid) {
@@ -164,20 +176,28 @@ public class RedstoneWireHandler {
 					
 					if (belowSideNode.isWire()) {
 						Node belowNode = wire.belowNode();
-						boolean belowIsSolid = (belowNode.type == NodeType.SOLID_BLOCK);
+						boolean belowIsSolid = belowNode.type == Node.Type.SOLID_BLOCK;
 						
-						addConnection(wire, (Wire)belowSideNode, belowIsSolid, true);
+						if (belowIsSolid) {
+							addWireToNetwork((Wire)belowSideNode);
+						}
+						
+						wire.addConnection((Wire)belowSideNode, belowIsSolid, true);
 					}
 				}
 			}
 		}
 	}
 	
-	private void addConnection(Wire wire, Wire connectedWire, boolean out, boolean in) {
-		wire.addConnection(connectedWire, out, in);
-		if (out) {
-			connectedWire.inNetwork = true;
+	private void addWireToNetwork(Wire wire) {
+		if (!wire.inNetwork) {
+			wires.add(wire);
+			wire.inNetwork = true;
 		}
+	}
+	
+	private Node getNode(BlockPos pos) {
+		return nodes.get(pos);
 	}
 	
 	private Node getOrAddNode(BlockPos pos) {
@@ -185,93 +205,58 @@ public class RedstoneWireHandler {
 		return node == null ? addNode(pos) : node;
 	}
 	
-	private Node getNode(BlockPos pos) {
-		return posToNode.get(pos);
-	}
-	
 	private Node addNode(BlockPos pos) {
 		return addNode(pos, world.getBlockState(pos));
 	}
 	
 	private Node addNode(BlockPos pos, BlockState state) {
-		Node node = createNode(pos, state);
-		posToNode.put(pos, node);
+		Node node;
 		
-		return node;
-	}
-	
-	private Node createNode(BlockPos pos, BlockState state) {
 		if (state.isOf(wireBlock)) {
-			Wire wire = nextWire();
-			wire.set(pos, state);
-			
-			return wire;
-		}
-		
-		Node node = nextNode();
-		
-		if (state.emitsRedstonePower()) {
-			node.set(NodeType.REDSTONE_COMPONENT, pos, state);
+			node = new Wire(pos, state);
+		} else if (state.emitsRedstonePower()) {
+			node = new Node(Node.Type.REDSTONE_COMPONENT, pos, state);
 		} else if (state.isSolidBlock(world, pos)) {
-			node.set(NodeType.SOLID_BLOCK, pos, state);
+			node = new Node(Node.Type.SOLID_BLOCK, pos, state);
 		} else {
-			node.set(NodeType.OTHER, pos, state);
+			node = new Node(Node.Type.OTHER, pos, state);
 		}
+		
+		nodes.put(pos, node);
 		
 		return node;
-	}
-	
-	private Node nextNode() {
-		while (nodeCount >= nodes.size()) {
-			nodes.add(new Node());
-		}
-		
-		return nodes.get(nodeCount++);
-	}
-	
-	private Wire nextWire() {
-		while (wireCount >= wires.size()) {
-			wires.add(new Wire());
-		}
-		
-		return wires.get(wireCount++);
 	}
 	
 	private void findPoweredWires() {
 		System.out.println("finding powered wires");
 		long start = System.nanoTime();
 		
-		for (int index = 0; index < wires.size(); index++) {
+		((IWireBlock)wireBlock).setWiresGivePower(false);
+		
+		for (int index = 1; index < wires.size(); index++) {
 			Wire wire = wires.get(index);
+			wire.power = getReceivedRedstonePower(wire);
 			
-			if (!wire.inNetwork) {
-				continue;
-			}
-			
-			wire.power = getReceivedPower(wire);
-			System.out.println("received power: " + wire.power);
 			if (wire.power > 0) {
 				poweredWires.add(wire);
 			}
 		}
 		
-		poweredWires.add(wires.get(0));
+		wires.clear();
 		
-		System.out.println("t: " + (System.nanoTime() - start) + " - powered wires count: " + poweredWires.size());
+		((IWireBlock)wireBlock).setWiresGivePower(true);
+		
+		System.out.println("t: " + (System.nanoTime() - start));
 	}
 	
-	private int getReceivedPower(Wire wire) {
-		return getReceivedPower(wire, true);
-	}
-	
-	private int getReceivedPower(Wire wire, boolean ignoreNetworkConnections) {
+	private int getReceivedRedstonePower(Wire wire) {
 		int powerFromNeighbors = getPowerFromNeighbors(wire);
 		
 		if (powerFromNeighbors >= MAX_POWER) {
 			return MAX_POWER;
 		}
 		
-		int powerFromConnections = getPowerFromConnections(wire, ignoreNetworkConnections);
+		int powerFromConnections = getPowerFromConnections(wire);
 		
 		if (powerFromConnections > powerFromNeighbors) {
 			return powerFromConnections;
@@ -286,24 +271,22 @@ public class RedstoneWireHandler {
 		for (int index = 0; index < DIRECTIONS.length; index++) {
 			Node node = wire.neighbors[index];
 			
-			if (node.type == NodeType.WIRE || node.type == NodeType.OTHER) {
-				continue;
-			}
-			
 			int powerFromNeighbor;
-			
-			if (node.type == NodeType.REDSTONE_COMPONENT) {
+			switch (node.type) {
+			case REDSTONE_COMPONENT:
 				powerFromNeighbor = node.state.getWeakRedstonePower(world, node.pos, DIRECTIONS[index]);
-			} else if (node.type == NodeType.SOLID_BLOCK) {
-				powerFromNeighbor = getStrongPowerTo(node.pos, DIRECTIONS[index].getOpposite());
-			} else {
-				continue; // We should never get here
+				break;
+			case SOLID_BLOCK:
+				powerFromNeighbor = getStrongPowerReceived(node, DIRECTIONS[index].getOpposite());
+				break;
+			default:
+				continue;
 			}
 			
 			if (powerFromNeighbor > power) {
 				power = powerFromNeighbor;
 				
-				if (power > MAX_POWER) {
+				if (power >= MAX_POWER) {
 					return MAX_POWER;
 				}
 			}
@@ -312,22 +295,24 @@ public class RedstoneWireHandler {
 		return power;
 	}
 	
-	private int getStrongPowerTo(BlockPos pos, Direction ignore) {
+	private int getStrongPowerReceived(Node node, Direction ignore) {
 		int power = 0;
 		
-		for (Direction dir : DIRECTIONS) {
+		for (int index = 0; index < DIRECTIONS.length; index++) {
+			Direction dir = DIRECTIONS[index];
+			
 			if (dir == ignore) {
 				continue;
 			}
 			
-			BlockPos side = pos.offset(dir);
-			Node node = getOrAddNode(side);
+			BlockPos side = node.pos.offset(dir);
+			Node sideNode = getOrAddNode(side);
 			
-			if (node.type == NodeType.REDSTONE_COMPONENT) {
-				int strongPower = node.state.getStrongRedstonePower(world, side, dir);
+			if (sideNode.type == Node.Type.REDSTONE_COMPONENT) {
+				int powerFromSide = sideNode.state.getStrongRedstonePower(world, side, dir);
 				
-				if (strongPower > power) {
-					power = strongPower;
+				if (powerFromSide > power) {
+					power = powerFromSide;
 					
 					if (power >= MAX_POWER) {
 						return MAX_POWER;
@@ -339,11 +324,11 @@ public class RedstoneWireHandler {
 		return power;
 	}
 	
-	private int getPowerFromConnections(Wire wire, boolean ignoreNetworkConnections) {
+	private int getPowerFromConnections(Wire wire) {
 		int power = 0;
 		
 		for (Wire connectedWire : wire.connectionsIn) {
-			if (!ignoreNetworkConnections || !connectedWire.inNetwork) {
+			if (!connectedWire.inNetwork) {
 				int powerFromWire = connectedWire.power - 1;
 				
 				if (powerFromWire > power) {
@@ -399,10 +384,10 @@ public class RedstoneWireHandler {
 		
 		if (newState != wire.state) {
 			world.setBlockState(wire.pos, newState, 2);
+			
+			updatedWires.add(wire.pos);
 			queueBlockUpdates(wire);
 		}
-		
-		updatedWires.add(wire.pos);
 	}
 	
 	private void queueBlockUpdates(Wire wire) {
@@ -446,60 +431,50 @@ public class RedstoneWireHandler {
 		positions.add(east.east());
 	}
 	
-	private enum NodeType {
-		WIRE, REDSTONE_COMPONENT, SOLID_BLOCK, OTHER;
-	}
-	
-	private class Node {
+	private static class Node {
 		
-		public NodeType type;
-		public BlockPos pos;
-		public BlockState state;
-		
-		public Node() {
-			
+		public enum Type {
+			WIRE, REDSTONE_COMPONENT, SOLID_BLOCK, OTHER;
 		}
 		
-		public void set(NodeType type, BlockPos pos, BlockState state) {
+		public final Type type;
+		public final BlockPos pos;
+		public final BlockState state;
+		
+		public Node(Type type, BlockPos pos, BlockState state) {
 			this.type = type;
 			this.pos = pos;
 			this.state = state;
 		}
 		
 		public boolean isWire() {
-			return type == NodeType.WIRE;
+			return type == Type.WIRE;
 		}
 	}
 	
-	private class Wire extends Node implements Comparable<Wire> {
+	private static class Wire extends Node implements Comparable<Wire> {
 		
 		public final Node[] neighbors;
 		public final List<Wire> connectionsOut;
 		public final List<Wire> connectionsIn;
 		
 		public int power;
+		
 		public boolean inNetwork;
 		public boolean isPowerSource;
 		
-		public Wire() {
-			this.neighbors = new Node[DIRECTIONS.length];
-			this.connectionsOut = new ArrayList<>(4);
-			this.connectionsIn = new ArrayList<>(4);
-		}
-		
-		public void set(BlockPos pos, BlockState state) {
-			super.set(NodeType.WIRE, pos, state);
+		public Wire(BlockPos pos, BlockState state) {
+			super(Type.WIRE, pos, state);
 			
-			if (!state.isOf(wireBlock)) {
-				throw new IllegalArgumentException(String.format("The given BlockState must be of the Block of this wire handler: %s", wireBlock.getClass()));
+			if (!(state.getBlock() instanceof IWireBlock)) {
+				throw new IllegalArgumentException(String.format("The given BlockState must be of a Block that implements %s", IWireBlock.class));
 			}
 			
-			this.connectionsOut.clear();
-			this.connectionsIn.clear();
+			this.neighbors = new Node[DIRECTIONS.length];
+			this.connectionsOut = new ArrayList<>();
+			this.connectionsIn = new ArrayList<>();
 			
-			this.power = state.get(Properties.POWER);
-			this.inNetwork = false;
-			this.isPowerSource = false;
+			this.power = this.state.get(Properties.POWER);
 		}
 		
 		@Override
