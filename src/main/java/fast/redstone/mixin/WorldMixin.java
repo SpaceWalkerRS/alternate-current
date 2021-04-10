@@ -8,8 +8,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import fast.redstone.interfaces.mixin.IChunk;
 import fast.redstone.interfaces.mixin.IWorld;
-import fast.redstone.v1.WireV1;
 import fast.redstone.v1.WireConnectionV1;
+import fast.redstone.v1.WireV1;
+import fast.redstone.v2.WireV2;
 
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
@@ -77,6 +78,46 @@ public abstract class WorldMixin implements IWorld {
 				
 				for (WireConnectionV1 connection : oldWire.getConnections()) {
 					connection.wire.updateConnections();
+				}
+			}
+			if (wire != null) {
+				wire.updateConnections();
+			}
+		}
+	}
+	
+	@Override
+	public WireV2 getWireV2(BlockPos pos) {
+		if (isClient() || isDebugWorld()) {
+			return null;
+		}
+		
+		int x = pos.getX() >> 4;
+		int z = pos.getZ() >> 4;
+		
+		return ((IChunk)getChunk(x, z)).getWireV2(pos);
+	}
+	
+	@Override
+	public void setWireV2(BlockPos pos, WireV2 wire, boolean updateConnections) {
+		if (isClient() || isDebugWorld()) {
+			return;
+		}
+		
+		int x = pos.getX() >> 4;
+		int z = pos.getZ() >> 4;
+		
+		WireV2 oldWire = ((IChunk)getChunk(x, z)).setWireV2(pos, wire);
+		
+		if (updateConnections) {
+			if (oldWire != null) {
+				oldWire.remove();
+				
+				for (WireV2 connectedWire : oldWire.getConnectionsOut()) {
+					connectedWire.updateConnections();
+				}
+				for (WireV2 connectedWire : oldWire.getConnectionsIn()) {
+					connectedWire.updateConnections();
 				}
 			}
 			if (wire != null) {

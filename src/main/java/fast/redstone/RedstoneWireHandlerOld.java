@@ -383,10 +383,28 @@ public class RedstoneWireHandlerOld {
 		BlockState newState = wire.state.with(Properties.POWER, wire.power);
 		
 		if (newState != wire.state) {
-			world.setBlockState(wire.pos, newState, 2);
-			
+			world.setBlockState(wire.pos, newState, 18);
+			emitShapeUpdates(wire);
 			updatedWires.add(wire.pos);
 			queueBlockUpdates(wire);
+		}
+	}
+	
+	private void emitShapeUpdates(Wire wire) {
+		for (int index = 0; index < DIRECTIONS.length; index++) {
+			Node neighbor = wire.neighbors[index];
+			
+			if (!neighbor.isWire()) {
+				Direction dir = DIRECTIONS[index].getOpposite();
+				
+				BlockState oldState = neighbor.state;
+				BlockState newState = oldState.getStateForNeighborUpdate(dir, neighbor.state, world, neighbor.pos, wire.pos);
+				
+				if (newState != oldState) {
+					neighbor.state = newState;
+					Block.replace(oldState, newState, world, neighbor.pos, 2);
+				}
+			}
 		}
 	}
 	
@@ -437,9 +455,9 @@ public class RedstoneWireHandlerOld {
 			WIRE, REDSTONE_COMPONENT, SOLID_BLOCK, OTHER;
 		}
 		
-		public final Type type;
-		public final BlockPos pos;
-		public final BlockState state;
+		public Type type;
+		public BlockPos pos;
+		public BlockState state;
 		
 		public Node(Type type, BlockPos pos, BlockState state) {
 			this.type = type;

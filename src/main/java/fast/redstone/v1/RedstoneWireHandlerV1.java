@@ -119,8 +119,6 @@ public class RedstoneWireHandlerV1 {
 		
 		((IWireBlock)wireBlock).setWiresGivePower(false);
 		
-		poweredWires.add(sourceWire);
-		
 		for (WireV1 wire : wires) {
 			int power = world.getReceivedRedstonePower(wire.getPos());
 			
@@ -145,9 +143,11 @@ public class RedstoneWireHandlerV1 {
 			wire.setPower(power);
 			
 			if (power > 0) {
-				poweredWires.add(wire);
+				addPoweredWire(wire);
 			}
 		}
+		
+		addPoweredWire(sourceWire);
 		
 		wires.clear();
 		
@@ -183,7 +183,7 @@ public class RedstoneWireHandlerV1 {
 				if (connection.out) {
 					WireV1 connectedWire = connection.wire;
 					
-					if (connectedWire.inNetwork() && !connectedWire.isPowerSource()) {
+					if (connectedWire.inNetwork() && (!connectedWire.isPowerSource() || nextPower > connectedWire.getPower())) {
 						connectedWire.setPower(nextPower);
 						addPoweredWire(connectedWire);
 					}
@@ -205,7 +205,8 @@ public class RedstoneWireHandlerV1 {
 		if (newState != oldState) {
 			BlockPos pos = wire.getPos();
 			
-			world.setBlockState(pos, newState, 2);
+			world.setBlockState(pos, newState, 18);
+			newState.updateNeighbors(world, pos, 2);
 			updatedWires.add(pos);
 		}
 	}

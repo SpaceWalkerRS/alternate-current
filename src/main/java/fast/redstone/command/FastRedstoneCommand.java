@@ -54,7 +54,7 @@ public class FastRedstoneCommand {
 	private static int fastRedstone(ServerCommandSource source, int version) {
 		FastRedstoneMod.version = version;
 		
-		if (version < 0 || version > 2) {
+		if (version < 0 || version > 3) {
 			source.sendFeedback(new LiteralText("Disabled fast redstone"), false);
 		} else {
 			source.sendFeedback(new LiteralText("Enabled version " + version + " of fast redstone"), false);
