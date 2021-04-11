@@ -1,7 +1,6 @@
 package fast.redstone.interfaces.mixin;
 
-import fast.redstone.v2.WireV2;
-
+import fast.redstone.Wire;
 import net.minecraft.util.math.BlockPos;
 
 public interface IWorld {
@@ -10,8 +9,8 @@ public interface IWorld {
 	
 	public int getCount();
 	
-	public WireV2 getWire(BlockPos pos);
+	public Wire getWire(BlockPos pos);
 	
-	public void setWire(BlockPos pos, WireV2 wire, boolean updateConnections);
+	public void setWire(BlockPos pos, Wire wire, boolean updateConnections);
 	
 }

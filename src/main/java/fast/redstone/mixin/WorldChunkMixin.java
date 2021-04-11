@@ -4,10 +4,9 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
+import fast.redstone.Wire;
 import fast.redstone.interfaces.mixin.IChunk;
 import fast.redstone.interfaces.mixin.IChunkSection;
-import fast.redstone.v2.WireV2;
-
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.WorldChunk;
@@ -18,7 +17,7 @@ public class WorldChunkMixin implements IChunk {
 	@Shadow @Final private ChunkSection[] sections;
 	
 	@Override
-	public WireV2 getWire(BlockPos pos) {
+	public Wire getWire(BlockPos pos) {
 		ChunkSection section = getSection(pos.getY());
 		
 		if (section == null || ChunkSection.isEmpty(section)) {
@@ -33,7 +32,7 @@ public class WorldChunkMixin implements IChunk {
 	}
 	
 	@Override
-	public WireV2 setWire(BlockPos pos, WireV2 wire) {
+	public Wire setWire(BlockPos pos, Wire wire) {
 		ChunkSection section = getSection(pos.getY());
 		
 		if (ChunkSection.isEmpty(section)) {

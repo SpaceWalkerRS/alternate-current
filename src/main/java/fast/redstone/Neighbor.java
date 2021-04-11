@@ -1,4 +1,4 @@
-package fast.redstone.v2;
+package fast.redstone;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;

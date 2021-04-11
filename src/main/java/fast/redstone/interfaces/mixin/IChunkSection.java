@@ -1,11 +1,11 @@
 package fast.redstone.interfaces.mixin;
 
-import fast.redstone.v2.WireV2;
+import fast.redstone.Wire;
 
 public interface IChunkSection {
 	
-	public WireV2 getWire(int x, int y, int z);
+	public Wire getWire(int x, int y, int z);
 	
-	public WireV2 setWire(int x, int y, int z, WireV2 wire);
+	public Wire setWire(int x, int y, int z, Wire wire);
 	
 }

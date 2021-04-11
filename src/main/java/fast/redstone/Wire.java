@@ -1,4 +1,4 @@
-package fast.redstone.v2;
+package fast.redstone;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,14 +16,14 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
-public class WireV2 implements Comparable<WireV2> {
+public class Wire implements Comparable<Wire> {
 	
 	private final Block wireBlock;
 	private final World world;
 	private final BlockPos pos;
 	private final List<Neighbor> neighbors;
-	private final List<WireV2> connectionsOut;
-	private final List<WireV2> connectionsIn;
+	private final List<Wire> connectionsOut;
+	private final List<Wire> connectionsIn;
 	
 	private BlockState state;
 	private int power;
@@ -32,7 +32,7 @@ public class WireV2 implements Comparable<WireV2> {
 	private boolean inNetwork;
 	private boolean isPowerSource;
 	
-	public WireV2(World world, BlockPos pos, BlockState state) {
+	public Wire(World world, BlockPos pos, BlockState state) {
 		if (!(state.getBlock() instanceof IWireBlock)) {
 			throw new IllegalArgumentException(String.format("The given BlockState must be of a Block that implements %s", IWireBlock.class));
 		}
@@ -49,7 +49,7 @@ public class WireV2 implements Comparable<WireV2> {
 	}
 	
 	@Override
-	public int compareTo(WireV2 wire) {
+	public int compareTo(Wire wire) {
 		return Integer.compare(wire.power, power);
 	}
 	
@@ -73,11 +73,11 @@ public class WireV2 implements Comparable<WireV2> {
 		return new Neighbor(NeighborType.WIRE, pos, state);
 	}
 	
-	public List<WireV2> getConnectionsOut() {
+	public List<Wire> getConnectionsOut() {
 		return Collections.unmodifiableList(connectionsOut);
 	}
 	
-	public List<WireV2> getConnectionsIn() {
+	public List<Wire> getConnectionsIn() {
 		return Collections.unmodifiableList(connectionsIn);
 	}
 	
@@ -138,8 +138,8 @@ public class WireV2 implements Comparable<WireV2> {
 			return;
 		}
 		
-		List<WireV2> oldConnectionsOut = new ArrayList<>(connectionsOut);
-		List<WireV2> oldConnectionsIn = new ArrayList<>(connectionsIn);
+		List<Wire> oldConnectionsOut = new ArrayList<>(connectionsOut);
+		List<Wire> oldConnectionsIn = new ArrayList<>(connectionsIn);
 		
 		connectionsOut.clear();
 		connectionsIn.clear();
@@ -189,7 +189,7 @@ public class WireV2 implements Comparable<WireV2> {
 	}
 	
 	private void addConnection(BlockPos pos, BlockState state, boolean out, boolean in) {
-		WireV2 wire = ((IWireBlock)wireBlock).getWire(world, pos, state, true, false);
+		Wire wire = ((IWireBlock)wireBlock).getWire(world, pos, state, true, false);
 		
 		if (out) {
 			connectionsOut.add(wire);
@@ -199,15 +199,15 @@ public class WireV2 implements Comparable<WireV2> {
 		}
 	}
 	
-	private void connectionsChanged(List<WireV2> oldConnectionsOut, List<WireV2> oldConnectionsIn, int maxDepth) {
-		Set<WireV2> affectedWires = new HashSet<>();
+	private void connectionsChanged(List<Wire> oldConnectionsOut, List<Wire> oldConnectionsIn, int maxDepth) {
+		Set<Wire> affectedWires = new HashSet<>();
 		
 		affectedWires.addAll(CollectionsUtils.difference(oldConnectionsOut, connectionsOut));
 		affectedWires.addAll(CollectionsUtils.difference(oldConnectionsIn, connectionsIn));
 		
 		ignoreUpdates = true;
 		
-		for (WireV2 wire : affectedWires) {
+		for (Wire wire : affectedWires) {
 			wire.updateConnections(maxDepth);
 		}
 		
