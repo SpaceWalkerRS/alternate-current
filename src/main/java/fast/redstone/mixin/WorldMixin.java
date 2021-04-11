@@ -8,8 +8,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import fast.redstone.interfaces.mixin.IChunk;
 import fast.redstone.interfaces.mixin.IWorld;
-import fast.redstone.v1.WireConnectionV1;
-import fast.redstone.v1.WireV1;
 import fast.redstone.v2.WireV2;
 
 import net.minecraft.block.Block;
@@ -50,7 +48,7 @@ public abstract class WorldMixin implements IWorld {
 	}
 	
 	@Override
-	public WireV1 getWireV1(BlockPos pos) {
+	public WireV2 getWire(BlockPos pos) {
 		if (isClient() || isDebugWorld()) {
 			return null;
 		}
@@ -58,11 +56,11 @@ public abstract class WorldMixin implements IWorld {
 		int x = pos.getX() >> 4;
 		int z = pos.getZ() >> 4;
 		
-		return ((IChunk)getChunk(x, z)).getWireV1(pos);
+		return ((IChunk)getChunk(x, z)).getWire(pos);
 	}
 	
 	@Override
-	public void setWireV1(BlockPos pos, WireV1 wire, boolean updateConnections) {
+	public void setWire(BlockPos pos, WireV2 wire, boolean updateConnections) {
 		if (isClient() || isDebugWorld()) {
 			return;
 		}
@@ -70,44 +68,7 @@ public abstract class WorldMixin implements IWorld {
 		int x = pos.getX() >> 4;
 		int z = pos.getZ() >> 4;
 		
-		WireV1 oldWire = ((IChunk)getChunk(x, z)).setWireV1(pos, wire);
-		
-		if (updateConnections) {
-			if (oldWire != null) {
-				oldWire.remove();
-				
-				for (WireConnectionV1 connection : oldWire.getConnections()) {
-					connection.wire.updateConnections();
-				}
-			}
-			if (wire != null) {
-				wire.updateConnections();
-			}
-		}
-	}
-	
-	@Override
-	public WireV2 getWireV2(BlockPos pos) {
-		if (isClient() || isDebugWorld()) {
-			return null;
-		}
-		
-		int x = pos.getX() >> 4;
-		int z = pos.getZ() >> 4;
-		
-		return ((IChunk)getChunk(x, z)).getWireV2(pos);
-	}
-	
-	@Override
-	public void setWireV2(BlockPos pos, WireV2 wire, boolean updateConnections) {
-		if (isClient() || isDebugWorld()) {
-			return;
-		}
-		
-		int x = pos.getX() >> 4;
-		int z = pos.getZ() >> 4;
-		
-		WireV2 oldWire = ((IChunk)getChunk(x, z)).setWireV2(pos, wire);
+		WireV2 oldWire = ((IChunk)getChunk(x, z)).setWire(pos, wire);
 		
 		if (updateConnections) {
 			if (oldWire != null) {

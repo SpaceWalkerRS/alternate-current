@@ -6,7 +6,6 @@ import org.spongepowered.asm.mixin.Shadow;
 
 import fast.redstone.interfaces.mixin.IChunk;
 import fast.redstone.interfaces.mixin.IChunkSection;
-import fast.redstone.v1.WireV1;
 import fast.redstone.v2.WireV2;
 
 import net.minecraft.util.math.BlockPos;
@@ -19,10 +18,10 @@ public class WorldChunkMixin implements IChunk {
 	@Shadow @Final private ChunkSection[] sections;
 	
 	@Override
-	public WireV1 getWireV1(BlockPos pos) {
+	public WireV2 getWire(BlockPos pos) {
 		ChunkSection section = getSection(pos.getY());
 		
-		if (ChunkSection.isEmpty(section)) {
+		if (section == null || ChunkSection.isEmpty(section)) {
 			return null;
 		}
 		
@@ -30,11 +29,11 @@ public class WorldChunkMixin implements IChunk {
 		int y = pos.getY() & 15;
 		int z = pos.getZ() & 15;
 		
-		return ((IChunkSection)section).getWireV1(x, y, z);
+		return ((IChunkSection)section).getWire(x, y, z);
 	}
 	
 	@Override
-	public WireV1 setWireV1(BlockPos pos, WireV1 wire) {
+	public WireV2 setWire(BlockPos pos, WireV2 wire) {
 		ChunkSection section = getSection(pos.getY());
 		
 		if (ChunkSection.isEmpty(section)) {
@@ -45,37 +44,7 @@ public class WorldChunkMixin implements IChunk {
 		int y = pos.getY() & 15;
 		int z = pos.getZ() & 15;
 		
-		return ((IChunkSection)section).setWireV1(x, y, z, wire);
-	}
-	
-	@Override
-	public WireV2 getWireV2(BlockPos pos) {
-		ChunkSection section = getSection(pos.getY());
-		
-		if (ChunkSection.isEmpty(section)) {
-			return null;
-		}
-		
-		int x = pos.getX() & 15;
-		int y = pos.getY() & 15;
-		int z = pos.getZ() & 15;
-		
-		return ((IChunkSection)section).getWireV2(x, y, z);
-	}
-	
-	@Override
-	public WireV2 setWireV2(BlockPos pos, WireV2 wire) {
-		ChunkSection section = getSection(pos.getY());
-		
-		if (ChunkSection.isEmpty(section)) {
-			return null;
-		}
-		
-		int x = pos.getX() & 15;
-		int y = pos.getY() & 15;
-		int z = pos.getZ() & 15;
-		
-		return ((IChunkSection)section).setWireV2(x, y, z, wire);
+		return ((IChunkSection)section).setWire(x, y, z, wire);
 	}
 	
 	private ChunkSection getSection(int y) {

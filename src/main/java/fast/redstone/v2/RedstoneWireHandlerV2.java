@@ -47,7 +47,7 @@ public class RedstoneWireHandlerV2 {
 	
 	public RedstoneWireHandlerV2(Block wireBlock) {
 		if (!(wireBlock instanceof IWireBlock)) {
-			throw new IllegalArgumentException(String.format("The given Block must implement %s", IWireBlock.class));
+			throw new IllegalArgumentException(String.format("The given Block (%s) does not implement %s", wireBlock, IWireBlock.class));
 		}
 		
 		this.wireBlock = wireBlock;
@@ -359,39 +359,41 @@ public class RedstoneWireHandlerV2 {
 	}
 	
 	public void collectNeighborPositions(BlockPos pos, Collection<BlockPos> positions) {
-		BlockPos down = pos.down();
-		BlockPos up = pos.up();
-		BlockPos north = pos.north();
-		BlockPos south = pos.south();
 		BlockPos west = pos.west();
 		BlockPos east = pos.east();
+		BlockPos north = pos.north();
+		BlockPos south = pos.south();
+		BlockPos down = pos.down();
+		BlockPos up = pos.up();
 		
-		positions.add(down);
-		positions.add(up);
-		positions.add(north);
-		positions.add(south);
+		// Direct neighbors
 		positions.add(west);
 		positions.add(east);
+		positions.add(north);
+		positions.add(south);
+		positions.add(down);
+		positions.add(up);
 		
-		positions.add(down.north());
-		positions.add(up.south());
-		positions.add(down.south());
-		positions.add(up.north());
-		positions.add(down.west());
-		positions.add(up.east());
-		positions.add(down.east());
-		positions.add(up.west());
-		
-		positions.add(north.west());
-		positions.add(south.east());
+		// Diagonal neighbors
+		positions.add(west.north());
+		positions.add(east.south());
 		positions.add(west.south());
 		positions.add(east.north());
+		positions.add(west.down());
+		positions.add(east.up());
+		positions.add(west.up());
+		positions.add(east.down());
+		positions.add(north.down());
+		positions.add(south.up());
+		positions.add(north.up());
+		positions.add(south.down());
 		
-		positions.add(down.down());
-		positions.add(up.up());
-		positions.add(north.north());
-		positions.add(south.south());
+		// Neighbors 2 out in each direction
 		positions.add(west.west());
 		positions.add(east.east());
+		positions.add(north.north());
+		positions.add(south.south());
+		positions.add(down.down());
+		positions.add(up.up());
 	}
 }

@@ -130,6 +130,10 @@ public class WireV2 implements Comparable<WireV2> {
 	}
 	
 	public void updateConnections() {
+		updateConnections(512);
+	}
+	
+	public void updateConnections(int maxDepth) {
 		if (ignoreUpdates) {
 			return;
 		}
@@ -179,11 +183,13 @@ public class WireV2 implements Comparable<WireV2> {
 			}
 		}
 		
-		connectionsChanged(oldConnectionsOut, oldConnectionsIn);
+		if (maxDepth-- > 0) {
+			connectionsChanged(oldConnectionsOut, oldConnectionsIn, maxDepth);
+		}
 	}
 	
 	private void addConnection(BlockPos pos, BlockState state, boolean out, boolean in) {
-		WireV2 wire = ((IWireBlock)wireBlock).getWireV2(world, pos, state, true, false);
+		WireV2 wire = ((IWireBlock)wireBlock).getWire(world, pos, state, true, false);
 		
 		if (out) {
 			connectionsOut.add(wire);
@@ -193,7 +199,7 @@ public class WireV2 implements Comparable<WireV2> {
 		}
 	}
 	
-	private void connectionsChanged(List<WireV2> oldConnectionsOut, List<WireV2> oldConnectionsIn) {
+	private void connectionsChanged(List<WireV2> oldConnectionsOut, List<WireV2> oldConnectionsIn, int maxDepth) {
 		Set<WireV2> affectedWires = new HashSet<>();
 		
 		affectedWires.addAll(CollectionsUtils.difference(oldConnectionsOut, connectionsOut));
@@ -202,7 +208,7 @@ public class WireV2 implements Comparable<WireV2> {
 		ignoreUpdates = true;
 		
 		for (WireV2 wire : affectedWires) {
-			wire.updateConnections();
+			wire.updateConnections(maxDepth);
 		}
 		
 		ignoreUpdates = false;

@@ -8,14 +8,8 @@ import net.fabricmc.api.ModInitializer;
 public class FastRedstoneMod implements ModInitializer {
 	
 	public static final Logger LOGGER = LogManager.getLogger("Fast Redstone");
-	public static final int MAIN = 0;
-	public static final int V1 = 1;
-	public static final int NEW = 2;
-	public static final int V2 = 3;
 	
-	//public static boolean ENABLED;
-	
-	public static int version = -1;
+	public static boolean ENABLED = true;
 	
 	@Override
 	public void onInitialize() {
