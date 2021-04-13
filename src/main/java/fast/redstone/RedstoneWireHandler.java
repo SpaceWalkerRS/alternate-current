@@ -21,7 +21,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
-public class RedstoneWireHandlerV2 {
+public class RedstoneWireHandler {
 	
 	public final int MAX_POWER = 15;
 	
@@ -36,7 +36,7 @@ public class RedstoneWireHandlerV2 {
 	private World world;
 	private boolean updatingPower;
 	
-	public RedstoneWireHandlerV2(Block wireBlock) {
+	public RedstoneWireHandler(Block wireBlock) {
 		if (!(wireBlock instanceof IWireBlock)) {
 			throw new IllegalArgumentException(String.format("The given Block (%s) does not implement %s", wireBlock, IWireBlock.class));
 		}

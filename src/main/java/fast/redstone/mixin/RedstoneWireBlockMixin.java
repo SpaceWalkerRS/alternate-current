@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import fast.redstone.FastRedstoneMod;
 import fast.redstone.NeighborType;
 import fast.redstone.Neighbor;
-import fast.redstone.RedstoneWireHandlerV2;
+import fast.redstone.RedstoneWireHandler;
 import fast.redstone.Wire;
 import fast.redstone.interfaces.mixin.IWireBlock;
 import fast.redstone.interfaces.mixin.IWorld;
@@ -33,7 +33,7 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 	
 	@Shadow private boolean wiresGivePower;
 	
-	RedstoneWireHandlerV2 wireHandler;
+	RedstoneWireHandler wireHandler;
 	
 	@Inject(
 			method = "<init>",
@@ -42,7 +42,7 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 			)
 	)
 	private void onInitInjectAtReturn(Settings settings, CallbackInfo ci) {
-		wireHandler = new RedstoneWireHandlerV2((Block)(Object)this);
+		wireHandler = new RedstoneWireHandler((Block)(Object)this);
 	}
 	
 	@Inject(
