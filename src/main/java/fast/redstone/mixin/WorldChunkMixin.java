@@ -17,7 +17,18 @@ public class WorldChunkMixin implements IChunk {
 	@Shadow @Final private ChunkSection[] sections;
 	
 	@Override
-	public Wire getWire(BlockPos pos) {
+	public void clearWires() {
+		for (ChunkSection section : sections) {
+			if (section == null || ChunkSection.isEmpty(section)) {
+				continue;
+			}
+			
+			((IChunkSection)section).clearWires();
+		}
+	}
+	
+	@Override
+	public Wire getWireV2(BlockPos pos) {
 		ChunkSection section = getSection(pos.getY());
 		
 		if (section == null || ChunkSection.isEmpty(section)) {
@@ -28,11 +39,11 @@ public class WorldChunkMixin implements IChunk {
 		int y = pos.getY() & 15;
 		int z = pos.getZ() & 15;
 		
-		return ((IChunkSection)section).getWire(x, y, z);
+		return ((IChunkSection)section).getWireV2(x, y, z);
 	}
 	
 	@Override
-	public Wire setWire(BlockPos pos, Wire wire) {
+	public Wire setWireV2(BlockPos pos, Wire wire) {
 		ChunkSection section = getSection(pos.getY());
 		
 		if (ChunkSection.isEmpty(section)) {
@@ -43,7 +54,7 @@ public class WorldChunkMixin implements IChunk {
 		int y = pos.getY() & 15;
 		int z = pos.getZ() & 15;
 		
-		return ((IChunkSection)section).setWire(x, y, z, wire);
+		return ((IChunkSection)section).setWireV2(x, y, z, wire);
 	}
 	
 	private ChunkSection getSection(int y) {

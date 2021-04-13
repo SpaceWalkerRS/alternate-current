@@ -47,7 +47,7 @@ public abstract class WorldMixin implements IWorld {
 	}
 	
 	@Override
-	public Wire getWire(BlockPos pos) {
+	public Wire getWireV2(BlockPos pos) {
 		if (isClient() || isDebugWorld()) {
 			return null;
 		}
@@ -55,7 +55,7 @@ public abstract class WorldMixin implements IWorld {
 		int x = pos.getX() >> 4;
 		int z = pos.getZ() >> 4;
 		
-		return ((IChunk)getChunk(x, z)).getWire(pos);
+		return ((IChunk)getChunk(x, z)).getWireV2(pos);
 	}
 	
 	@Override
@@ -67,17 +67,25 @@ public abstract class WorldMixin implements IWorld {
 		int x = pos.getX() >> 4;
 		int z = pos.getZ() >> 4;
 		
-		Wire oldWire = ((IChunk)getChunk(x, z)).setWire(pos, wire);
+		Wire oldWire = ((IChunk)getChunk(x, z)).setWireV2(pos, wire);
 		
 		if (updateConnections) {
 			if (oldWire != null) {
-				oldWire.remove();
+				oldWire.removed();
 				
-				for (Wire connectedWire : oldWire.getConnectionsOut()) {
-					connectedWire.updateConnections();
+				for (BlockPos neighborPos : oldWire.connectionsOut) {
+					Wire connectedWire = getWireV2(neighborPos);
+					
+					if (connectedWire != null) {
+						connectedWire.updateConnections();
+					}
 				}
-				for (Wire connectedWire : oldWire.getConnectionsIn()) {
-					connectedWire.updateConnections();
+				for (BlockPos neighborPos : oldWire.connectionsIn) {
+					Wire connectedWire = getWireV2(neighborPos);
+					
+					if (connectedWire != null) {
+						connectedWire.updateConnections();
+					}
 				}
 			}
 			if (wire != null) {

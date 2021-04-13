@@ -5,8 +5,10 @@ import net.minecraft.util.math.BlockPos;
 
 public interface IChunk {
 	
-	public Wire getWire(BlockPos pos);
+	public void clearWires();
 	
-	public Wire setWire(BlockPos pos, Wire wire);
+	public Wire getWireV2(BlockPos pos);
+	
+	public Wire setWireV2(BlockPos pos, Wire wire);
 	
 }

@@ -6,10 +6,13 @@
   "mixins": [
   	"ChunkSectionMixin",
   	"CommandManagerMixin",
+  	"MinecraftServerMixin",
   	"RedstoneWireBlockMixin",
+  	"ServerChunkManagerMixin",
+  	"ServerWorldMixin",
+  	"ThreadedAnvilChunkStorageMixin",
   	"WorldChunkMixin",
-  	"WorldMixin",
-  	"ServerWorldMixin"
+  	"WorldMixin"
   ],
   "client": [
   ],

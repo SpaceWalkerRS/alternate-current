@@ -9,7 +9,7 @@ public interface IWorld {
 	
 	public int getCount();
 	
-	public Wire getWire(BlockPos pos);
+	public Wire getWireV2(BlockPos pos);
 	
 	public void setWire(BlockPos pos, Wire wire, boolean updateConnections);
 	

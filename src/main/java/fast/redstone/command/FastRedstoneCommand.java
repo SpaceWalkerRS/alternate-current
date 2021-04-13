@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import fast.redstone.FastRedstoneMod;
+import fast.redstone.interfaces.mixin.IMinecraftServer;
 
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -14,13 +15,14 @@ public class FastRedstoneCommand {
 	public static void registerCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
 		LiteralArgumentBuilder<ServerCommandSource> builder = CommandManager.
 			literal("fastredstone").
-			requires(source -> source.hasPermissionLevel(2)).
 			executes(context -> query(context.getSource())).
 			then(CommandManager.
 				literal("enable").
+				requires(source -> source.hasPermissionLevel(2)).
 				executes(context -> fastRedstone(context.getSource(), true))).
 			then(CommandManager.
 				literal("disable").
+				requires(source -> source.hasPermissionLevel(2)).
 				executes(context -> fastRedstone(context.getSource(), false)));
 		
 		dispatcher.register(builder);
@@ -37,6 +39,10 @@ public class FastRedstoneCommand {
 			source.sendFeedback(new LiteralText(String.format("Fast Redstone is already %s!", enable ? "enabled" : "disabled")), false);
 		} else {
 			FastRedstoneMod.ENABLED = enable;
+			
+			if (!enable) {
+				((IMinecraftServer)source.getMinecraftServer()).clearWires();
+			}
 			
 			source.sendFeedback(new LiteralText(String.format("Fast Redstone has been %s!", enable ? "enabled" : "disabled")), false);
 		}

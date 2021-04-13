@@ -1,14 +1,13 @@
 package fast.redstone;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import fast.redstone.interfaces.mixin.IWireBlock;
 import fast.redstone.utils.CollectionsUtils;
-
+import fast.redstone.utils.Directions;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.state.property.Properties;
@@ -18,34 +17,37 @@ import net.minecraft.world.World;
 
 public class Wire implements Comparable<Wire> {
 	
-	private final Block wireBlock;
-	private final World world;
-	private final BlockPos pos;
-	private final List<Neighbor> neighbors;
-	private final List<Wire> connectionsOut;
-	private final List<Wire> connectionsIn;
+	public final Block wireBlock;
+	public final World world;
+	public final BlockPos pos;
+	public final Neighbor[] neighbors;
+	public final List<BlockPos> connectionsOut;
+	public final List<BlockPos> connectionsIn;
 	
-	private BlockState state;
-	private int power;
+	public BlockState state;
+	public int power;
 	
-	private boolean ignoreUpdates;
-	private boolean inNetwork;
-	private boolean isPowerSource;
+	public boolean ignoreUpdates;
+	public boolean inNetwork;
+	public boolean isPowerSource;
 	
 	public Wire(World world, BlockPos pos, BlockState state) {
-		if (!(state.getBlock() instanceof IWireBlock)) {
-			throw new IllegalArgumentException(String.format("The given BlockState must be of a Block that implements %s", IWireBlock.class));
+		Block wireBlock = state.getBlock();
+		
+		if (!(wireBlock instanceof IWireBlock)) {
+			throw new IllegalArgumentException(String.format("The given BlockState is of a Block (%s) that does not implement %s", wireBlock, IWireBlock.class));
 		}
 		
-		this.wireBlock = state.getBlock();
+		this.wireBlock = wireBlock;
+		
 		this.world = world;
 		this.pos = pos.toImmutable(); // Sometimes this BlockPos is actually a Mutable...
-		this.neighbors = new ArrayList<>();
+		this.neighbors = new Neighbor[Directions.ALL.length];
 		this.connectionsOut = new ArrayList<>();
 		this.connectionsIn = new ArrayList<>();
 		
 		this.state = state;
-		this.power = state.get(Properties.POWER);
+		this.power = this.state.get(Properties.POWER);
 	}
 	
 	@Override
@@ -53,80 +55,12 @@ public class Wire implements Comparable<Wire> {
 		return Integer.compare(wire.power, power);
 	}
 	
-	public Block getWireBlock() {
-		return wireBlock;
-	}
-	
-	public World getWorld() {
-		return world;
-	}
-	
-	public BlockPos getPos() {
-		return pos;
-	}
-	
-	public List<Neighbor> getNeighbors() {
-		return neighbors;
-	}
-	
 	public Neighbor asNeighbor() {
 		return new Neighbor(NeighborType.WIRE, pos, state);
 	}
 	
-	public List<Wire> getConnectionsOut() {
-		return Collections.unmodifiableList(connectionsOut);
-	}
-	
-	public List<Wire> getConnectionsIn() {
-		return Collections.unmodifiableList(connectionsIn);
-	}
-	
-	public BlockState getState() {
-		return state;
-	}
-	
-	public void updateState(BlockState state) {
-		if (!state.isOf(wireBlock)) {
-			throw new IllegalArgumentException(String.format("The given BlockState must be of block %s", wireBlock.getClass()));
-		}
-		
-		this.state = state;
-	}
-	
-	public int getPower() {
-		return power;
-	}
-	
-	public void setPower(int power) {
-		this.power = power;
-	}
-	
-	public void remove() {
-		this.ignoreUpdates = true;
-	}
-	
-	public boolean inNetwork() {
-		return inNetwork;
-	}
-	
-	public void addToNetwork() {
-		inNetwork = true;
-	}
-	
-	public void removeFromNetwork() {
-		inNetwork = false;
-	}
-	
-	public boolean isPowerSource() {
-		return isPowerSource;
-	}
-	
-	public void addPowerSource() {
-		isPowerSource = true;
-	}
-	
-	public void removePowerSource() {
-		isPowerSource = false;
+	public void removed() {
+		ignoreUpdates = true;
 	}
 	
 	public void updateConnections() {
@@ -134,51 +68,53 @@ public class Wire implements Comparable<Wire> {
 	}
 	
 	public void updateConnections(int maxDepth) {
-		if (ignoreUpdates) {
-			return;
+		if (!ignoreUpdates) {
+			collectNeighbors();
+			findConnections(maxDepth);
 		}
-		
-		List<Wire> oldConnectionsOut = new ArrayList<>(connectionsOut);
-		List<Wire> oldConnectionsIn = new ArrayList<>(connectionsIn);
-		
+	}
+	
+	public void findConnections() {
+		findConnections(512);
+	}
+	
+	public void findConnections(int maxDepth) {
+		List<BlockPos> oldConnectionsOut = new ArrayList<>(connectionsOut);
+		List<BlockPos> oldConnectionsIn = new ArrayList<>(connectionsOut);
 		connectionsOut.clear();
 		connectionsIn.clear();
 		
-		for (Direction dir : Direction.Type.HORIZONTAL) {
-			BlockPos side = pos.offset(dir);
-			BlockState sideState = world.getBlockState(side);
+		Neighbor belowNeighbor = neighbors[Directions.DOWN];
+		Neighbor aboveNeighbor = neighbors[Directions.UP];
+		boolean belowIsSolid = (belowNeighbor.type == NeighborType.SOLID_BLOCK);
+		boolean aboveIsSolid = (aboveNeighbor.type == NeighborType.SOLID_BLOCK);
+		
+		for (int index = 0; index < Directions.HORIZONTAL.length; index++) {
+			Neighbor neighbor = neighbors[index];
+			BlockPos side = neighbor.pos;
 			
-			if (sideState.isOf(wireBlock)) {
-				addConnection(side, sideState, true, true);
+			if (neighbor.type == NeighborType.WIRE) {
+				addConnection(side, true, true);
 				
 				continue;
 			}
 			
-			boolean sideIsSolid = sideState.isSolidBlock(world, side);
+			boolean sideIsSolid = (neighbor.type == NeighborType.SOLID_BLOCK);
 			
-			BlockPos above = pos.up();
-			BlockState aboveState = world.getBlockState(above);
-			
-			if (!aboveState.isSolidBlock(world, above)) {
+			if (!aboveIsSolid) {
 				BlockPos aboveSide = side.up();
 				BlockState aboveSideState = world.getBlockState(aboveSide);
 				
 				if (aboveSideState.isOf(wireBlock)) {
-					addConnection(aboveSide, aboveSideState, true, sideIsSolid);
+					addConnection(aboveSide, true, sideIsSolid);
 				}
 			}
-			
 			if (!sideIsSolid) {
 				BlockPos belowSide = side.down();
 				BlockState belowSideState = world.getBlockState(belowSide);
 				
 				if (belowSideState.isOf(wireBlock)) {
-					BlockPos below = pos.down();
-					BlockState belowState = world.getBlockState(below);
-					
-					boolean belowIsSolid = belowState.isSolidBlock(world, below);
-					
-					addConnection(belowSide, belowSideState, belowIsSolid, true);
+					addConnection(belowSide, belowIsSolid, true);
 				}
 			}
 		}
@@ -188,27 +124,39 @@ public class Wire implements Comparable<Wire> {
 		}
 	}
 	
-	private void addConnection(BlockPos pos, BlockState state, boolean out, boolean in) {
-		Wire wire = ((IWireBlock)wireBlock).getWire(world, pos, state, true, false);
-		
-		if (out) {
-			connectionsOut.add(wire);
-		}
-		if (in) {
-			connectionsIn.add(wire);
+	public void collectNeighbors() {
+		for (int index = 0; index < Directions.ALL.length; index++) {
+			Direction dir = Directions.ALL[index];
+			BlockPos side = pos.offset(dir);
+			BlockState state = world.getBlockState(side);
+			
+			neighbors[index] = Neighbor.of(world, side, state, wireBlock);
 		}
 	}
 	
-	private void connectionsChanged(List<Wire> oldConnectionsOut, List<Wire> oldConnectionsIn, int maxDepth) {
-		Set<Wire> affectedWires = new HashSet<>();
+	private void addConnection(BlockPos pos, boolean out, boolean in) {
+		if (out) {
+			connectionsOut.add(pos);
+		}
+		if (in) {
+			connectionsIn.add(pos);
+		}
+	}
+	
+	private void connectionsChanged(List<BlockPos> oldConnectionsOut, List<BlockPos> oldConnectionsIn, int maxDepth) {
+		Set<BlockPos> affectedWires = new HashSet<>();
 		
 		affectedWires.addAll(CollectionsUtils.difference(oldConnectionsOut, connectionsOut));
 		affectedWires.addAll(CollectionsUtils.difference(oldConnectionsIn, connectionsIn));
 		
 		ignoreUpdates = true;
 		
-		for (Wire wire : affectedWires) {
-			wire.updateConnections(maxDepth);
+		for (BlockPos pos : affectedWires) {
+			Wire wire = ((IWireBlock)wireBlock).getWire(world, pos, true, false);
+			
+			if (wire != null) {
+				wire.updateConnections(maxDepth);
+			}
 		}
 		
 		ignoreUpdates = false;

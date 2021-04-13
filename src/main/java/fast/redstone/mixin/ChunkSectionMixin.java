@@ -1,5 +1,7 @@
 package fast.redstone.mixin;
 
+import java.util.Arrays;
+
 import org.spongepowered.asm.mixin.Mixin;
 
 import fast.redstone.Wire;
@@ -11,17 +13,33 @@ public class ChunkSectionMixin implements IChunkSection {
 	
 	private final Wire[] wiresV2 = new Wire[4096];
 	
+	private int wireV2Count;
+	
 	@Override
-	public Wire getWire(int x, int y, int z) {
+	public void clearWires() {
+		if (wireV2Count > 0) {
+			Arrays.fill(wiresV2, null);
+		}
+	}
+	
+	@Override
+	public Wire getWireV2(int x, int y, int z) {
 		return wiresV2[toIndex(x, y, z)];
 	}
 	
 	@Override
-	public Wire setWire(int x, int y, int z, Wire wire) {
+	public Wire setWireV2(int x, int y, int z, Wire wire) {
 		int index = toIndex(x, y, z);
 		
 		Wire oldWire = wiresV2[index];
 		wiresV2[index] = wire;
+		
+		if (oldWire != null) {
+			wireV2Count--;
+		}
+		if (wire != null) {
+			wireV2Count++;
+		}
 		
 		return oldWire;
 	}
