@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import fast.redstone.FastRedstoneMod;
-import fast.redstone.NeighborType;
 import fast.redstone.Neighbor;
+import fast.redstone.NeighborType;
 import fast.redstone.RedstoneWireHandler;
 import fast.redstone.Wire;
 import fast.redstone.interfaces.mixin.IWireBlock;
@@ -128,7 +128,7 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 	
 	@Override
 	public Wire getWire(World world, BlockPos pos, boolean orCreate, boolean updateConnections) {
-		Wire wire = ((IWorld)world).getWireV2(pos);
+		Wire wire = ((IWorld)world).getWire(pos);
 		
 		if (orCreate && wire == null) {
 			BlockState state = world.getBlockState(pos);

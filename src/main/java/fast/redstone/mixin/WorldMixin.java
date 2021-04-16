@@ -47,7 +47,7 @@ public abstract class WorldMixin implements IWorld {
 	}
 	
 	@Override
-	public Wire getWireV2(BlockPos pos) {
+	public Wire getWire(BlockPos pos) {
 		if (isClient() || isDebugWorld()) {
 			return null;
 		}
@@ -74,14 +74,14 @@ public abstract class WorldMixin implements IWorld {
 				oldWire.removed();
 				
 				for (BlockPos neighborPos : oldWire.connectionsOut) {
-					Wire connectedWire = getWireV2(neighborPos);
+					Wire connectedWire = getWire(neighborPos);
 					
 					if (connectedWire != null) {
 						connectedWire.updateConnections();
 					}
 				}
 				for (BlockPos neighborPos : oldWire.connectionsIn) {
-					Wire connectedWire = getWireV2(neighborPos);
+					Wire connectedWire = getWire(neighborPos);
 					
 					if (connectedWire != null) {
 						connectedWire.updateConnections();

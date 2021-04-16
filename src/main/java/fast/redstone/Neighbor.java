@@ -7,17 +7,22 @@ import net.minecraft.world.World;
 
 public class Neighbor {
 	
-	public final NeighborType type;
-	public final BlockPos pos;
-	public final BlockState state;
+	public NeighborType type;
+	public BlockPos pos;
+	public BlockState state;
 	
-	public Neighbor(NeighborType type, BlockPos pos, BlockState state) {
-		this.type = type;
-		this.pos = pos;
-		this.state = state;
+	public Neighbor() {
+		
 	}
 	
 	public static Neighbor of(World world, BlockPos pos, BlockState state, Block wireBlock) {
+		Neighbor neighbor = new Neighbor();
+		neighbor.update(world, pos, state, wireBlock);
+		
+		return neighbor;
+	}
+	
+	public void update(World world, BlockPos pos, BlockState state, Block wireBlock) {
 		NeighborType type;
 		
 		if (state.isOf(wireBlock)) {
@@ -30,6 +35,12 @@ public class Neighbor {
 			type = NeighborType.OTHER;
 		}
 		
-		return new Neighbor(type, pos, state);
+		update(type, pos, state);
+	}
+	
+	public void update(NeighborType type, BlockPos pos, BlockState state) {
+		this.type = type;
+		this.pos = pos;
+		this.state = state;
 	}
 }

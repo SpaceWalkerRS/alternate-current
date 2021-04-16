@@ -10,7 +10,6 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 
-import fast.redstone.interfaces.mixin.IWireBlock;
 import fast.redstone.interfaces.mixin.IWorld;
 import fast.redstone.utils.Directions;
 
@@ -37,10 +36,6 @@ public class RedstoneWireHandler {
 	private boolean updatingPower;
 	
 	public RedstoneWireHandler(Block wireBlock) {
-		if (!(wireBlock instanceof IWireBlock)) {
-			throw new IllegalArgumentException(String.format("The given Block (%s) does not implement %s", wireBlock, IWireBlock.class));
-		}
-		
 		this.wireBlock = wireBlock;
 		
 		this.network = new ArrayList<>();
@@ -62,6 +57,7 @@ public class RedstoneWireHandler {
 			return;
 		}
 		long s = System.nanoTime();
+		
 		world = wire.world;
 		
 		buildNetwork(wire);
@@ -93,7 +89,7 @@ public class RedstoneWireHandler {
 		System.out.println("building network");
 		long start = System.nanoTime();
 		
-		addWire(sourceWire);
+		addWire(sourceWire.pos);
 		addToNetwork(sourceWire);
 		
 		for (int index = 0; index < network.size(); index++) {
@@ -122,14 +118,21 @@ public class RedstoneWireHandler {
 	}
 	
 	private Wire addWire(BlockPos pos) {
-		Wire wire = ((IWorld)world).getWireV2(pos);
-		return wire == null ? null : addWire(wire);
+		Wire wire = ((IWorld)world).getWire(pos);
+		
+		if (wire == null) {
+			return null;
+		}
+		
+		Neighbor neighbor = new Neighbor();
+		neighbor.update(NeighborType.WIRE, wire.pos, wire.state);
+		addNeighbor(neighbor);
+		
+		return addWire(wire);
 	}
 	
 	private Wire addWire(Wire wire) {
 		wires.put(wire.pos, wire);
-		addNeighbor(wire.asNeighbor());
-		
 		return wire;
 	}
 	
@@ -161,13 +164,17 @@ public class RedstoneWireHandler {
 	}
 	
 	private Neighbor addNeighbor(BlockPos pos, BlockState state) {
-		Neighbor neighbor = addNeighbor(Neighbor.of(world, pos, state, wireBlock));
+		Neighbor neighbor = Neighbor.of(world, pos, state, wireBlock);
 		
 		if (neighbor.type == NeighborType.WIRE) {
-			addWire(pos);
+			Wire wire = ((IWorld)world).getWire(pos);
+			
+			if (wire != null) {
+				addWire(wire);
+			}
 		}
 		
-		return neighbor;
+		return addNeighbor(neighbor);
 	}
 	
 	private Neighbor addNeighbor(Neighbor neighbor) {

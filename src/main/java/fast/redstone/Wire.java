@@ -52,11 +52,21 @@ public class Wire implements Comparable<Wire> {
 	
 	@Override
 	public int compareTo(Wire wire) {
-		return Integer.compare(wire.power, power);
-	}
-	
-	public Neighbor asNeighbor() {
-		return new Neighbor(NeighborType.WIRE, pos, state);
+		int c = Integer.compare(wire.power, power);
+		
+		if (c == 0) {
+			c = Integer.compare(pos.getX(), wire.pos.getX());
+			
+			if (c == 0) {
+				c = Integer.compare(pos.getZ(), wire.pos.getZ());
+				
+				if (c == 0) {
+					c = Integer.compare(pos.getY(), wire.pos.getY());
+				}
+			}
+		}
+		
+		return c;
 	}
 	
 	public void removed() {
