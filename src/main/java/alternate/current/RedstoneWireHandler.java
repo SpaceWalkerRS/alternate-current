@@ -12,6 +12,7 @@ import java.util.Set;
 
 import alternate.current.interfaces.mixin.IWorld;
 import alternate.current.utils.Directions;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.state.property.Properties;
@@ -350,7 +351,7 @@ public class RedstoneWireHandler {
 			BlockPos side = pos.offset(dir);
 			BlockState oldState = world.getBlockState(side);
 			
-			if (oldState.isOf(wireBlock) && wires.containsKey(side)) {
+			if (oldState.isOf(wireBlock)) {
 				continue;
 			}
 			

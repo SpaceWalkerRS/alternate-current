@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.brigadier.CommandDispatcher;
 
-import alternate.current.command.FastRedstoneCommand;
+import alternate.current.command.AlternateCurrentCommand;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 
@@ -20,6 +20,6 @@ public class CommandManagerMixin {
 	
 	@Inject(method="<init>", at = @At("RETURN"))
 	private void registerCommands(CommandManager.RegistrationEnvironment environment, CallbackInfo ci) {
-		FastRedstoneCommand.registerCommand(dispatcher);
+		AlternateCurrentCommand.registerCommand(dispatcher);
 	}
 }

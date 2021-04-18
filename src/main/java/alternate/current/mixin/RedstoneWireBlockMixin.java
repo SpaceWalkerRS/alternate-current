@@ -17,7 +17,9 @@ import alternate.current.RedstoneWireHandler;
 import alternate.current.Wire;
 import alternate.current.interfaces.mixin.IWireBlock;
 import alternate.current.interfaces.mixin.IWorld;
+import alternate.current.redstone.WireHandler;
 import alternate.current.utils.Directions;
+
 import net.minecraft.block.AbstractBlock.Settings;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -33,6 +35,7 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 	@Shadow private boolean wiresGivePower;
 	
 	RedstoneWireHandler wireHandler;
+	WireHandler wireHandler2;
 	
 	@Inject(
 			method = "<init>",
@@ -42,6 +45,7 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 	)
 	private void onInitInjectAtReturn(Settings settings, CallbackInfo ci) {
 		wireHandler = new RedstoneWireHandler((Block)(Object)this);
+		wireHandler2 = new WireHandler((Block)(Object)this);
 	}
 	
 	@Inject(
@@ -122,6 +126,8 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 			tryUpdatePower(wire);
 			
 			ci.cancel();
+		} else {
+			wireHandler2.updatePower(world, pos, state);
 		}
 	}
 	

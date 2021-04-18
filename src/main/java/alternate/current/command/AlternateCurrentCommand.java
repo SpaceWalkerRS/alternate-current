@@ -5,15 +5,16 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import alternate.current.AlternateCurrentMod;
 import alternate.current.interfaces.mixin.IMinecraftServer;
+
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.LiteralText;
 
-public class FastRedstoneCommand {
+public class AlternateCurrentCommand {
 	
 	public static void registerCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
 		LiteralArgumentBuilder<ServerCommandSource> builder = CommandManager.
-			literal("fastredstone").
+			literal("alternatecurrent").
 			executes(context -> query(context.getSource())).
 			then(CommandManager.
 				literal("enable").
@@ -28,14 +29,14 @@ public class FastRedstoneCommand {
 	}
 	
 	private static int query(ServerCommandSource source) {
-		source.sendFeedback(new LiteralText(String.format("Fast Redstone is currently %s", AlternateCurrentMod.ENABLED ? "enabled" : "disabled")), false);
+		source.sendFeedback(new LiteralText(String.format("Alternate Current is currently %s", AlternateCurrentMod.ENABLED ? "enabled" : "disabled")), false);
 		
 		return 1;
 	}
 	
 	private static int fastRedstone(ServerCommandSource source, boolean enable) {
 		if (enable == AlternateCurrentMod.ENABLED) {
-			source.sendFeedback(new LiteralText(String.format("Fast Redstone is already %s!", enable ? "enabled" : "disabled")), false);
+			source.sendFeedback(new LiteralText(String.format("Alternate Current is already %s!", enable ? "enabled" : "disabled")), false);
 		} else {
 			AlternateCurrentMod.ENABLED = enable;
 			
@@ -43,7 +44,7 @@ public class FastRedstoneCommand {
 				((IMinecraftServer)source.getMinecraftServer()).clearWires();
 			}
 			
-			source.sendFeedback(new LiteralText(String.format("Fast Redstone has been %s!", enable ? "enabled" : "disabled")), false);
+			source.sendFeedback(new LiteralText(String.format("Alternate Current has been %s!", enable ? "enabled" : "disabled")), false);
 		}
 		
 		return 1;
