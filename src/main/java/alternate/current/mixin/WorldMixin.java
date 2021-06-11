@@ -7,8 +7,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.Wire;
+import alternate.current.boop.WireBlock;
+import alternate.current.boop.WireNode;
 import alternate.current.interfaces.mixin.IChunk;
 import alternate.current.interfaces.mixin.IWorld;
+
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -19,7 +22,7 @@ public abstract class WorldMixin implements IWorld {
 	
 	private int blockUpdateCount;
 	
-	@Shadow public abstract WorldChunk getChunk(int x, int z);
+	@Shadow public abstract WorldChunk getChunk(int chunkX, int chunkZ);
 	@Shadow public abstract boolean isDebugWorld();
 	@Shadow public abstract boolean isClient();
 	
@@ -55,7 +58,7 @@ public abstract class WorldMixin implements IWorld {
 		int x = pos.getX() >> 4;
 		int z = pos.getZ() >> 4;
 		
-		return ((IChunk)getChunk(x, z)).getWireV2(pos);
+		return ((IChunk)getChunk(x, z)).getWire(pos);
 	}
 	
 	@Override
@@ -67,7 +70,7 @@ public abstract class WorldMixin implements IWorld {
 		int x = pos.getX() >> 4;
 		int z = pos.getZ() >> 4;
 		
-		Wire oldWire = ((IChunk)getChunk(x, z)).setWireV2(pos, wire);
+		Wire oldWire = ((IChunk)getChunk(x, z)).setWire(pos, wire);
 		
 		if (updateConnections) {
 			if (oldWire != null) {
@@ -93,5 +96,41 @@ public abstract class WorldMixin implements IWorld {
 			}
 		}
 	}
+	
+	@Override
+	public WireNode getWire(WireBlock wireBlock, BlockPos pos) {
+		return getWire(wireBlock, pos, true);
+	}
+	
+	@Override
+	public WireNode getWire(WireBlock wireBlock, BlockPos pos, boolean orCreate) {
+		if (isClient() || isDebugWorld()) {
+			return null;
+		}
+		
+		int chunkX = pos.getX() >> 4;
+		int chunkZ = pos.getZ() >> 4;
+		
+		return ((IChunk)getChunk(chunkX, chunkZ)).getWire(wireBlock, pos, orCreate);
+	}
+	
+	@Override
+	public void setWire(WireNode wire) {
+		if (isClient() || isDebugWorld()) {
+			return;
+		}
+		
+		BlockPos pos = wire.pos;
+		int x = pos.getX() >> 4;
+		int z = pos.getZ() >> 4;
+		
+		WireNode prevWire = ((IChunk)getChunk(x, z)).setWire(wire);
+		
+		if (prevWire != null) {
+			prevWire.updateNeighboringWires();
+		}
+		if (wire != null) {
+			wire.updateConnections();
+		}
+	}
 }
-

@@ -128,6 +128,8 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 			ci.cancel();
 		} else {
 			wireHandler2.updatePower(world, pos, state);
+			
+			ci.cancel();
 		}
 	}
 	

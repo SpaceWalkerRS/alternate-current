@@ -26,6 +26,7 @@ public class Node implements Comparable<Node> {
 	public boolean isPowerSource;
 	
 	public int power;
+	public int nonWirePower;
 	
 	public Node() {
 		this.neighbors = new Node[Directions.ALL.length];
