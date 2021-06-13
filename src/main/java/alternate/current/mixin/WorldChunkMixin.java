@@ -97,7 +97,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 		return ((IChunkSection)section).setWire(wire);
 	}
 	
-	private ChunkSection getSection(int y) {
+	public ChunkSection getSection(int y) {
 		if (y < 0) {
 			return WorldChunk.EMPTY_SECTION;
 		}
