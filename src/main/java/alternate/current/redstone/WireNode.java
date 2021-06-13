@@ -1,4 +1,4 @@
-package alternate.current.boop;
+package alternate.current.redstone;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import alternate.current.interfaces.mixin.IWorld;
 import alternate.current.utils.CollectionsUtils;
 import alternate.current.utils.Directions;
 
@@ -17,6 +16,8 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 public class WireNode extends Node implements Comparable<WireNode> {
+	
+	private static final int DEFAULT_MAX_DEPTH = 512;
 	
 	public final WireBlock wireBlock;
 	public final Node[] neighbors;
@@ -31,12 +32,14 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	private boolean ignoreUpdates;
 	
 	public WireNode(WireBlock wireBlock, World world, BlockPos pos, BlockState state) {
-		super(world, pos, NodeType.WIRE, state);
+		super(world, pos, 0, state);
 		
 		this.wireBlock = wireBlock;
 		this.neighbors = new Node[Directions.ALL.length];
 		this.connectionsOut = new ArrayList<>();
 		this.connectionsIn = new ArrayList<>();
+		
+		this.updateState(state);
 	}
 	
 	@Override
@@ -63,8 +66,17 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		return true;
 	}
 	
+	public void updateState(BlockState state) {
+		if (!wireBlock.isOf(state)) {
+			throw new IllegalStateException("BlockState " + state + " is incompatible with WireBlock " + wireBlock);
+		}
+		
+		this.state = state;
+		this.power = state.get(wireBlock.getPowerProperty());
+	}
+	
 	public void updateConnections() {
-		updateConnections(512);
+		updateConnections(DEFAULT_MAX_DEPTH);
 	}
 	
 	public void updateConnections(int maxDepth) {
@@ -75,7 +87,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		}
 	}
 	
-	private void collectNeighbors() {
+	public void collectNeighbors() {
 		for (int index = 0; index < Directions.ALL.length; index++) {
 			Direction dir = Directions.ALL[index];
 			BlockPos neighborPos = pos.offset(dir);
@@ -85,7 +97,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		}
 	}
 	
-	private void clearNeighbors() {
+	public void clearNeighbors() {
 		Arrays.fill(neighbors, null);
 	}
 	
@@ -158,14 +170,14 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		wires.addAll(connectionsOut);
 		wires.addAll(connectionsIn);
 		
-		updateNeighboringWires(wires, 512);
+		updateNeighboringWires(wires, DEFAULT_MAX_DEPTH);
 	}
 	
 	public void updateNeighboringWires(Collection<BlockPos> wires, int maxDepth) {
 		ignoreUpdates = true;
 		
 		for (BlockPos pos : wires) {
-			WireNode wire = ((IWorld)world).getWire(wireBlock, pos);
+			WireNode wire = wireBlock.getWire(world, pos);
 			
 			if (wire != null) {
 				wire.updateConnections(maxDepth);

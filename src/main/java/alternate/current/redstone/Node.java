@@ -1,109 +1,71 @@
 package alternate.current.redstone;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import alternate.current.utils.Directions;
-
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-public class Node implements Comparable<Node> {
+public class Node {
 	
-	public NodeType type;
-	public BlockPos pos;
+	private static final int SOLID_BLOCK = 1;
+	private static final int REDSTONE_COMPONENT = 2;
+	
+	public final World world;
+	public final BlockPos pos;
+	public final int types;
+	
 	public BlockState state;
+	private boolean invalid;
 	
-	public Node[] neighbors;
-	public List<Node> connectionsIn;
-	public List<Node> connectionsOut;
-	
-	public boolean inNetwork;
-	public boolean isPowerSource;
-	
-	public int power;
-	public int nonWirePower;
-	
-	public Node() {
-		this.neighbors = new Node[Directions.ALL.length];
-		this.connectionsIn = new ArrayList<>();
-		this.connectionsOut = new ArrayList<>();
+	public Node(World world, BlockPos pos, int types, BlockState state) {
+		this.world = world;
+		this.pos = pos;
+		this.types = types;
+		
+		this.state = state;
 	}
 	
-	@Override
-	public int compareTo(Node node) {
-		int c = Integer.compare(node.power, power);
-		
-		if (c == 0) {
-			c = Integer.compare(pos.getX(), node.pos.getX());
+	public static Node of(WireBlock wireBlock, World world, BlockPos pos, BlockState state) {
+		if (wireBlock.isOf(state)) {
+			WireNode wire = wireBlock.getWire(world, pos);
 			
-			if (c == 0) {
-				c = Integer.compare(pos.getZ(), node.pos.getZ());
-				
-				if (c == 0) {
-					c = Integer.compare(pos.getY(), node.pos.getY());
-				}
+			if (wire != null) {
+				return wire;
 			}
 		}
 		
-		return c;
-	}
-	
-	public void update(World world, BlockPos pos, BlockState state, Block wireBlock) {
-		NodeType type;
+		int types = 0;
 		
-		if (state.isOf(wireBlock)) {
-			type = NodeType.WIRE;
-		} else if (state.isSolidBlock(world, pos)) {
-			type = NodeType.SOLID_BLOCK;
-		} else if (state.emitsRedstonePower()) {
-			type = NodeType.REDSTONE_COMPONENT;
-		} else {
-			type = NodeType.OTHER;
+		if (state.isSolidBlock(world, pos)) {
+			types |= SOLID_BLOCK;
+		}
+		if (state.emitsRedstonePower()) {
+			types |= REDSTONE_COMPONENT;
 		}
 		
-		update(type, pos, state);
+		return new Node(world, pos, types, state);
 	}
 	
-	public void update(NodeType type, BlockPos pos, BlockState state) {
-		this.type = type;
-		this.pos = pos;
-		this.state = state;
-		
-		Arrays.fill(neighbors, null);
-		this.connectionsIn.clear();
-		this.connectionsOut.clear();
-		
-		this.inNetwork = false;
-		this.isPowerSource = false;
-		
-		if (isWire()) {
-			this.power = state.get(Properties.POWER);
-		}
+	public boolean isInvalid() {
+		return invalid;
 	}
 	
 	public boolean isWire() {
-		return type == NodeType.WIRE;
+		return false;
 	}
 	
 	public boolean isSolidBlock() {
-		return type == NodeType.SOLID_BLOCK;
+		return (types & SOLID_BLOCK) != 0;
 	}
 	
 	public boolean isRedstoneComponent() {
-		return type == NodeType.REDSTONE_COMPONENT;
+		return (types & REDSTONE_COMPONENT) != 0;
 	}
 	
-	public void addConnection(Node node, boolean in, boolean out) {
-		if (in) {
-			connectionsIn.add(node);
+	public WireNode asWire() {
+		if (isWire()) {
+			return (WireNode)this;
 		}
-		if (out) {
-			connectionsOut.add(node);
-		}
+		
+		throw new IllegalStateException("This Node is not a wire!");
 	}
 }

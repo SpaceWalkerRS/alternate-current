@@ -1,6 +1,6 @@
 package alternate.current.interfaces.mixin;
 
-import alternate.current.boop.WireHandler;
+import alternate.current.redstone.WireHandler;
 
 public interface IServerWorld {
 	

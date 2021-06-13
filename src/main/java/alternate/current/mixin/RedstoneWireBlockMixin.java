@@ -11,42 +11,29 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.Neighbor;
-import alternate.current.NeighborType;
-import alternate.current.RedstoneWireHandler;
-import alternate.current.Wire;
-import alternate.current.interfaces.mixin.IWireBlock;
-import alternate.current.interfaces.mixin.IWorld;
+import alternate.current.interfaces.mixin.IServerWorld;
+import alternate.current.redstone.Node;
+import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireHandler;
+import alternate.current.redstone.WireNode;
 import alternate.current.utils.Directions;
 
-import net.minecraft.block.AbstractBlock.Settings;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.RedstoneWireBlock;
+import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 @Mixin(RedstoneWireBlock.class)
-public abstract class RedstoneWireBlockMixin implements IWireBlock {
+public abstract class RedstoneWireBlockMixin implements WireBlock {
+	
+	private static final int MIN_POWER = 0;
+	private static final int MAX_POWER = 15;
 	
 	@Shadow private boolean wiresGivePower;
-	
-	RedstoneWireHandler wireHandler;
-	WireHandler wireHandler2;
-	
-	@Inject(
-			method = "<init>",
-			at = @At(
-					value = "RETURN"
-			)
-	)
-	private void onInitInjectAtReturn(Settings settings, CallbackInfo ci) {
-		wireHandler = new RedstoneWireHandler((Block)(Object)this);
-		wireHandler2 = new WireHandler((Block)(Object)this);
-	}
 	
 	@Inject(
 			method = "onBlockAdded",
@@ -57,16 +44,7 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 	)
 	private void onOnBlockAddedInjectAtHead(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify, CallbackInfo ci) {
 		if (AlternateCurrentMod.ENABLED) {
-			if (!oldState.isOf((Block)(Object)this)) {
-				Wire wire = new Wire(world, pos, state);
-				((IWorld)world).setWire(pos, wire, true);
-				
-				tryUpdatePower(wire);
-				//updateNeighborsOfWire(world, pos, state); // Removed for the sake of vanilla parity
-				updateNeighborsOfConnectedWires(wire);
-			}
-			
-			ci.cancel();
+			ci.cancel(); // replaced by WireBlock.onWireAdded
 		}
 	}
 	
@@ -79,29 +57,7 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 	)
 	private void onOnStateReplacedInjectAtHead(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.ENABLED) {
-			if (newState.isOf((Block)(Object)this)) {
-				Wire wire = getWire(world, pos, true, false);
-				wire.state = newState;
-				
-				if (newState.get(Properties.POWER) == state.get(Properties.POWER)) {
-					wire.updateConnections();
-				}
-			} else {
-				//super.onStateReplaced(state, world, pos, newState, moved); // Only removes block entity
-				
-				Wire wire = getWire(world, pos, false, false);
-				((IWorld)world).setWire(pos, null, true);
-				
-				if (!moved) {
-					updateNeighborsOfWire(world, pos);
-					
-					if (wire != null) {
-						updateNeighborsOfConnectedWires(wire);
-					}
-				}
-			}
-			
-			ci.cancel();
+			ci.cancel(); // replaced by WireBlock.onWireRemoved
 		}
 	}
 	
@@ -116,78 +72,61 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 	)
 	private void onNeighborUpdateInjectBeforeUpdate(BlockState state, World world, BlockPos pos, Block fromBlock, BlockPos fromPos, boolean notify, CallbackInfo ci) {
 		if (AlternateCurrentMod.ENABLED) {
-			Wire wire = getWire(world, pos, true, true);
+			WireNode wire = getWire(world, pos);
 			
-			wire.collectNeighbors();
-			if (fromBlock != (Block)(Object)this) {
-				wire.findConnections();
+			if (wire != null) {
+				tryUpdatePower(wire);
 			}
-			
-			tryUpdatePower(wire);
-			
-			ci.cancel();
-		} else {
-			wireHandler2.updatePower(world, pos, state);
 			
 			ci.cancel();
 		}
 	}
 	
 	@Override
-	public Wire getWire(World world, BlockPos pos, boolean orCreate, boolean updateConnections) {
-		Wire wire = ((IWorld)world).getWire(pos);
-		
-		if (orCreate && wire == null) {
-			BlockState state = world.getBlockState(pos);
-			
-			if (state.isOf((Block)(Object)this)) {
-				wire = new Wire(world, pos, state);
-				((IWorld)world).setWire(pos, wire, updateConnections);
-			}
-		}
-		
-		return wire;
+	public IntProperty getPowerProperty() {
+		return Properties.POWER;
 	}
 	
-	private void tryUpdatePower(Wire wire) {
+	@Override
+	public int getMinPower() {
+		return MIN_POWER;
+	}
+	
+	@Override
+	public int getMaxPower() {
+		return MAX_POWER;
+	}
+	
+	@Override
+	public void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
+		tryUpdatePower(wire);
+		//updateNeighborsOfWire(world, pos, state); // Removed for the sake of vanilla parity
+		updateNeighborsOfConnectedWires(wire);
+	}
+	
+	@Override
+	public void onWireRemoved(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
+		if (!moved) {
+			updateNeighborsOf(world, pos);
+			updateNeighborsOfConnectedWires(wire);
+		}
+	}
+	
+	private void tryUpdatePower(WireNode wire) {
 		int receivedPower = getReceivedPower(wire);
 		
 		if (wire.power != receivedPower) {
-			wireHandler.updatePower(wire);
-			
-			/*World world = wire.getWorld();
-			BlockPos pos = wire.getPos();
-			
-			BlockState newState = wire.getState().with(Properties.POWER, receivedPower);
-			world.setBlockState(pos, newState, 2);
-			
-			wire.setPower(receivedPower);
-			
-			Set<BlockPos> notifiers = new HashSet<>();
-			Set<BlockPos> blockUpdates = new LinkedHashSet<>();
-			
-			notifiers.add(pos);
-			
-			for (Direction dir : Direction.values()) {
-				notifiers.add(pos.offset(dir));
-			}
-			for (BlockPos notifier : notifiers) {
-				for (Direction dir : Direction.values()) {
-					blockUpdates.add(notifier.offset(dir));
-				}
-			}
-			
-			for (BlockPos neighborPos : blockUpdates) {
-				world.updateNeighbor(neighborPos, wire.getWireBlock(), pos);
-			}*/
+			((IServerWorld)wire.world).getWireHandler().updatePower(wire);
 		}
 	}
 	
-	private int getReceivedPower(Wire wire) {
+	private int getReceivedPower(WireNode wire) {
+		wiresGivePower = false;
 		int externalPower = getExternalPower(wire);
+		wiresGivePower = true;
 		
-		if (externalPower > wireHandler.MAX_POWER) {
-			return wireHandler.MAX_POWER;
+		if (externalPower > MAX_POWER) {
+			return MAX_POWER;
 		}
 		
 		int wirePower = getWirePower(wire);
@@ -199,50 +138,51 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 		return externalPower;
 	}
 	
-	private int getExternalPower(Wire wire) {
-		int power = 0;
+	private int getExternalPower(WireNode wire) {
+		int power = MIN_POWER;
+		wire.collectNeighbors();
 		
 		for (int index = 0; index < Directions.ALL.length; index++) {
-			Neighbor neighbor = wire.neighbors[index];
-			int powerFromNeighbor = 0;
+			Direction dir = Directions.ALL[index];
+			Node neighbor = wire.neighbors[index];
 			
-			if (neighbor.type == NeighborType.SOLID_BLOCK) {
-				powerFromNeighbor = getStrongPowerTo(wire.world, neighbor.pos, Directions.ALL[index].getOpposite());
-			} else if (neighbor.type == NeighborType.REDSTONE_COMPONENT) {
-				powerFromNeighbor = neighbor.state.getWeakRedstonePower(wire.world, neighbor.pos, Directions.ALL[index]);
+			if (neighbor.isSolidBlock()) {
+				power = Math.max(power, getStrongPowerTo(wire.world, neighbor.pos, dir.getOpposite()));
+			}
+			if (neighbor.isRedstoneComponent()) {
+				power = Math.max(power, neighbor.state.getWeakRedstonePower(wire.world, neighbor.pos, dir));
 			}
 			
-			if (powerFromNeighbor > power) {
-				power = powerFromNeighbor;
-				
-				if (power >= wireHandler.MAX_POWER) {
-					return wireHandler.MAX_POWER;
-				}
+			if (power >= MAX_POWER) {
+				return MAX_POWER;
 			}
 		}
 		
+		wire.clearNeighbors();
 		return power;
 	}
 	
 	private int getStrongPowerTo(World world, BlockPos pos, Direction ignore) {
-		int power = 0;
+		int power = MIN_POWER;
 		
-		for (Direction dir : Directions.ALL) {
+		for (int index = 0; index < Directions.ALL.length; index++) {
+			Direction dir = Directions.ALL[index];
+			
 			if (dir == ignore) {
 				continue;
 			}
 			
 			BlockPos side = pos.offset(dir);
-			BlockState state = world.getBlockState(side);
+			BlockState sideState = world.getBlockState(side);
 			
-			if (!state.isOf((Block)(Object)this) && state.emitsRedstonePower()) {
-				int powerFromSide = state.getStrongRedstonePower(world, side, dir);
+			if (sideState.emitsRedstonePower()) {
+				int powerFromSide = sideState.getStrongRedstonePower(world, side, dir);
 				
 				if (powerFromSide > power) {
 					power = powerFromSide;
 					
-					if (power >= wireHandler.MAX_POWER) {
-						return wireHandler.MAX_POWER;
+					if (power >= MAX_POWER) {
+						return MAX_POWER;
 					}
 				}
 			}
@@ -251,11 +191,11 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 		return power;
 	}
 	
-	private int getWirePower(Wire wire) {
-		int power = 0;
+	private int getWirePower(WireNode wire) {
+		int power = MIN_POWER;
 		
 		for (BlockPos pos : wire.connectionsIn) {
-			Wire connectedWire = getWire(wire.world, pos, true, true);
+			WireNode connectedWire = getWire(wire.world, pos, true);
 			
 			if (connectedWire != null) {
 				int powerFromWire = connectedWire.power - 1;
@@ -269,15 +209,19 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 		return power;
 	}
 	
-	private void updateNeighborsOfWire(World world, BlockPos pos) {
-		BlockState state = world.getBlockState(pos);
-		
-		if (!state.isOf((Block)(Object)this)) {
-			return;
+	private void tryUpdateNeighborsOfWire(World world, BlockPos pos) {
+		tryUpdateNeighborsOfWire(world, pos, world.getBlockState(pos));
+	}
+	
+	private void tryUpdateNeighborsOfWire(World world, BlockPos pos, BlockState state) {
+		if (state.isOf((Block)(Object)this)) {
+			updateNeighborsOf(world, pos);
 		}
-		
+	}
+	
+	private void updateNeighborsOf(World world, BlockPos pos) {
 		List<BlockPos> positions = new ArrayList<>();
-		wireHandler.collectNeighborPositions(pos, positions);
+		WireHandler.collectNeighborPositions(pos, positions);
 		
 		for (BlockPos neighborPos : positions) {
 			world.updateNeighbor(neighborPos, (Block)(Object)this, pos);
@@ -294,12 +238,12 @@ public abstract class RedstoneWireBlockMixin implements IWireBlock {
 	// Weirdly, when a wire block is placed or destroyed,
 	// it updates all the neighbors around neighboring
 	// wire blocks. This behavior is replicated here.
-	private void updateNeighborsOfConnectedWires(Wire wire) {
+	private void updateNeighborsOfConnectedWires(WireNode wire) {
 		for (BlockPos pos : wire.connectionsOut) {
-			updateNeighborsOfWire(wire.world, pos);
+			tryUpdateNeighborsOfWire(wire.world, pos);
 		}
 		for (BlockPos pos : wire.connectionsIn) {
-			updateNeighborsOfWire(wire.world, pos);
+			tryUpdateNeighborsOfWire(wire.world, pos);
 		}
 	}
 }

@@ -12,11 +12,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.boop.WireHandler;
 import alternate.current.interfaces.mixin.IServerChunkManager;
 import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.interfaces.mixin.IWorld;
-
+import alternate.current.redstone.WireHandler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.WorldGenerationProgressListener;
 import net.minecraft.server.world.ServerChunkManager;
