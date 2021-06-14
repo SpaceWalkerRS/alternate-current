@@ -11,6 +11,6 @@ public interface IChunk {
 	
 	public WireNode getWire(WireBlock wireBlock, BlockPos pos, boolean orCreate);
 	
-	public WireNode setWire(WireBlock wireBlock, BlockPos pos, WireNode wire);
+	public void setWire(WireBlock wireBlock, BlockPos pos, WireNode wire);
 	
 }

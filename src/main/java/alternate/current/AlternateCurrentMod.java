@@ -15,6 +15,6 @@ public class AlternateCurrentMod implements ModInitializer {
 	
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Alternate Current has been initialized!");
+		LOGGER.info(String.format("Alternate Current %s has been initialized!", VERSION));
 	}
 }

@@ -39,7 +39,8 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		this.connectionsOut = new ArrayList<>();
 		this.connectionsIn = new ArrayList<>();
 		
-		this.updateState(state);
+		this.state = state;
+		this.power = state.get(wireBlock.getPowerProperty());
 	}
 	
 	@Override
@@ -66,24 +67,19 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		return true;
 	}
 	
-	public void updateState(BlockState state) {
-		if (!wireBlock.isOf(state)) {
-			throw new IllegalStateException("BlockState " + state + " is incompatible with WireBlock " + wireBlock);
-		}
-		
-		this.state = state;
-		this.power = state.get(wireBlock.getPowerProperty());
-	}
-	
 	public void updateConnections() {
 		updateConnections(DEFAULT_MAX_DEPTH);
 	}
 	
 	public void updateConnections(int maxDepth) {
 		if (!ignoreUpdates) {
+			ignoreUpdates = true;
+			
 			collectNeighbors();
 			findConnections(maxDepth);
 			clearNeighbors();
+			
+			ignoreUpdates = false;
 		}
 	}
 	
@@ -174,8 +170,6 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	}
 	
 	public void updateNeighboringWires(Collection<BlockPos> wires, int maxDepth) {
-		ignoreUpdates = true;
-		
 		for (BlockPos pos : wires) {
 			WireNode wire = wireBlock.getWire(world, pos);
 			
@@ -183,7 +177,5 @@ public class WireNode extends Node implements Comparable<WireNode> {
 				wire.updateConnections(maxDepth);
 			}
 		}
-		
-		ignoreUpdates = false;
 	}
 }

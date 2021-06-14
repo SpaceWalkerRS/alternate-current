@@ -18,10 +18,25 @@ public class Node {
 	
 	public Node(World world, BlockPos pos, int types, BlockState state) {
 		this.world = world;
-		this.pos = pos;
+		this.pos = pos.toImmutable();
 		this.types = types;
 		
 		this.state = state;
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (o instanceof Node) {
+			Node node = (Node)o;
+			return world == node.world && pos.equals(node.pos);
+		}
+		
+		return false;
+	}
+	
+	@Override
+	public int hashCode() {
+		return pos.hashCode();
 	}
 	
 	public static Node of(WireBlock wireBlock, World world, BlockPos pos, BlockState state) {

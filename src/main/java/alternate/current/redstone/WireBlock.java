@@ -36,11 +36,6 @@ public interface WireBlock {
 		return ((IWorld)world).getWire(this, pos, orCreate);
 	}
 	
-	public default boolean shouldUpdateConnections(World world, BlockPos pos, BlockState prevState, BlockState newState, WireNode wire) {
-		IntProperty power = getPowerProperty();
-		return prevState.get(power) != newState.get(power);
-	}
-	
 	public void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved);
 	
 	public void onWireRemoved(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved);

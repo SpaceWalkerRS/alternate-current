@@ -48,20 +48,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			boolean wasWire = prevBlock instanceof WireBlock;
 			boolean isWire = newBlock instanceof WireBlock;
 			
-			if (newBlock == prevBlock) {
-				if (wasWire) {
-					WireBlock wireBlock = (WireBlock)prevBlock;
-					WireNode wire = getWire(wireBlock, pos, true);
-					
-					if (wire != null) {
-						wire.updateState(newState);
-						
-						if (wireBlock.shouldUpdateConnections(world, pos, prevState, newState, wire)) {
-							wire.updateConnections();
-						}
-					}
-				}
-			} else {
+			if (newBlock != prevBlock) {
 				if (wasWire) {
 					WireBlock wireBlock = (WireBlock)prevBlock;
 					WireNode wire = getWire(wireBlock, pos, false);
@@ -89,11 +76,9 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	@Override
 	public void clearWires() {
 		for (ChunkSection section : sections) {
-			if (ChunkSection.isEmpty(section)) {
-				continue;
+			if (!ChunkSection.isEmpty(section)) {
+				((IChunkSection)section).clearWires();
 			}
-			
-			((IChunkSection)section).clearWires();
 		}
 	}
 	
@@ -112,7 +97,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			
 			if (wireBlock.isOf(state)) {
 				wire = wireBlock.createWire(world, pos, state);
-				setWire(wireBlock, pos, wire);
+				setWire(wire.wireBlock, wire.pos, wire);
 			}
 		}
 		
@@ -120,14 +105,21 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	}
 	
 	@Override
-	public WireNode setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
+	public void setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
 		ChunkSection section = getSection(pos.getY());
 		
 		if (ChunkSection.isEmpty(section)) {
-			return null;
+			return;
 		}
 		
-		return ((IChunkSection)section).setWire(wireBlock, pos, wire);
+		WireNode prevWire = ((IChunkSection)section).setWire(wireBlock, pos, wire);
+		
+		if (prevWire != null) {
+			prevWire.updateNeighboringWires();
+		}
+		if (wire != null) {
+			wire.updateConnections();
+		}
 	}
 	
 	private ChunkSection getSection(int y) {

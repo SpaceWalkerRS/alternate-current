@@ -101,13 +101,6 @@ public abstract class WorldMixin implements IWorld, WorldAccess {
 		int x = pos.getX() >> 4;
 		int z = pos.getZ() >> 4;
 		
-		WireNode prevWire = ((IChunk)getChunk(x, z)).setWire(wireBlock, pos, wire);
-		
-		if (prevWire != null) {
-			prevWire.updateNeighboringWires();
-		}
-		if (wire != null) {
-			wire.updateConnections();
-		}
+		((IChunk)getChunk(x, z)).setWire(wireBlock, pos, wire);
 	}
 }

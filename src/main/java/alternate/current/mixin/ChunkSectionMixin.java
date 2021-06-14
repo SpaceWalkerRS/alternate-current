@@ -1,9 +1,7 @@
 package alternate.current.mixin;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.spongepowered.asm.mixin.Mixin;
 
@@ -24,18 +22,8 @@ public class ChunkSectionMixin implements IChunkSection {
 	
 	@Override
 	public void clearWires() {
-		for (Entry<WireBlock, WireNode[]> entry : wiresMap.entrySet()) {
-			WireBlock wireBlock = entry.getKey();
-			WireNode[] wires = entry.getValue();
-			
-			wireCounts.compute(wireBlock, (w, wireCount) -> {
-				if (wireCount == null || wireCount > 0) {
-					Arrays.fill(wires, null);
-				}
-				
-				return 0;
-			});
-		}
+		wiresMap.clear();
+		wireCounts.clear();
 	}
 	
 	@Override
@@ -81,7 +69,13 @@ public class ChunkSectionMixin implements IChunkSection {
 				wireCount = 0;
 			}
 			
-			return wireCount + (add ? 1 : -1);
+			wireCount += (add ? 1 : -1);
+			
+			if (wireCount <= 0) {
+				wiresMap.remove(wireBlock);
+			}
+			
+			return wireCount;
 		});
 	}
 	
