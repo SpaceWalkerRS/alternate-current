@@ -1,7 +1,6 @@
 package alternate.current.mixin;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
 
 import org.spongepowered.asm.mixin.Mixin;
 
@@ -15,68 +14,37 @@ import net.minecraft.world.chunk.ChunkSection;
 @Mixin(ChunkSection.class)
 public class ChunkSectionMixin implements IChunkSection {
 	
-	private static final int SIZE = 4096;
-	
-	private final Map<WireBlock, WireNode[]> wiresMap = new HashMap<>();
-	private final Map<WireBlock, Integer> wireCounts = new HashMap<>();
+	private final WireNode[] wires = new WireNode[4096];
+	private int wireCount;
 	
 	@Override
 	public void clearWires() {
-		wiresMap.clear();
-		wireCounts.clear();
+		if (wireCount > 0) {
+			Arrays.fill(wires, null);
+		}
 	}
 	
 	@Override
 	public WireNode getWire(WireBlock wireBlock, BlockPos pos) {
-		WireNode[] wires = getWires(wireBlock);
-		int index = getIndex(pos);
-		
-		return wires[index];
+		WireNode wire = wires[getIndex(pos)];
+		return wire != null && wire.isOf(wireBlock) ? wire : null;
 	}
 	
 	@Override
-	public WireNode setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
-		WireNode[] wires = getWires(wireBlock);
+	public WireNode setWire(BlockPos pos, WireNode wire) {
 		int index = getIndex(pos);
 		
 		WireNode prevWire = wires[index];
 		wires[index] = wire;
 		
-		boolean wasNull = (prevWire == null);
-		boolean isNull = (wire == null);
-		
-		if (wasNull != isNull) {
-			updateWireCount(wireBlock, wasNull);
+		if (prevWire != null) {
+			wireCount--;
+		}
+		if (wire != null) {
+			wireCount++;
 		}
 		
 		return prevWire;
-	}
-	
-	private WireNode[] getWires(WireBlock wireBlock) {
-		WireNode[] wires = wiresMap.get(wireBlock);
-		
-		if (wires == null) {
-			wires = new WireNode[SIZE];
-			wiresMap.put(wireBlock, wires);
-		}
-		
-		return wires;
-	}
-	
-	private void updateWireCount(WireBlock wireBlock, boolean add) {
-		wireCounts.compute(wireBlock, (w, wireCount) -> {
-			if (wireCount == null) {
-				wireCount = 0;
-			}
-			
-			wireCount += (add ? 1 : -1);
-			
-			if (wireCount <= 0) {
-				wiresMap.remove(wireBlock);
-			}
-			
-			return wireCount;
-		});
 	}
 	
 	private int getIndex(BlockPos pos) {
@@ -84,6 +52,6 @@ public class ChunkSectionMixin implements IChunkSection {
 		int y = pos.getY() & 15;
 		int z = pos.getZ() & 15;
 		
-		return x | y << 4 | z << 8;
+		return x << 8 | y << 4 | z;
 	}
 }

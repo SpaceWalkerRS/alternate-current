@@ -4,7 +4,7 @@ import alternate.current.interfaces.mixin.IWorld;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.state.property.IntProperty;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -18,26 +18,48 @@ public interface WireBlock {
 		return state.getBlock() == asBlock();
 	}
 	
-	public IntProperty getPowerProperty();
-	
-	public int getMinPower();
-	
-	public int getMaxPower();
-	
-	public default WireNode createWire(World world, BlockPos pos, BlockState state) {
-		return new WireNode(this, world, pos, state);
+	default int getMinPower() {
+		return 0;
 	}
 	
-	public default WireNode getWire(World world, BlockPos pos) {
-		return ((IWorld)world).getWire(this, pos);
-	}
-	
-	public default WireNode getWire(World world, BlockPos pos, boolean orCreate) {
-		return ((IWorld)world).getWire(this, pos, orCreate);
+	default int getMaxPower() {
+		return 15;
 	}
 	
 	public void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved);
 	
 	public void onWireRemoved(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved);
 	
+	public default WireNode getWire(World world, BlockPos pos) {
+		return ((IWorld)world).getWire(this, pos);
+	}
+	
+	public default WireNode createWire(World world, BlockPos pos, BlockState state) {
+		return new WireNode(this, world, pos, state);
+	}
+	
+	default int getPower(World world, BlockPos pos, BlockState state) {
+		if (isOf(state)) {
+			return state.get(Properties.POWER);
+		}
+		
+		throw new IllegalStateException("BlockState " + state + " is not of Block " + this);
+	}
+	
+	default boolean setPower(WireNode wire, int power, int flags) {
+		if (wire.isOf(this)) {
+			BlockState newState = wire.state.with(Properties.POWER, power);
+			
+			if (newState != wire.state) {
+				wire.state = newState;
+				
+				World world = wire.world;
+				BlockPos pos = wire.pos;
+				
+				return world.setBlockState(pos, newState, flags);
+			}
+		}
+		
+		return false;
+	}
 }

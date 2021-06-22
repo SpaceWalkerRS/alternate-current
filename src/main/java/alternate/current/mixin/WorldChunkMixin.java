@@ -54,7 +54,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 					WireNode wire = getWire(wireBlock, pos, false);
 					
 					if (wire != null) {
-						setWire(wireBlock, pos, null);
+						removeWire(wire);
 						wireBlock.onWireRemoved(world, pos, prevState, wire, moved);
 					}
 				}
@@ -62,7 +62,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 					WireBlock wireBlock = (WireBlock)newBlock;
 					WireNode wire = wireBlock.createWire(world, pos, newState);
 					
-					setWire(wire.wireBlock, wire.pos, wire);
+					placeWire(wire);
 					wireBlock.onWireAdded(world, pos, newState, wire, moved);
 				}
 			}
@@ -97,7 +97,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			
 			if (wireBlock.isOf(state)) {
 				wire = wireBlock.createWire(world, pos, state);
-				setWire(wire.wireBlock, wire.pos, wire);
+				placeWire(wire);
 			}
 		}
 		
@@ -105,21 +105,13 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	}
 	
 	@Override
-	public void setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
-		ChunkSection section = getSection(pos.getY());
-		
-		if (ChunkSection.isEmpty(section)) {
-			return;
-		}
-		
-		WireNode prevWire = ((IChunkSection)section).setWire(wireBlock, pos, wire);
-		
-		if (prevWire != null) {
-			prevWire.updateNeighboringWires();
-		}
-		if (wire != null) {
-			wire.updateConnections();
-		}
+	public void placeWire(WireNode wire) {
+		setWire(wire.wireBlock, wire.pos, wire);
+	}
+	
+	@Override
+	public void removeWire(WireNode wire) {
+		setWire(wire.wireBlock, wire.pos, null);
 	}
 	
 	private ChunkSection getSection(int y) {
@@ -140,5 +132,22 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 		}
 		
 		return section;
+	}
+	
+	private void setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
+		ChunkSection section = getSection(pos.getY());
+		
+		if (ChunkSection.isEmpty(section)) {
+			return;
+		}
+		
+		WireNode prevWire = ((IChunkSection)section).setWire(pos, wire);
+		
+		if (prevWire != null) {
+			prevWire.updateConnectedWires();
+		}
+		if (wire != null) {
+			wire.updateConnections();
+		}
 	}
 }

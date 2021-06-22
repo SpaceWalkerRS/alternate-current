@@ -26,6 +26,9 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	
 	public int power;
 	
+	/* fields used while updating power */
+	public int prevPower;
+	public int externalPower;
 	public boolean inNetwork;
 	public boolean isPowerSource;
 	
@@ -40,7 +43,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		this.connectionsIn = new ArrayList<>();
 		
 		this.state = state;
-		this.power = state.get(wireBlock.getPowerProperty());
+		this.power = wireBlock.getPower(this.world, this.pos, this.state);
 	}
 	
 	@Override
@@ -65,6 +68,10 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	@Override
 	public boolean isWire() {
 		return true;
+	}
+	
+	public boolean isOf(WireBlock wireBlock) {
+		return this.wireBlock == wireBlock;
 	}
 	
 	public void updateConnections() {
@@ -160,7 +167,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		updateNeighboringWires(affectedWires, maxDepth);
 	}
 	
-	public void updateNeighboringWires() {
+	public void updateConnectedWires() {
 		Collection<BlockPos> wires = new HashSet<>();
 		
 		wires.addAll(connectionsOut);

@@ -44,6 +44,7 @@ public class Node {
 			WireNode wire = wireBlock.getWire(world, pos);
 			
 			if (wire != null) {
+				wire.state = state;
 				return wire;
 			}
 		}

@@ -58,20 +58,25 @@ public abstract class WorldMixin implements IWorld, WorldAccess {
 			return null;
 		}
 		
-		int chunkX = pos.getX() >> 4;
-		int chunkZ = pos.getZ() >> 4;
-		
-		return ((IChunk)getChunk(chunkX, chunkZ)).getWire(wireBlock, pos, orCreate);
+		return ((IChunk)getChunk(pos)).getWire(wireBlock, pos, orCreate);
 	}
 	
 	@Override
 	public void placeWire(WireNode wire) {
-		setWire(wire.wireBlock, wire.pos, wire);
+		if (isClient() || isDebugWorld()) {
+			return;
+		}
+		
+		((IChunk)getChunk(wire.pos)).placeWire(wire);
 	}
 	
 	@Override
 	public void removeWire(WireNode wire) {
-		setWire(wire.wireBlock, wire.pos, null);
+		if (isClient() || isDebugWorld()) {
+			return;
+		}
+		
+		((IChunk)getChunk(wire.pos)).removeWire(wire);
 	}
 	
 	@Override
@@ -91,16 +96,5 @@ public abstract class WorldMixin implements IWorld, WorldAccess {
 		if (wire != null) {
 			wire.updateConnections();
 		}
-	}
-	
-	private void setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
-		if (isClient() || isDebugWorld()) {
-			return;
-		}
-		
-		int x = pos.getX() >> 4;
-		int z = pos.getZ() >> 4;
-		
-		((IChunk)getChunk(x, z)).setWire(wireBlock, pos, wire);
 	}
 }
