@@ -1,5 +1,7 @@
 package alternate.current.redstone;
 
+import alternate.current.AlternateCurrentMod;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -10,25 +12,22 @@ public class Node {
 	private static final int REDSTONE_COMPONENT = 2;
 	
 	public final World world;
-	public final BlockPos pos;
-	public final int types;
+	public final WireBlock wireBlock;
 	
+	public BlockPos pos;
 	public BlockState state;
-	private boolean invalid;
+	private int attributes;
 	
-	public Node(World world, BlockPos pos, int types, BlockState state) {
+	public Node(World world, WireBlock wireBlock) {
 		this.world = world;
-		this.pos = pos.toImmutable();
-		this.types = types;
-		
-		this.state = state;
+		this.wireBlock = wireBlock;
 	}
 	
 	@Override
 	public boolean equals(Object o) {
 		if (o instanceof Node) {
 			Node node = (Node)o;
-			return world == node.world && pos.equals(node.pos);
+			return world == node.world && wireBlock == node.wireBlock && pos.equals(node.pos);
 		}
 		
 		return false;
@@ -39,7 +38,7 @@ public class Node {
 		return pos.hashCode();
 	}
 	
-	public static Node of(WireBlock wireBlock, World world, BlockPos pos, BlockState state) {
+	public static Node of(World world, WireBlock wireBlock, BlockPos pos, BlockState state) {
 		if (wireBlock.isOf(state)) {
 			WireNode wire = wireBlock.getWire(world, pos);
 			
@@ -49,20 +48,26 @@ public class Node {
 			}
 		}
 		
-		int types = 0;
-		
-		if (state.isSolidBlock(world, pos)) {
-			types |= SOLID_BLOCK;
-		}
-		if (state.emitsRedstonePower()) {
-			types |= REDSTONE_COMPONENT;
-		}
-		
-		return new Node(world, pos, types, state);
+		return new Node(world, wireBlock).update(pos, state);
 	}
 	
-	public boolean isInvalid() {
-		return invalid;
+	public Node update(BlockPos pos, BlockState state) {
+		this.pos = pos.toImmutable();
+		this.state = state;
+		this.attributes = 0;
+		
+		if (wireBlock.isOf(state)) {
+			AlternateCurrentMod.LOGGER.warn("Cannot update a regular Node to a WireNode!");
+		} else {
+			if (state.isSolidBlock(world, pos)) {
+				this.attributes |= SOLID_BLOCK;
+			}
+			if (state.emitsRedstonePower()) {
+				this.attributes |= REDSTONE_COMPONENT;
+			}
+		}
+		
+		return this;
 	}
 	
 	public boolean isWire() {
@@ -70,18 +75,14 @@ public class Node {
 	}
 	
 	public boolean isSolidBlock() {
-		return (types & SOLID_BLOCK) != 0;
+		return (attributes & SOLID_BLOCK) != 0;
 	}
 	
 	public boolean isRedstoneComponent() {
-		return (types & REDSTONE_COMPONENT) != 0;
+		return (attributes & REDSTONE_COMPONENT) != 0;
 	}
 	
 	public WireNode asWire() {
-		if (isWire()) {
-			return (WireNode)this;
-		}
-		
-		throw new IllegalStateException("This Node is not a wire!");
+		return (WireNode)this;
 	}
 }

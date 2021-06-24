@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import alternate.current.AlternateCurrentMod;
 import alternate.current.utils.CollectionsUtils;
 import alternate.current.utils.Directions;
 
@@ -19,12 +20,12 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	
 	private static final int DEFAULT_MAX_DEPTH = 512;
 	
-	public final WireBlock wireBlock;
 	public final Node[] neighbors;
 	public final List<BlockPos> connectionsOut;
 	public final List<BlockPos> connectionsIn;
 	
 	public int power;
+	public boolean removed;
 	
 	/* fields used while updating power */
 	public int prevPower;
@@ -35,13 +36,13 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	private boolean ignoreUpdates;
 	
 	public WireNode(WireBlock wireBlock, World world, BlockPos pos, BlockState state) {
-		super(world, pos, 0, state);
+		super(world, wireBlock);
 		
-		this.wireBlock = wireBlock;
 		this.neighbors = new Node[Directions.ALL.length];
 		this.connectionsOut = new ArrayList<>();
 		this.connectionsIn = new ArrayList<>();
 		
+		this.pos = pos.toImmutable();
 		this.state = state;
 		this.power = wireBlock.getPower(this.world, this.pos, this.state);
 	}
@@ -63,6 +64,12 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		}
 		
 		return c;
+	}
+	
+	@Override
+	public Node update(BlockPos pos, BlockState state) {
+		AlternateCurrentMod.LOGGER.warn("Cannot update a WireNode!");
+		return this;
 	}
 	
 	@Override
@@ -96,7 +103,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 			BlockPos neighborPos = pos.offset(dir);
 			BlockState neighborState = world.getBlockState(neighborPos);
 			
-			neighbors[index] = Node.of(wireBlock, world, neighborPos, neighborState);
+			neighbors[index] = Node.of(world, wireBlock, neighborPos, neighborState);
 		}
 	}
 	

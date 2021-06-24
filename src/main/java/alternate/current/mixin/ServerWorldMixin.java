@@ -35,10 +35,12 @@ public class ServerWorldMixin implements IServerWorld {
 	
 	@Inject(method = "tick", at = @At(value = "RETURN"))
 	private void tickend(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
-		int count = ((IWorld)this).getCount();
-		
-		if (count > 0) {
-			AlternateCurrentMod.LOGGER.info(count);
+		if (AlternateCurrentMod.ENABLED) {
+			int count = ((IWorld)this).getCount();
+			
+			if (count > 0) {
+				AlternateCurrentMod.LOGGER.info(count);
+			}
 		}
 	}
 	

@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-import alternate.current.AlternateCurrentMod;
 import alternate.current.utils.Directions;
+import alternate.current.utils.profiler.ACProfiler;
+import alternate.current.utils.profiler.ACProfilerDummy;
+import alternate.current.utils.profiler.Profiler;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -31,6 +33,9 @@ public class WireHandler {
 	private final Long2ObjectMap<Node> nodes;
 	private final PriorityQueue<WireNode> poweredWires;
 	
+	private Node[] nodeCache;
+	private int usedNodes;
+	
 	private boolean updatingPower;
 	
 	public WireHandler(ServerWorld world, WireBlock wireBlock) {
@@ -42,6 +47,52 @@ public class WireHandler {
 		this.network = new ArrayList<>();
 		this.nodes = new Long2ObjectOpenHashMap<>();
 		this.poweredWires = new PriorityQueue<>();
+		
+		this.nodeCache = new Node[16];
+		this.fillNodeCache(0, 16);
+	}
+	
+	private Node getNextNode(BlockPos pos) {
+		BlockState state = world.getBlockState(pos);
+		
+		if (wireBlock.isOf(state)) {
+			WireNode wire = wireBlock.getWire(world, pos);
+			
+			if (wire != null) {
+				wire.state = state;
+				return wire;
+			}
+		}
+		
+		return nextCachedNode().update(pos, state);
+	}
+	
+	private Node nextCachedNode() {
+		if (usedNodes >= nodeCache.length) {
+			increaseNodeCache();
+		}
+		
+		return nodeCache[usedNodes++];
+	}
+	
+	private void increaseNodeCache() {
+		int oldSize = nodeCache.length;
+		int newSize = 2 * oldSize;
+		
+		Node[] oldCache = nodeCache;
+		nodeCache = new Node[newSize];
+		
+		for (int index = 0; index < oldSize; index++) {
+			nodeCache[index] = oldCache[index];
+		}
+		
+		fillNodeCache(oldSize, newSize);
+	}
+	
+	private void fillNodeCache(int start, int end) {
+		for (int index = start; index < end; index++) {
+			nodeCache[index] = new Node(world, wireBlock);
+		}
 	}
 	
 	private Node getNode(BlockPos pos) {
@@ -54,11 +105,8 @@ public class WireHandler {
 	}
 	
 	private Node addNode(BlockPos pos) {
-		return addNode(pos, world.getBlockState(pos));
-	}
-	
-	private Node addNode(BlockPos pos, BlockState state) {
-		return addNode(Node.of(wireBlock, world, pos, state));
+		Node node = getNextNode(pos);
+		return addNode(node);
 	}
 	
 	private Node addNode(Node node) {
@@ -76,23 +124,9 @@ public class WireHandler {
 		return node.isWire() ? node.asWire() : null;
 	}
 	
-	public void wireAdded(WireNode wire) {
-		
-	}
-	
-	public void wireRemoved(WireNode wire) {
-		
-	}
-	
-	public void updatePower(BlockPos pos) {
-		long s = System.nanoTime();
-		long t;
-		long start = s;
-		
-		WireNode wire = getOrAddWire(pos);
-		
-		if (wire == null) {
-			return;
+	public void updatePower(WireNode wire) {
+		if (!updatingPower) {
+			usedNodes = 0;
 		}
 		
 		prepareForNetwork(wire);
@@ -107,46 +141,46 @@ public class WireHandler {
 			return;
 		}
 		
+		Profiler profiler = new ACProfiler();
+		profiler.start();
+		
+		profiler.push("build network");
 		addToNetwork(wire);
 		buildNetwork(wire);
-		t = System.nanoTime();
-		AlternateCurrentMod.LOGGER.info("build network: " + (t - s));
-		s = t;
 		
+		profiler.swap("find powered wires");
 		findPoweredWires(wire);
-		t = System.nanoTime();
-		AlternateCurrentMod.LOGGER.info("find powered wires: " + (t - s));
-		s = t;
 		
+		profiler.swap("clear network");
 		network.clear();
 		
 		if (updatingPower) {
-			AlternateCurrentMod.LOGGER.info("ABORT: already updating power...");
+			profiler.pop();
+			profiler.end();
 			return;
 		}
 		
 		List<BlockPos> updatedWires = new ArrayList<>();
 		Set<BlockPos> blockUpdates = new LinkedHashSet<>();
 		
+		profiler.swap("let power flow");
 		letPowerFlow(updatedWires, blockUpdates);
-		t = System.nanoTime();
-		AlternateCurrentMod.LOGGER.info("let power flow: " + (t - s));
-		s = t;
 		
+		profiler.swap("clear nodes");
 		nodes.clear();
 		
+		profiler.swap("update neighbors");
+		blockUpdates.removeAll(updatedWires);
 		dispatchBlockUpdates(updatedWires, blockUpdates);
-		t = System.nanoTime();
-		AlternateCurrentMod.LOGGER.info("update neighbors: " + (t - s));
-		s = t;
 		
-		AlternateCurrentMod.LOGGER.info("total: " + (t - start));
+		profiler.pop();
+		profiler.end();
 	}
 	
 	private void buildNetwork(WireNode sourceWire) {
 		int minDepth = 0;
 		
-		if (sourceWire.power < sourceWire.prevPower) {
+		if (sourceWire.removed || (sourceWire.power < sourceWire.prevPower)) {
 			minDepth = sourceWire.prevPower - minPower + 2;
 		}
 		
@@ -172,12 +206,12 @@ public class WireHandler {
 				}
 			}
 		}
-		
-		AlternateCurrentMod.LOGGER.info("network size: " + network.size());
 	}
 	
 	private void prepareForNetwork(WireNode wire) {
-		collectNeighbors(wire);
+		if (!wire.removed) {
+			collectNeighbors(wire);
+		}
 		setInitialPower(wire);
 	}
 	
@@ -189,7 +223,9 @@ public class WireHandler {
 	private void removedFromNetwork(WireNode wire) {
 		wire.inNetwork = false;
 		wire.isPowerSource = false;
-		wire.clearNeighbors();
+		if (!wire.removed) {
+			wire.clearNeighbors();
+		}
 	}
 	
 	private void collectNeighbors(WireNode wire) {
@@ -205,25 +241,32 @@ public class WireHandler {
 	
 	private void setInitialPower(WireNode wire) {
 		wire.prevPower = wire.power;
-		wire.power = wire.externalPower = getExternalPower(wire);
 		
-		if (wire.externalPower < maxPower) {
-			int wirePower = getWirePower(wire, false);
+		if (wire.removed) {
+			wire.power = 0;
+		} else {
+			wire.power = wire.externalPower = getExternalPower(wire);
 			
-			if (wirePower > wire.externalPower) {
-				wire.power = wirePower;
+			if (wire.externalPower < maxPower) {
+				int wirePower = getWirePower(wire, false);
+				
+				if (wirePower > wire.externalPower) {
+					wire.power = wirePower;
+				}
 			}
 		}
 	}
 	
 	private void validatePower(WireNode wire) {
-		wire.power = wire.externalPower;
-		
-		if (wire.externalPower < maxPower) {
-			int wirePower = getWirePower(wire, true);
+		if (!wire.removed) {
+			wire.power = wire.externalPower;
 			
-			if (wirePower > wire.externalPower) {
-				wire.power = wirePower;
+			if (wire.externalPower < maxPower) {
+				int wirePower = getWirePower(wire, true);
+				
+				if (wirePower > wire.externalPower) {
+					wire.power = wirePower;
+				}
 			}
 		}
 	}
@@ -296,16 +339,16 @@ public class WireHandler {
 	}
 	
 	private void findPoweredWires(WireNode sourceWire) {
-		for (WireNode wire : network) {
+		validatePower(sourceWire);
+		addPowerSource(sourceWire);
+		
+		for (int index = 1; index < network.size(); index++) {
+			WireNode wire = network.get(index);
 			validatePower(wire);
 			
 			if (wire.power > minPower || isEdgeNode(wire)) {
 				addPowerSource(wire);
 			}
-		}
-		
-		if (!sourceWire.isPowerSource) {
-			addPowerSource(sourceWire);
 		}
 	}
 	
@@ -349,6 +392,9 @@ public class WireHandler {
 	private boolean updateWireState(WireNode wire) {
 		removedFromNetwork(wire);
 		
+		if (wire.removed) {
+			return false;
+		}
 		if (wire.power < minPower) {
 			wire.power = minPower;
 		}
@@ -376,19 +422,11 @@ public class WireHandler {
 	}
 	
 	private void dispatchBlockUpdates(Collection<BlockPos> updatedWires, Collection<BlockPos> blockUpdates) {
-		long s = System.nanoTime();
-		blockUpdates.removeAll(updatedWires);
-		AlternateCurrentMod.LOGGER.info("removing wire positions: "  + (System.nanoTime() - s));
-		
-		s = System.nanoTime();
-		
 		Block block = wireBlock.asBlock();
 		
 		for (BlockPos pos : blockUpdates) {
 			world.updateNeighbor(pos, block, pos);
 		}
-		
-		AlternateCurrentMod.LOGGER.info("block updates: " + (System.nanoTime() - s));
 	}
 	
 	public static void collectNeighborPositions(BlockPos pos, Collection<BlockPos> positions) {

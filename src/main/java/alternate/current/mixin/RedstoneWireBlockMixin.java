@@ -61,8 +61,11 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onNeighborUpdateInjectBeforeUpdate(BlockState state, World world, BlockPos pos, Block fromBlock, BlockPos fromPos, boolean notify, CallbackInfo ci) {
 		if (AlternateCurrentMod.ENABLED) {
-			WireHandler wireHandler = ((IServerWorld)world).getWireHandler(this);
-			wireHandler.updatePower(pos);
+			WireNode wire = getWire(world, pos);
+			
+			if (wire != null) {
+				updatePower(wire);
+			}
 			
 			ci.cancel();
 		}
@@ -70,22 +73,25 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	
 	@Override
 	public void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
-		WireHandler wireHandler = ((IServerWorld)world).getWireHandler(this);
-		wireHandler.wireAdded(wire);
+		updatePower(wire);
 		
-		//updateNeighborsOfWire(world, pos, state); // Removed for the sake of vanilla parity
+		//updateNeighborsOf(world, pos); // Removed for the sake of vanilla parity
 		updateNeighborsOfConnectedWires(wire);
 	}
 	
 	@Override
 	public void onWireRemoved(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		if (!moved) {
-			WireHandler wireHandler = ((IServerWorld)world).getWireHandler(this);
-			wireHandler.wireRemoved(wire);
+			updatePower(wire);
 			
 			updateNeighborsOf(world, pos);
 			updateNeighborsOfConnectedWires(wire);
 		}
+	}
+	
+	private void updatePower(WireNode wire) {
+		WireHandler wireHandler = ((IServerWorld)wire.world).getWireHandler(this);
+		wireHandler.updatePower(wire);
 	}
 	
 	private void tryUpdateNeighborsOfWire(World world, BlockPos pos) {
