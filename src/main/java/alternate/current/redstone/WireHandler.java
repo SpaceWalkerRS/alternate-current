@@ -52,49 +52,6 @@ public class WireHandler {
 		this.fillNodeCache(0, 16);
 	}
 	
-	private Node getNextNode(BlockPos pos) {
-		BlockState state = world.getBlockState(pos);
-		
-		if (wireBlock.isOf(state)) {
-			WireNode wire = wireBlock.getWire(world, pos);
-			
-			if (wire != null) {
-				wire.state = state;
-				return wire;
-			}
-		}
-		
-		return nextCachedNode().update(pos, state);
-	}
-	
-	private Node nextCachedNode() {
-		if (usedNodes >= nodeCache.length) {
-			increaseNodeCache();
-		}
-		
-		return nodeCache[usedNodes++];
-	}
-	
-	private void increaseNodeCache() {
-		int oldSize = nodeCache.length;
-		int newSize = 2 * oldSize;
-		
-		Node[] oldCache = nodeCache;
-		nodeCache = new Node[newSize];
-		
-		for (int index = 0; index < oldSize; index++) {
-			nodeCache[index] = oldCache[index];
-		}
-		
-		fillNodeCache(oldSize, newSize);
-	}
-	
-	private void fillNodeCache(int start, int end) {
-		for (int index = start; index < end; index++) {
-			nodeCache[index] = new Node(world, wireBlock);
-		}
-	}
-	
 	private Node getNode(BlockPos pos) {
 		return nodes.get(pos.asLong());
 	}
@@ -124,21 +81,52 @@ public class WireHandler {
 		return node.isWire() ? node.asWire() : null;
 	}
 	
+	private Node getNextNode(BlockPos pos) {
+		BlockState state = world.getBlockState(pos);
+		
+		if (wireBlock.isOf(state)) {
+			WireNode wire = wireBlock.getWire(world, pos);
+			
+			if (wire != null) {
+				wire.state = state;
+				return wire;
+			}
+		}
+		
+		return nextNodeFromCache().update(pos, state);
+	}
+	
+	private Node nextNodeFromCache() {
+		if (usedNodes >= nodeCache.length) {
+			increaseNodeCache();
+		}
+		
+		return nodeCache[usedNodes++];
+	}
+	
+	private void increaseNodeCache() {
+		int oldSize = nodeCache.length;
+		int newSize = 2 * oldSize;
+		
+		Node[] oldCache = nodeCache;
+		nodeCache = new Node[newSize];
+		
+		for (int index = 0; index < oldSize; index++) {
+			nodeCache[index] = oldCache[index];
+		}
+		
+		fillNodeCache(oldSize, newSize);
+	}
+	
+	private void fillNodeCache(int start, int end) {
+		for (int index = start; index < end; index++) {
+			nodeCache[index] = new Node(world, wireBlock);
+		}
+	}
+	
 	public void updatePower(WireNode wire) {
 		if (!updatingPower) {
 			usedNodes = 0;
-		}
-		
-		prepareForNetwork(wire);
-		
-		if (isEdgeNode(wire)) {
-			removedFromNetwork(wire);
-			
-			if (!updatingPower) {
-				nodes.clear();
-			}
-			
-			return;
 		}
 		
 		Profiler profiler = new ACProfiler();
@@ -261,7 +249,7 @@ public class WireHandler {
 		if (!wire.removed) {
 			wire.power = wire.externalPower;
 			
-			if (wire.externalPower < maxPower) {
+			if (wire.power < maxPower) {
 				int wirePower = getWirePower(wire, true);
 				
 				if (wirePower > wire.externalPower) {
