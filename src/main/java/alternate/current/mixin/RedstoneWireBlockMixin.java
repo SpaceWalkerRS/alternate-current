@@ -6,7 +6,6 @@ import java.util.List;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -60,15 +59,13 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Inject(
-			method = "neighborUpdate",
+			method = "update",
 			cancellable = true,
 			at = @At(
-					value = "INVOKE",
-					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V"
+					value = "HEAD"
 			)
 	)
-	private void onNeighborUpdateInjectBeforeUpdate(BlockState state, World world, BlockPos pos, Block fromBlock, BlockPos fromPos, boolean notify, CallbackInfo ci) {
+	private void onUpdateInjectAtHead(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
 		if (AlternateCurrentMod.ENABLED) {
 			WireNode wire = getWire(world, pos);
 			
