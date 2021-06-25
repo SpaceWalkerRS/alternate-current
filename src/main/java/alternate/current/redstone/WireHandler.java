@@ -129,7 +129,7 @@ public class WireHandler {
 			usedNodes = 0;
 		}
 		
-		Profiler profiler = new ACProfiler();
+		Profiler profiler = ACProfilerDummy.INSTANCE;
 		profiler.start();
 		
 		profiler.push("build network");
@@ -148,18 +148,15 @@ public class WireHandler {
 			return;
 		}
 		
-		List<BlockPos> updatedWires = new ArrayList<>();
-		Set<BlockPos> blockUpdates = new LinkedHashSet<>();
-		
 		profiler.swap("let power flow");
-		letPowerFlow(updatedWires, blockUpdates);
+		List<BlockPos> updatedWires = letPowerFlow();
 		
 		profiler.swap("clear nodes");
 		nodes.clear();
 		
 		profiler.swap("update neighbors");
-		blockUpdates.removeAll(updatedWires);
-		dispatchBlockUpdates(updatedWires, blockUpdates);
+		Collection<BlockPos> blockUpdates = queueBlockUpdates(updatedWires);
+		dispatchBlockUpdates(blockUpdates);
 		
 		profiler.pop();
 		profiler.end();
@@ -345,7 +342,9 @@ public class WireHandler {
 		wire.isPowerSource = true;
 	}
 	
-	private void letPowerFlow(Collection<BlockPos> updatedWires, Collection<BlockPos> blockUpdates) {
+	private List<BlockPos> letPowerFlow() {
+		List<BlockPos> updatedWires = new ArrayList<>();
+		
 		updatingPower = true;
 		
 		while (!poweredWires.isEmpty()) {
@@ -359,7 +358,6 @@ public class WireHandler {
 			
 			if (updateWireState(wire)) {
 				dispatchShapeUpdates(wire);
-				collectNeighborPositions(wire.pos, blockUpdates);
 			}
 			
 			updatedWires.add(wire.pos);
@@ -375,6 +373,8 @@ public class WireHandler {
 		}
 		
 		updatingPower = false;
+		
+		return updatedWires;
 	}
 	
 	private boolean updateWireState(WireNode wire) {
@@ -409,7 +409,19 @@ public class WireHandler {
 		}
 	}
 	
-	private void dispatchBlockUpdates(Collection<BlockPos> updatedWires, Collection<BlockPos> blockUpdates) {
+	private Collection<BlockPos> queueBlockUpdates(List<BlockPos> updatedWires) {
+		Set<BlockPos> blockUpdates = new LinkedHashSet<>();
+		
+		for (int index = updatedWires.size() - 1; index >= 0; index--) {
+			collectNeighborPositions(updatedWires.get(index), blockUpdates);
+		}
+		
+		blockUpdates.removeAll(updatedWires);
+		
+		return blockUpdates;
+	}
+	
+	private void dispatchBlockUpdates(Collection<BlockPos> blockUpdates) {
 		Block block = wireBlock.asBlock();
 		
 		for (BlockPos pos : blockUpdates) {
