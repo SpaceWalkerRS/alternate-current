@@ -331,7 +331,7 @@ public class WireHandler {
 			WireNode wire = network.get(index);
 			validatePower(wire);
 			
-			if (wire.power > minPower || isEdgeNode(wire)) {
+			if (wire.power > minPower) {
 				addPowerSource(wire);
 			}
 		}

@@ -64,6 +64,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 					WireNode wire = wireBlock.createWire(world, pos, newState);
 					
 					placeWire(wire);
+					wire.updateConnections();
 					wireBlock.onWireAdded(world, pos, newState, wire, moved);
 				}
 			}
