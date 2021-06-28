@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.AlternateCurrentMod;
+import alternate.current.PerformanceMode;
 import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireHandler;
@@ -40,7 +41,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onOnBlockAddedInjectAtHead(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify, CallbackInfo ci) {
-		if (AlternateCurrentMod.ENABLED) {
+		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
 			ci.cancel(); // replaced by WireBlock.onWireAdded
 		}
 	}
@@ -53,7 +54,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onOnStateReplacedInjectAtHead(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
-		if (AlternateCurrentMod.ENABLED) {
+		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
 			ci.cancel(); // replaced by WireBlock.onWireRemoved
 		}
 	}
@@ -66,8 +67,8 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onUpdateInjectAtHead(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
-		if (AlternateCurrentMod.ENABLED) {
-			WireNode wire = getWire(world, pos);
+		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
+			WireNode wire = getOrCreateWire(world, pos, true);
 			
 			if (wire != null) {
 				tryUpdatePower(wire);
@@ -182,7 +183,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 		int power = MIN_POWER;
 		
 		for (BlockPos pos : wire.connectionsIn) {
-			WireNode connectedWire = getWire(wire.world, pos);
+			WireNode connectedWire = getOrCreateWire(wire.world, pos, true);
 			
 			if (connectedWire != null) {
 				power = Math.max(power, connectedWire.power - 1);

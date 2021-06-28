@@ -7,6 +7,4 @@ public interface IServerWorld {
 	
 	public WireHandler getWireHandler(WireBlock wireBlock);
 	
-	public void clearWires();
-	
 }

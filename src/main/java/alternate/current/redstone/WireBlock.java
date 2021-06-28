@@ -34,6 +34,25 @@ public interface WireBlock {
 		return ((IWorld)world).getWire(this, pos);
 	}
 	
+	public default WireNode getOrCreateWire(World world, BlockPos pos, boolean updateConnections) {
+		WireNode wire = getWire(world, pos);
+		
+		if (wire == null) {
+			BlockState state = world.getBlockState(pos);
+			
+			if (isOf(state)) {
+				wire = createWire(world, pos, state);
+				((IWorld)world).placeWire(wire);
+				
+				if (updateConnections) {
+					wire.updateConnections();
+				}
+			}
+		}
+		
+		return wire;
+	}
+	
 	public default WireNode createWire(World world, BlockPos pos, BlockState state) {
 		return new WireNode(this, world, pos, state);
 	}

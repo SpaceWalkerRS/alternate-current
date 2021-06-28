@@ -6,10 +6,10 @@ public interface Profiler {
 	
 	public void end();
 	
-	public void push(String e);
+	public void push(String location);
 	
 	public void pop();
 	
-	public void swap(String e);
+	public void swap(String location);
 	
 }

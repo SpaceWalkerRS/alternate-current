@@ -88,22 +88,8 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	public void updateConnections(int maxDepth) {
 		if (!ignoreUpdates) {
 			ignoreUpdates = true;
-			
-			collectNeighbors();
 			findConnections(maxDepth);
-			clearNeighbors();
-			
 			ignoreUpdates = false;
-		}
-	}
-	
-	public void collectNeighbors() {
-		for (int index = 0; index < Directions.ALL.length; index++) {
-			Direction dir = Directions.ALL[index];
-			BlockPos neighborPos = pos.offset(dir);
-			BlockState neighborState = world.getBlockState(neighborPos);
-			
-			neighbors[index] = Node.of(world, wireBlock, neighborPos, neighborState);
 		}
 	}
 	
@@ -113,25 +99,28 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	
 	private void findConnections(int maxDepth) {
 		List<BlockPos> prevConnectionsOut = new ArrayList<>(connectionsOut);
-		List<BlockPos> prevConnectionsIn = new ArrayList<>(connectionsOut);
+		List<BlockPos> prevConnectionsIn = new ArrayList<>(connectionsIn);
 		connectionsOut.clear();
 		connectionsIn.clear();
 		
-		Node belowNeighbor = neighbors[Directions.DOWN];
-		Node aboveNeighbor = neighbors[Directions.UP];
-		boolean belowIsSolid = belowNeighbor.isSolidBlock();
-		boolean aboveIsSolid = aboveNeighbor.isSolidBlock();
+		BlockPos up = pos.up();
+		BlockPos down = pos.down();
+		BlockState aboveNeighbor = world.getBlockState(up);
+		BlockState belowNeighbor = world.getBlockState(down);
+		boolean aboveIsSolid = aboveNeighbor.isSolidBlock(world, up);
+		boolean belowIsSolid = belowNeighbor.isSolidBlock(world, down);
 		
 		for (int index = 0; index < Directions.HORIZONTAL.length; index++) {
-			Node neighbor = neighbors[index];
-			BlockPos side = neighbor.pos;
+			Direction dir = Directions.ALL[index];
+			BlockPos side = pos.offset(dir);
+			BlockState neighbor = world.getBlockState(side);
 			
-			if (neighbor.isWire()) {
+			if (wireBlock.isOf(neighbor)) {
 				addConnection(side, true, true);
 				continue;
 			}
 			
-			boolean sideIsSolid = neighbor.isSolidBlock();
+			boolean sideIsSolid = neighbor.isSolidBlock(world, side);
 			
 			if (!aboveIsSolid) {
 				BlockPos aboveSide = side.up();
@@ -185,7 +174,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	
 	public void updateNeighboringWires(Collection<BlockPos> wires, int maxDepth) {
 		for (BlockPos pos : wires) {
-			WireNode wire = wireBlock.getWire(world, pos);
+			WireNode wire = wireBlock.getOrCreateWire(world, pos, false);
 			
 			if (wire != null) {
 				wire.updateConnections(maxDepth);

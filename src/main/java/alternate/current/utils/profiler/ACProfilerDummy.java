@@ -19,7 +19,7 @@ public class ACProfilerDummy implements Profiler {
 	}
 	
 	@Override
-	public void push(String e) {
+	public void push(String location) {
 		
 	}
 	
@@ -29,7 +29,7 @@ public class ACProfilerDummy implements Profiler {
 	}
 	
 	@Override
-	public void swap(String e) {
+	public void swap(String location) {
 		
 	}
 }

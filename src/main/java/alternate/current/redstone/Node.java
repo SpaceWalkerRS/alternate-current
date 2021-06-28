@@ -38,19 +38,6 @@ public class Node {
 		return pos.hashCode();
 	}
 	
-	public static Node of(World world, WireBlock wireBlock, BlockPos pos, BlockState state) {
-		if (wireBlock.isOf(state)) {
-			WireNode wire = wireBlock.getWire(world, pos);
-			
-			if (wire != null) {
-				wire.state = state;
-				return wire;
-			}
-		}
-		
-		return new Node(world, wireBlock).update(pos, state);
-	}
-	
 	public Node update(BlockPos pos, BlockState state) {
 		this.pos = pos.toImmutable();
 		this.state = state;

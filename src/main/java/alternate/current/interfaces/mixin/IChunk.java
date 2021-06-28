@@ -11,10 +11,8 @@ public interface IChunk {
 	
 	/**
 	 * Retrieve the {@code WireNode} at this position in the chunk.
-	 * If there is none and {@code orCreate} is {@code true},
-	 * try to add one.
 	 */
-	public WireNode getWire(WireBlock wireBlock, BlockPos pos, boolean orCreate);
+	public WireNode getWire(WireBlock wireBlock, BlockPos pos);
 	
 	/**
 	 * Place the given {@code WireNode} in the chunk.

@@ -85,7 +85,7 @@ public class WireHandler {
 		BlockState state = world.getBlockState(pos);
 		
 		if (wireBlock.isOf(state)) {
-			WireNode wire = wireBlock.getWire(world, pos);
+			WireNode wire = wireBlock.getOrCreateWire(world, pos, true);
 			
 			if (wire != null) {
 				wire.state = state;

@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import alternate.current.AlternateCurrentMod;
+import alternate.current.PerformanceMode;
 import alternate.current.interfaces.mixin.IChunk;
 import alternate.current.interfaces.mixin.IChunkSection;
 import alternate.current.interfaces.mixin.IWorld;
@@ -44,14 +45,14 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			return;
 		}
 		
-		if (AlternateCurrentMod.ENABLED) {
+		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
 			boolean wasWire = prevBlock instanceof WireBlock;
 			boolean isWire = newBlock instanceof WireBlock;
 			
 			if (newBlock != prevBlock) {
 				if (wasWire) {
 					WireBlock wireBlock = (WireBlock)prevBlock;
-					WireNode wire = getWire(wireBlock, pos, false);
+					WireNode wire = getWire(wireBlock, pos);
 					
 					if (wire != null) {
 						removeWire(wire);
@@ -83,25 +84,14 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	}
 	
 	@Override
-	public WireNode getWire(WireBlock wireBlock, BlockPos pos, boolean orCreate) {
+	public WireNode getWire(WireBlock wireBlock, BlockPos pos) {
 		ChunkSection section = getSection(pos.getY());
 		
 		if (ChunkSection.isEmpty(section)) {
 			return null;
 		}
 		
-		WireNode wire = ((IChunkSection)section).getWire(wireBlock, pos);
-		
-		if (orCreate && wire == null) {
-			BlockState state = getBlockState(pos);
-			
-			if (wireBlock.isOf(state)) {
-				wire = wireBlock.createWire(world, pos, state);
-				placeWire(wire);
-			}
-		}
-		
-		return wire;
+		return ((IChunkSection)section).getWire(wireBlock, pos);
 	}
 	
 	@Override
@@ -145,11 +135,12 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 		
 		WireNode prevWire = ((IChunkSection)section).setWire(pos, wire);
 		
+		if (wire == prevWire) {
+			return;
+		}
+		
 		if (prevWire != null) {
 			prevWire.updateConnectedWires();
-		}
-		if (wire != null) {
-			wire.updateConnections();
 		}
 	}
 }
