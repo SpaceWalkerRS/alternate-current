@@ -40,12 +40,14 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 					target = "Lnet/minecraft/block/BlockState;onStateReplaced(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)V"
 			)
 	)
-	private void onSetBlockStateInjectBeforeStateReplaced(BlockPos pos, BlockState newState, boolean moved, CallbackInfoReturnable<BlockState> cir, int chunkX, int y, int chunkZ, ChunkSection chunkSection, boolean isEmpty, BlockState prevState, Block newBlock, Block prevBlock) {
+	private void onSetBlockStateInjectBeforeStateReplaced(BlockPos pos, BlockState newState, boolean moved, CallbackInfoReturnable<BlockState> cir, int y, int sectionIndex, ChunkSection chunkSection, boolean isEmpty, int chunkX, int chunkY, int chunkZ, BlockState prevState, Block newBlock) {
 		if (world.isClient() || world.isDebugWorld()) {
 			return;
 		}
 		
 		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
+			Block prevBlock = prevState.getBlock();
+			
 			boolean wasWire = prevBlock instanceof WireBlock;
 			boolean isWire = newBlock instanceof WireBlock;
 			
@@ -86,7 +88,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	
 	@Override
 	public WireNode getWire(WireBlock wireBlock, BlockPos pos) {
-		ChunkSection section = getSection(pos.getY());
+		ChunkSection section = getChunkSection(pos.getY());
 		
 		if (ChunkSection.isEmpty(section)) {
 			return null;
@@ -107,7 +109,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 		setWire(wire.wireBlock, wire.pos, null);
 	}
 	
-	private ChunkSection getSection(int y) {
+	private ChunkSection getChunkSection(int y) {
 		if (y < 0) {
 			return WorldChunk.EMPTY_SECTION;
 		}
@@ -128,7 +130,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	}
 	
 	private void setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
-		ChunkSection section = getSection(pos.getY());
+		ChunkSection section = getChunkSection(pos.getY());
 		
 		if (ChunkSection.isEmpty(section)) {
 			return;
