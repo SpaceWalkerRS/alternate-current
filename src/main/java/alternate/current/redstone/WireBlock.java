@@ -4,6 +4,7 @@ import alternate.current.interfaces.mixin.IWorld;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -62,23 +63,37 @@ public interface WireBlock {
 			return state.get(Properties.POWER);
 		}
 		
-		throw new IllegalStateException("BlockState " + state + " is not of Block " + this);
+		throw new IllegalArgumentException("BlockState " + state + " is not of Block " + this);
 	}
 	
 	default boolean setPower(WireNode wire, int power, int flags) {
 		if (wire.isOf(this)) {
 			BlockState newState = wire.state.with(Properties.POWER, power);
 			
-			if (newState != wire.state) {
+			if (newState != wire.state && wire.world.setBlockState(wire.pos, newState, flags)) {
 				wire.state = newState;
 				
-				World world = wire.world;
-				BlockPos pos = wire.pos;
-				
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	default boolean setPower(World world, BlockPos pos, BlockState state, int power, int flags) {
+		if (isOf(state)) {
+			BlockState newState = state.with(Properties.POWER, power);
+			
+			if (newState != state) {
 				return world.setBlockState(pos, newState, flags);
 			}
 		}
 		
 		return false;
+	}
+	
+	default boolean breakBlock(World world, BlockPos pos, BlockState state, int flags) {
+		Block.dropStacks(state, world, pos);
+		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), flags);
 	}
 }

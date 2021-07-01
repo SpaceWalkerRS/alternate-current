@@ -60,17 +60,23 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Inject(
-			method = "update",
+			method = "neighborUpdate",
 			cancellable = true,
 			at = @At(
 					value = "HEAD"
 			)
 	)
-	private void onUpdateInjectAtHead(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void onUpdateInjectAtHead(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
 		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
 			WireNode wire = getOrCreateWire(world, pos, true);
 			
 			if (wire != null) {
+				wire.state = state;
+				
+				if (!state.canPlaceAt(world, pos)) {
+					wire.shouldBreak = true;
+				}
+				
 				tryUpdatePower(wire);
 			}
 			
@@ -82,20 +88,17 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	public void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		tryUpdatePower(wire);
 		
-		//updateNeighborsOf(world, pos); // Removed for the sake of vanilla parity
+		if (wire.state != state) {
+			wire.state.updateNeighbors(world, pos, 2); // temporary solution
+		}
+		
 		updateNeighborsOfConnectedWires(wire);
 	}
 	
 	@Override
 	public void onWireRemoved(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		if (!moved) {
-			if (wire.power > 0) {
-				wire.prevPower = wire.power;
-				wire.power = 0;
-				
-				WireHandler wireHandler = ((IServerWorld)wire.world).getWireHandler(this);
-				wireHandler.updatePower(wire);
-			}
+			tryUpdatePower(wire);
 			
 			updateNeighborsOf(world, pos);
 			updateNeighborsOfConnectedWires(wire);
@@ -112,15 +115,19 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	private boolean shouldChangePower(WireNode wire) {
 		wire.prevPower = wire.power;
 		
-		wiresGivePower = false;
-		wire.power = wire.externalPower = getExternalPower(wire);
-		wiresGivePower = true;
-		
-		if (wire.power < MAX_POWER) {
-			int wirePower = getWirePower(wire);
+		if (wire.removed || wire.shouldBreak) {
+			wire.power = 0;
+		} else {
+			wiresGivePower = false;
+			wire.power = wire.externalPower = getExternalPower(wire);
+			wiresGivePower = true;
 			
-			if (wirePower > wire.power) {
-				wire.power = wirePower;
+			if (wire.power < MAX_POWER) {
+				int wirePower = getWirePower(wire);
+				
+				if (wirePower > wire.power) {
+					wire.power = wirePower;
+				}
 			}
 		}
 		

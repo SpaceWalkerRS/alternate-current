@@ -7,9 +7,8 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import alternate.current.AlternateCurrentMod;
 import alternate.current.utils.Directions;
-import alternate.current.utils.profiler.ACProfiler;
-import alternate.current.utils.profiler.ACProfilerDummy;
 import alternate.current.utils.profiler.Profiler;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -32,6 +31,8 @@ public class WireHandler {
 	private final List<WireNode> network;
 	private final Long2ObjectMap<Node> nodes;
 	private final PriorityQueue<WireNode> poweredWires;
+	private final List<BlockPos> allWires;
+	private final List<BlockPos> updatedWires;
 	
 	private Node[] nodeCache;
 	private int usedNodes;
@@ -47,6 +48,8 @@ public class WireHandler {
 		this.network = new ArrayList<>();
 		this.nodes = new Long2ObjectOpenHashMap<>();
 		this.poweredWires = new PriorityQueue<>();
+		this.allWires = new ArrayList<>();
+		this.updatedWires = new ArrayList<>();
 		
 		this.nodeCache = new Node[16];
 		this.fillNodeCache(0, 16);
@@ -125,56 +128,52 @@ public class WireHandler {
 	}
 	
 	public void updatePower(WireNode wire) {
-		if (!updatingPower) {
-			usedNodes = 0;
-		}
-		
-		Profiler profiler = ACProfilerDummy.INSTANCE;
+		Profiler profiler = AlternateCurrentMod.createProfiler();
 		profiler.start();
 		
 		profiler.push("build network");
-		addToNetwork(wire);
 		buildNetwork(wire);
 		
 		profiler.swap("find powered wires");
 		findPoweredWires(wire);
 		
-		profiler.swap("clear network");
+		profiler.swap("clear network of " + network.size());
 		network.clear();
 		
-		if (updatingPower) {
-			profiler.pop();
-			profiler.end();
-			return;
+		if (!updatingPower) {
+			profiler.swap("let power flow");
+			letPowerFlow();
+			
+			profiler.swap("clear nodes");
+			nodes.clear();
+			usedNodes = 0;
+			
+			profiler.swap("queue block updates");
+			Collection<BlockPos> blockUpdates = queueBlockUpdates();
+			
+			profiler.swap("clear wire lists");
+			allWires.clear();
+			updatedWires.clear();
+			
+			profiler.swap("update neighbors");
+			dispatchBlockUpdates(blockUpdates);
 		}
-		
-		profiler.swap("let power flow");
-		List<BlockPos> updatedWires = letPowerFlow();
-		
-		profiler.swap("clear nodes");
-		nodes.clear();
-		
-		profiler.swap("update neighbors");
-		Collection<BlockPos> blockUpdates = queueBlockUpdates(updatedWires);
-		dispatchBlockUpdates(blockUpdates);
 		
 		profiler.pop();
 		profiler.end();
 	}
 	
 	private void buildNetwork(WireNode sourceWire) {
-		int minDepth = 0;
+		addNode(sourceWire);
+		addToNetwork(sourceWire);
 		
-		if (sourceWire.removed || (sourceWire.power < sourceWire.prevPower)) {
-			minDepth = sourceWire.prevPower - minPower + 2;
-		}
-		
+		int minDepth = getMinUpdateDepth(sourceWire);
 		int nextLayer = network.size();
 		
 		for (int index = 0; index < network.size(); index++) {
 			if (index == nextLayer) {
-				nextLayer = network.size();
 				minDepth--;
+				nextLayer = network.size();
 			}
 			
 			WireNode wire = network.get(index);
@@ -193,9 +192,21 @@ public class WireHandler {
 		}
 	}
 	
+	private int getMinUpdateDepth(WireNode sourceWire) {
+		if (sourceWire.power < sourceWire.prevPower) {
+			return sourceWire.prevPower - minPower + 2;
+		}
+		
+		return 0;
+	}
+	
 	private void prepareForNetwork(WireNode wire) {
 		if (!wire.removed) {
-			collectNeighbors(wire);
+			if (wire.state.canPlaceAt(world, wire.pos)) {
+				collectNeighbors(wire);
+			} else {
+				wire.shouldBreak = true;
+			}
 		}
 		setInitialPower(wire);
 	}
@@ -208,7 +219,7 @@ public class WireHandler {
 	private void removedFromNetwork(WireNode wire) {
 		wire.inNetwork = false;
 		wire.isPowerSource = false;
-		if (!wire.removed) {
+		if (!wire.removed && !wire.shouldBreak) {
 			wire.clearNeighbors();
 		}
 	}
@@ -227,31 +238,23 @@ public class WireHandler {
 	private void setInitialPower(WireNode wire) {
 		wire.prevPower = wire.power;
 		
-		if (wire.removed) {
-			wire.power = 0;
+		if (wire.removed || wire.shouldBreak) {
+			wire.power = minPower;
 		} else {
 			wire.power = wire.externalPower = getExternalPower(wire);
 			
-			if (wire.externalPower < maxPower) {
-				int wirePower = getWirePower(wire, false);
-				
-				if (wirePower > wire.externalPower) {
-					wire.power = wirePower;
-				}
+			if (wire.power < maxPower) {
+				wire.power = Math.max(wire.power, getWirePower(wire, false));
 			}
 		}
 	}
 	
 	private void validatePower(WireNode wire) {
-		if (!wire.removed) {
+		if (!wire.removed && !wire.shouldBreak) {
 			wire.power = wire.externalPower;
 			
 			if (wire.power < maxPower) {
-				int wirePower = getWirePower(wire, true);
-				
-				if (wirePower > wire.externalPower) {
-					wire.power = wirePower;
-				}
+				wire.power = Math.max(wire.power, getWirePower(wire, true));
 			}
 		}
 	}
@@ -342,9 +345,7 @@ public class WireHandler {
 		wire.isPowerSource = true;
 	}
 	
-	private List<BlockPos> letPowerFlow() {
-		List<BlockPos> updatedWires = new ArrayList<>();
-		
+	private void letPowerFlow() {
 		updatingPower = true;
 		
 		while (!poweredWires.isEmpty()) {
@@ -354,13 +355,17 @@ public class WireHandler {
 				continue;
 			}
 			
-			int nextPower = wire.power - 1;
+			allWires.add(wire.pos);
 			
 			if (updateWireState(wire)) {
-				dispatchShapeUpdates(wire);
+				updatedWires.add(wire.pos);
+				
+				if (!wire.removed) {
+					dispatchShapeUpdates(wire);
+				}
 			}
 			
-			updatedWires.add(wire.pos);
+			int nextPower = wire.power - 1;
 			
 			for (BlockPos pos : wire.connectionsOut) {
 				WireNode connectedWire = getWire(pos);
@@ -373,16 +378,18 @@ public class WireHandler {
 		}
 		
 		updatingPower = false;
-		
-		return updatedWires;
 	}
 	
 	private boolean updateWireState(WireNode wire) {
 		removedFromNetwork(wire);
 		
 		if (wire.removed) {
-			return false;
+			return true;
 		}
+		if (wire.shouldBreak) {
+			return wireBlock.breakBlock(world, wire.pos, wire.state, 2);
+		}
+		
 		if (wire.power < minPower) {
 			wire.power = minPower;
 		}
@@ -409,14 +416,13 @@ public class WireHandler {
 		}
 	}
 	
-	private Collection<BlockPos> queueBlockUpdates(List<BlockPos> updatedWires) {
+	private Collection<BlockPos> queueBlockUpdates() {
 		Set<BlockPos> blockUpdates = new LinkedHashSet<>();
 		
 		for (int index = updatedWires.size() - 1; index >= 0; index--) {
 			collectNeighborPositions(updatedWires.get(index), blockUpdates);
 		}
-		
-		blockUpdates.removeAll(updatedWires);
+		blockUpdates.removeAll(allWires);
 		
 		return blockUpdates;
 	}
@@ -429,6 +435,16 @@ public class WireHandler {
 		}
 	}
 	
+	/**
+	 * Collect all neighboring positions of the given position (the "origin").
+	 * The order in which these are added follows three rules:
+	 * 1) add positions in order of their distance from the origin
+	 * 2) use the following basic order: WEST -> EAST -> NORTH -> SOUTH -> DOWN -> UP
+	 * 3) every pair of positions are "opposites" (relative to the origin)
+	 * 
+	 * @param pos the origin
+	 * @param positions the collection to which the neighboring positions should be added
+	 */
 	public static void collectNeighborPositions(BlockPos pos, Collection<BlockPos> positions) {
 		BlockPos west = pos.west();
 		BlockPos east = pos.east();
@@ -437,7 +453,7 @@ public class WireHandler {
 		BlockPos down = pos.down();
 		BlockPos up = pos.up();
 		
-		// Direct neighbors
+		// Direct neighbors (6)
 		positions.add(west);
 		positions.add(east);
 		positions.add(north);
@@ -445,7 +461,7 @@ public class WireHandler {
 		positions.add(down);
 		positions.add(up);
 		
-		// Diagonal neighbors
+		// Diagonal neighbors (12)
 		positions.add(west.north());
 		positions.add(east.south());
 		positions.add(west.south());
@@ -459,12 +475,14 @@ public class WireHandler {
 		positions.add(north.up());
 		positions.add(south.down());
 		
-		// Neighbors 2 out in each direction
+		// Neighbors 2 out in each direction (6)
 		positions.add(west.west());
 		positions.add(east.east());
 		positions.add(north.north());
 		positions.add(south.south());
 		positions.add(down.down());
 		positions.add(up.up());
+		
+		// Total: 24
 	}
 }

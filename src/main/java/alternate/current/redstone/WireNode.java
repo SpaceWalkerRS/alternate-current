@@ -18,7 +18,7 @@ import net.minecraft.world.World;
 
 public class WireNode extends Node implements Comparable<WireNode> {
 	
-	private static final int DEFAULT_MAX_DEPTH = 512;
+	private static final int DEFAULT_MAX_UPDATE_DEPTH = 512;
 	
 	public final Node[] neighbors;
 	public final List<BlockPos> connectionsOut;
@@ -30,6 +30,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	/* fields used while updating power */
 	public int prevPower;
 	public int externalPower;
+	public boolean shouldBreak;
 	public boolean inNetwork;
 	public boolean isPowerSource;
 	
@@ -82,7 +83,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	}
 	
 	public void updateConnections() {
-		updateConnections(DEFAULT_MAX_DEPTH);
+		updateConnections(DEFAULT_MAX_UPDATE_DEPTH);
 	}
 	
 	public void updateConnections(int maxDepth) {
@@ -169,7 +170,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		wires.addAll(connectionsOut);
 		wires.addAll(connectionsIn);
 		
-		updateNeighboringWires(wires, DEFAULT_MAX_DEPTH);
+		updateNeighboringWires(wires, DEFAULT_MAX_UPDATE_DEPTH);
 	}
 	
 	public void updateNeighboringWires(Collection<BlockPos> wires, int maxDepth) {
