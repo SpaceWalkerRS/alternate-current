@@ -362,9 +362,6 @@ public class WireHandler {
 		if (power > wire.power) {
 			return true;
 		}
-		if (power == wire.power) {
-			return false;
-		}
 		
 		return wire.power == minPower;
 	}
