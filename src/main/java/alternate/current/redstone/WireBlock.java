@@ -1,11 +1,15 @@
 package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IWorld;
+import alternate.current.utils.Directions;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 
 public interface WireBlock {
@@ -15,15 +19,15 @@ public interface WireBlock {
 	}
 	
 	public default boolean isOf(BlockState state) {
-		return state.getBlock() == asBlock();
+		return asBlock() == state.getBlock();
 	}
 	
-	default int getMinPower() {
-		return 0;
-	}
+	public int getMinPower();
 	
-	default int getMaxPower() {
-		return 15;
+	public int getMaxPower();
+	
+	default int clampPower(int power) {
+		return MathHelper.clamp(power, getMinPower(), getMaxPower());
 	}
 	
 	public void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved);
@@ -32,6 +36,10 @@ public interface WireBlock {
 	
 	public default WireNode getWire(World world, BlockPos pos) {
 		return ((IWorld)world).getWire(this, pos);
+	}
+	
+	public default WireNode createWire(World world, BlockPos pos, BlockState state) {
+		return new WireNode(this, world, pos, state);
 	}
 	
 	public default WireNode getOrCreateWire(World world, BlockPos pos, boolean updateConnections) {
@@ -53,8 +61,46 @@ public interface WireBlock {
 		return wire;
 	}
 	
-	public default WireNode createWire(World world, BlockPos pos, BlockState state) {
-		return new WireNode(this, world, pos, state);
+	default void findWireConnections(WireNode wire) {
+		World world = wire.world;
+		BlockPos pos = wire.pos;
+		
+		BlockPos up = pos.up();
+		BlockPos down = pos.down();
+		BlockState aboveNeighbor = world.getBlockState(up);
+		BlockState belowNeighbor = world.getBlockState(down);
+		boolean aboveIsSolid = aboveNeighbor.isSolidBlock(world, up);
+		boolean belowIsSolid = belowNeighbor.isSolidBlock(world, down);
+		
+		for (int index = 0; index < Directions.HORIZONTAL.length; index++) {
+			Direction dir = Directions.ALL[index];
+			BlockPos side = pos.offset(dir);
+			BlockState neighbor = world.getBlockState(side);
+			
+			if (isOf(neighbor)) {
+				wire.addConnection(side, true, true);
+				continue;
+			}
+			
+			boolean sideIsSolid = neighbor.isSolidBlock(world, side);
+			
+			if (!aboveIsSolid) {
+				BlockPos aboveSide = side.up();
+				BlockState aboveSideState = world.getBlockState(aboveSide);
+				
+				if (isOf(aboveSideState)) {
+					wire.addConnection(aboveSide, true, sideIsSolid);
+				}
+			}
+			if (!sideIsSolid) {
+				BlockPos belowSide = side.down();
+				BlockState belowSideState = world.getBlockState(belowSide);
+				
+				if (isOf(belowSideState)) {
+					wire.addConnection(belowSide, belowIsSolid, true);
+				}
+			}
+		}
 	}
 	
 	default int getPower(World world, BlockPos pos, BlockState state) {
@@ -62,23 +108,23 @@ public interface WireBlock {
 			return state.get(Properties.POWER);
 		}
 		
-		throw new IllegalStateException("BlockState " + state + " is not of Block " + this);
+		throw new IllegalArgumentException("BlockState " + state + " is not of Block " + this);
 	}
 	
-	default boolean setPower(WireNode wire, int power, int flags) {
-		if (wire.isOf(this)) {
-			BlockState newState = wire.state.with(Properties.POWER, power);
+	default boolean setPower(World world, BlockPos pos, BlockState state, int power, int flags) {
+		if (isOf(state)) {
+			BlockState newState = state.with(Properties.POWER, clampPower(power));
 			
-			if (newState != wire.state) {
-				wire.state = newState;
-				
-				World world = wire.world;
-				BlockPos pos = wire.pos;
-				
+			if (newState != state) {
 				return world.setBlockState(pos, newState, flags);
 			}
 		}
 		
 		return false;
+	}
+	
+	default boolean breakBlock(World world, BlockPos pos, BlockState state, int flags) {
+		Block.dropStacks(state, world, pos);
+		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), flags);
 	}
 }
