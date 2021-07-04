@@ -18,7 +18,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.Mutable;
 import net.minecraft.util.math.Direction;
 
 public class WireHandler {
@@ -64,6 +63,11 @@ public class WireHandler {
 		return node == null ? addNode(pos) : node;
 	}
 	
+	private WireNode getOrAddWire(BlockPos pos) {
+		Node node = getOrAddNode(pos);
+		return node.isWire() ? node.asWire() : null;
+	}
+	
 	private Node addNode(BlockPos pos) {
 		Node node = getNextNode(pos);
 		return addNode(node);
@@ -74,16 +78,6 @@ public class WireHandler {
 		return node;
 	}
 	
-	private WireNode getWire(BlockPos pos) {
-		Node node = getNode(pos);
-		return node != null && node.isWire() ? node.asWire() : null;
-	}
-	
-	private WireNode getOrAddWire(BlockPos pos) {
-		Node node = getOrAddNode(pos);
-		return node.isWire() ? node.asWire() : null;
-	}
-	
 	private Node getNextNode(BlockPos pos) {
 		BlockState state = world.getBlockState(pos);
 		
@@ -92,6 +86,9 @@ public class WireHandler {
 			
 			if (wire != null) {
 				wire.state = state;
+				wire.prepared = false;
+				wire.inNetwork = false;
+				
 				return wire;
 			}
 		}
@@ -140,13 +137,13 @@ public class WireHandler {
 		profiler.swap("clear network of " + network.size());
 		network.clear();
 		
+		profiler.swap("clear nodes");
+		nodes.clear();
+		usedNodes = 0;
+		
 		if (!updatingPower) {
 			profiler.swap("let power flow");
 			letPowerFlow();
-			
-			profiler.swap("clear nodes");
-			nodes.clear();
-			usedNodes = 0;
 			
 			profiler.swap("queue block updates");
 			Collection<BlockPos> blockUpdates = queueBlockUpdates();
@@ -164,7 +161,7 @@ public class WireHandler {
 	}
 	
 	private void buildNetwork(WireNode sourceWire) {
-		addNode(sourceWire);
+		addNode(sourceWire.pos);
 		addToNetwork(sourceWire);
 		
 		int minDepth = getMinUpdateDepth(sourceWire);
@@ -182,7 +179,8 @@ public class WireHandler {
 				WireNode connectedWire = getOrAddWire(pos);
 				
 				if (connectedWire != null && !connectedWire.inNetwork) {
-					prepareForNetwork(connectedWire);
+					tryPrepareForNetwork(connectedWire);
+					setPower(connectedWire, false);
 					
 					if (minDepth > 0 || !isEdgeNode(connectedWire)) {
 						addToNetwork(connectedWire);
@@ -190,6 +188,11 @@ public class WireHandler {
 				}
 			}
 		}
+	}
+	
+	private void addToNetwork(WireNode wire) {
+		network.add(wire);
+		wire.inNetwork = true;
 	}
 	
 	private int getMinUpdateDepth(WireNode sourceWire) {
@@ -200,63 +203,25 @@ public class WireHandler {
 		return 0;
 	}
 	
-	private void prepareForNetwork(WireNode wire) {
-		if (!wire.removed) {
-			if (wire.state.canPlaceAt(world, wire.pos)) {
-				collectNeighbors(wire);
-			} else {
+	private void tryPrepareForNetwork(WireNode wire) {
+		if (!wire.prepared) {
+			if (!wire.removed && !wire.shouldBreak && !wire.state.canPlaceAt(world, wire.pos)) {
 				wire.shouldBreak = true;
 			}
-		}
-		setInitialPower(wire);
-	}
-	
-	private void addToNetwork(WireNode wire) {
-		network.add(wire);
-		wire.inNetwork = true;
-	}
-	
-	private void removedFromNetwork(WireNode wire) {
-		wire.inNetwork = false;
-		wire.isPowerSource = false;
-		if (!wire.removed && !wire.shouldBreak) {
-			wire.clearNeighbors();
-		}
-	}
-	
-	private void collectNeighbors(WireNode wire) {
-		Mutable pos = new Mutable();
-		
-		for (int index = 0; index < Directions.ALL.length; index++) {
-			Direction dir = Directions.ALL[index];
-			pos.set(wire.pos, dir);
 			
-			wire.neighbors[index] = getOrAddNode(pos);
+			wire.prevPower = wireBlock.clampPower(wire.power);
+			wire.power = wire.externalPower = getPreliminaryPower(wire);
+			
+			wire.prepared = true;
 		}
 	}
 	
-	private void setInitialPower(WireNode wire) {
-		wire.prevPower = wire.power;
-		
+	private int getPreliminaryPower(WireNode wire) {
 		if (wire.removed || wire.shouldBreak) {
-			wire.power = minPower;
-		} else {
-			wire.power = wire.externalPower = getExternalPower(wire);
-			
-			if (wire.power < maxPower) {
-				wire.power = Math.max(wire.power, getWirePower(wire, false));
-			}
+			return minPower;
 		}
-	}
-	
-	private void validatePower(WireNode wire) {
-		if (!wire.removed && !wire.shouldBreak) {
-			wire.power = wire.externalPower;
-			
-			if (wire.power < maxPower) {
-				wire.power = Math.max(wire.power, getWirePower(wire, true));
-			}
-		}
+		
+		return getExternalPower(wire);
 	}
 	
 	private int getExternalPower(WireNode wire) {
@@ -264,7 +229,8 @@ public class WireHandler {
 		
 		for (int index = 0; index < Directions.ALL.length; index++) {
 			Direction dir = Directions.ALL[index];
-			Node neighbor = wire.neighbors[index];
+			BlockPos side = wire.pos.offset(dir);
+			Node neighbor = getOrAddNode(side);
 			
 			if (neighbor.isSolidBlock()) {
 				power = Math.max(power, getStrongPowerTo(neighbor.pos, dir.getOpposite()));
@@ -284,8 +250,6 @@ public class WireHandler {
 	private int getStrongPowerTo(BlockPos pos, Direction ignore) {
 		int power = minPower;
 		
-		Mutable side = new Mutable();
-		
 		for (int index = 0; index < Directions.ALL.length; index++) {
 			Direction dir = Directions.ALL[index];
 			
@@ -293,7 +257,7 @@ public class WireHandler {
 				continue;
 			}
 			
-			side.set(pos, dir);
+			BlockPos side = pos.offset(dir);
 			Node neighbor = getOrAddNode(side);
 			
 			if (neighbor.isRedstoneComponent()) {
@@ -306,6 +270,16 @@ public class WireHandler {
 		}
 		
 		return power;
+	}
+	
+	private void setPower(WireNode wire, boolean ignoreNetwork) {
+		if (!wire.removed && !wire.shouldBreak) {
+			wire.power = wire.externalPower;
+			
+			if (wire.power < maxPower) {
+				wire.power = Math.max(wire.power, getWirePower(wire, ignoreNetwork));
+			}
+		}
 	}
 	
 	private int getWirePower(WireNode wire, boolean ignoreNetwork) {
@@ -327,32 +301,47 @@ public class WireHandler {
 	}
 	
 	private void findPoweredWires(WireNode sourceWire) {
-		validatePower(sourceWire);
-		addPowerSource(sourceWire);
+		setPower(sourceWire, true);
+		queuePowerChange(sourceWire);
 		
 		for (int index = 1; index < network.size(); index++) {
 			WireNode wire = network.get(index);
-			validatePower(wire);
+			setPower(wire, true);
 			
 			if (wire.power > minPower) {
-				addPowerSource(wire);
+				queuePowerChange(wire);
 			}
 		}
 	}
 	
-	private void addPowerSource(WireNode wire) {
+	private void queuePowerChange(WireNode wire) {
 		poweredWires.add(wire);
-		wire.isPowerSource = true;
 	}
 	
 	private void letPowerFlow() {
 		updatingPower = true;
 		
+		int currentPower = maxPower;
+		int nextPower = currentPower - 1;
+		
 		while (!poweredWires.isEmpty()) {
 			WireNode wire = poweredWires.poll();
 			
-			if (!wire.inNetwork) {
+			if (wire.power > currentPower) {
 				continue;
+			}
+			if (wire.power < currentPower) {
+				currentPower = wire.power;
+				nextPower = currentPower - 1;
+			}
+			
+			for (BlockPos pos : wire.connectionsOut) {
+				WireNode connectedWire = wireBlock.getWire(world, pos);
+				
+				if (connectedWire != null && acceptsPower(connectedWire, nextPower)) {
+					connectedWire.power = nextPower;
+					queuePowerChange(connectedWire);
+				}
 			}
 			
 			allWires.add(wire.pos);
@@ -364,25 +353,23 @@ public class WireHandler {
 					dispatchShapeUpdates(wire);
 				}
 			}
-			
-			int nextPower = wire.power - 1;
-			
-			for (BlockPos pos : wire.connectionsOut) {
-				WireNode connectedWire = getWire(pos);
-				
-				if (connectedWire != null && connectedWire.inNetwork && (!connectedWire.isPowerSource || nextPower > connectedWire.power)) {
-					connectedWire.power = nextPower;
-					addPowerSource(connectedWire);
-				}
-			}
 		}
 		
 		updatingPower = false;
 	}
 	
-	private boolean updateWireState(WireNode wire) {
-		removedFromNetwork(wire);
+	private boolean acceptsPower(WireNode wire, int power) {
+		if (power > wire.power) {
+			return true;
+		}
+		if (power == wire.power) {
+			return false;
+		}
 		
+		return wire.power == minPower;
+	}
+	
+	private boolean updateWireState(WireNode wire) {
 		if (wire.removed) {
 			return true;
 		}
@@ -390,11 +377,7 @@ public class WireHandler {
 			return wireBlock.breakBlock(world, wire.pos, wire.state, 2);
 		}
 		
-		if (wire.power < minPower) {
-			wire.power = minPower;
-		}
-		
-		return wireBlock.setPower(wire, wire.power, 18);
+		return wireBlock.setPower(world, wire.pos, wire.state, wire.power, 18);
 	}
 	
 	private void dispatchShapeUpdates(WireNode wire) {
@@ -438,9 +421,10 @@ public class WireHandler {
 	/**
 	 * Collect all neighboring positions of the given position (the "origin").
 	 * The order in which these are added follows three rules:
-	 * 1) add positions in order of their distance from the origin
-	 * 2) use the following basic order: WEST -> EAST -> NORTH -> SOUTH -> DOWN -> UP
-	 * 3) every pair of positions are "opposites" (relative to the origin)
+	 * 
+	 * <br> 1) add positions in order of their distance from the origin
+	 * <br> 2) use the following basic order: WEST -> EAST -> NORTH -> SOUTH -> DOWN -> UP
+	 * <br> 3) every pair of positions are "opposites" (relative to the origin)
 	 * 
 	 * @param pos the origin
 	 * @param positions the collection to which the neighboring positions should be added

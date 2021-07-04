@@ -41,39 +41,38 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			)
 	)
 	private void onSetBlockStateInjectBeforeStateReplaced(BlockPos pos, BlockState newState, boolean moved, CallbackInfoReturnable<BlockState> cir, int y, int sectionIndex, ChunkSection chunkSection, boolean isEmpty, int chunkX, int chunkY, int chunkZ, BlockState prevState, Block newBlock) {
-		if (world.isClient() || world.isDebugWorld()) {
+		if (world.isClient() || world.isDebugWorld() || (AlternateCurrentMod.MODE != PerformanceMode.MAX_PERFORMANCE)) {
 			return;
 		}
 		
-		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
-			Block prevBlock = prevState.getBlock();
-			
-			boolean wasWire = prevBlock instanceof WireBlock;
-			boolean isWire = newBlock instanceof WireBlock;
-			
-			if (newBlock != prevBlock) {
-				if (wasWire) {
-					WireBlock wireBlock = (WireBlock)prevBlock;
-					WireNode wire = getWire(wireBlock, pos);
-					
-					if (wire != null) {
-						removeWire(wire);
-						wireBlock.onWireRemoved(world, pos, prevState, wire, moved);
-					}
-				}
-				if (isWire) {
-					WireBlock wireBlock = (WireBlock)newBlock;
-					WireNode wire = wireBlock.createWire(world, pos, newState);
-					
-					placeWire(wire);
-					wire.updateConnections();
-					wireBlock.onWireAdded(world, pos, newState, wire, moved);
+		Block prevBlock = prevState.getBlock();
+		
+		boolean wasWire = prevBlock instanceof WireBlock;
+		boolean isWire = newBlock instanceof WireBlock;
+		
+		if (newBlock != prevBlock) {
+			if (wasWire) {
+				WireBlock wireBlock = (WireBlock)prevBlock;
+				WireNode wire = getWire(wireBlock, pos);
+				
+				if (wire != null) {
+					removeWire(wire);
+					wire.updateConnectedWires();
+					wireBlock.onWireRemoved(world, pos, prevState, wire, moved);
 				}
 			}
-			
-			if (!wasWire && !isWire) {
-				((IWorld)world).updateWireConnectionsAround(pos);
+			if (isWire) {
+				WireBlock wireBlock = (WireBlock)newBlock;
+				WireNode wire = wireBlock.createWire(world, pos, newState);
+				
+				placeWire(wire);
+				wire.updateConnections();
+				wireBlock.onWireAdded(world, pos, newState, wire, moved);
 			}
+		}
+		
+		if (!wasWire && !isWire) {
+			((IWorld)world).updateWireConnectionsAround(pos);
 		}
 	}
 	
@@ -100,6 +99,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	@Override
 	public void placeWire(WireNode wire) {
 		wire.removed = false;
+		wire.shouldBreak = false;
 		setWire(wire.wireBlock, wire.pos, wire);
 	}
 	
@@ -132,18 +132,8 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	private void setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
 		ChunkSection section = getChunkSection(pos.getY());
 		
-		if (ChunkSection.isEmpty(section)) {
-			return;
-		}
-		
-		WireNode prevWire = ((IChunkSection)section).setWire(pos, wire);
-		
-		if (wire == prevWire) {
-			return;
-		}
-		
-		if (prevWire != null) {
-			prevWire.updateConnectedWires();
+		if (!ChunkSection.isEmpty(section)) {
+			((IChunkSection)section).setWire(pos, wire);
 		}
 	}
 }

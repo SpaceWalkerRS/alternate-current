@@ -89,7 +89,7 @@ public class ACProfiler implements Profiler {
 	}
 	
 	private void logResults() {
-		LOGGER.info("--- ACProfiler Results ---");
+		LOGGER.info("--- Alternate Current Profiler Results ---");
 		
 		long total = times.get(0);
 		LOGGER.info("total: " + total);
