@@ -17,7 +17,6 @@ import alternate.current.redstone.WireHandler;
 import alternate.current.redstone.WireNode;
 import alternate.current.utils.Directions;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.util.math.BlockPos;
@@ -205,7 +204,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	private void tryUpdateNeighborsOfWire(World world, BlockPos pos, BlockState state) {
-		if (state.isOf((Block)(Object)this)) {
+		if (isOf(state)) {
 			updateNeighborsOf(world, pos);
 		}
 	}
@@ -215,7 +214,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 		WireHandler.collectNeighborPositions(pos, positions);
 		
 		for (BlockPos neighborPos : positions) {
-			world.updateNeighbor(neighborPos, (Block)(Object)this, pos);
+			world.updateNeighbor(neighborPos, asBlock(), pos);
 		}
 	}
 	
