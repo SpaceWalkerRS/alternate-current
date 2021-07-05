@@ -91,7 +91,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 		tryUpdatePower(wire);
 		
 		// temporary solution
-		if (wire.state != state) {
+		if (wire.power > MIN_POWER) {
 			wire.state.updateNeighbors(world, pos, 2);
 			wire.state.prepare(world, pos, 2);
 		}
