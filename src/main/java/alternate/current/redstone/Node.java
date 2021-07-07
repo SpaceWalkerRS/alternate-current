@@ -70,6 +70,6 @@ public class Node {
 	}
 	
 	public WireNode asWire() {
-		return (WireNode)this;
+		throw new UnsupportedOperationException("Not a WireNode!");
 	}
 }

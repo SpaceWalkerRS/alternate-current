@@ -116,9 +116,13 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	private boolean shouldUpdatePower(WireNode wire) {
-		wire.prevPower = clampPower(wire.power);
+		wire.prevPower = getPower(wire.world, wire.pos, wire.state);
 		
 		if (wire.removed || wire.shouldBreak) {
+			if (wire.power <= MIN_POWER) {
+				return false;
+			}
+			
 			wire.power = MIN_POWER;
 		} else {
 			wiresGivePower = false;

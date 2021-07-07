@@ -21,12 +21,10 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	public final List<BlockPos> connectionsIn;
 	
 	public int power;
-	public boolean removed;
-	
-	/* fields used while updating power */
 	public int prevPower;
 	public int externalPower;
 	public boolean shouldBreak;
+	public boolean removed;
 	public boolean prepared;
 	public boolean inNetwork;
 	
@@ -40,7 +38,7 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		
 		this.pos = pos.toImmutable();
 		this.state = state;
-		this.power = this.wireBlock.getPower(this.world, this.pos, this.state);
+		this.power = this.prevPower = this.wireBlock.getPower(this.world, this.pos, this.state);
 	}
 	
 	@Override
@@ -64,13 +62,18 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	
 	@Override
 	public Node update(BlockPos pos, BlockState state) {
-		AlternateCurrentMod.LOGGER.warn("Cannot update a WireNode!");
+		AlternateCurrentMod.LOGGER.warn("Cannot update the Node attributes of a WireNode!");
 		return this;
 	}
 	
 	@Override
 	public boolean isWire() {
 		return true;
+	}
+	
+	@Override
+	public WireNode asWire() {
+		return this;
 	}
 	
 	public boolean isOf(WireBlock wireBlock) {

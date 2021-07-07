@@ -29,7 +29,7 @@ public class WireHandler {
 	
 	private final List<WireNode> network;
 	private final Long2ObjectMap<Node> nodes;
-	private final PriorityQueue<WireNode> poweredWires;
+	private final PriorityQueue<WireNode> powerChanges;
 	private final List<BlockPos> allWires;
 	private final List<BlockPos> updatedWires;
 	
@@ -46,7 +46,7 @@ public class WireHandler {
 		
 		this.network = new ArrayList<>();
 		this.nodes = new Long2ObjectOpenHashMap<>();
-		this.poweredWires = new PriorityQueue<>();
+		this.powerChanges = new PriorityQueue<>();
 		this.allWires = new ArrayList<>();
 		this.updatedWires = new ArrayList<>();
 		
@@ -85,7 +85,6 @@ public class WireHandler {
 			WireNode wire = wireBlock.getOrCreateWire(world, pos, true);
 			
 			if (wire != null) {
-				wire.state = state;
 				wire.prepared = false;
 				wire.inNetwork = false;
 				
@@ -97,7 +96,7 @@ public class WireHandler {
 	}
 	
 	private Node nextNodeFromCache() {
-		if (usedNodes >= nodeCache.length) {
+		if (usedNodes == nodeCache.length) {
 			increaseNodeCache();
 		}
 		
@@ -179,8 +178,8 @@ public class WireHandler {
 				WireNode connectedWire = getOrAddWire(pos);
 				
 				if (connectedWire != null && !connectedWire.inNetwork) {
-					tryPrepareForNetwork(connectedWire);
-					setPower(connectedWire, false);
+					prepareForNetwork(connectedWire);
+					findPower(connectedWire, false);
 					
 					if (minDepth > 0 || !isEdgeNode(connectedWire)) {
 						addToNetwork(connectedWire);
@@ -203,13 +202,13 @@ public class WireHandler {
 		return 0;
 	}
 	
-	private void tryPrepareForNetwork(WireNode wire) {
+	private void prepareForNetwork(WireNode wire) {
 		if (!wire.prepared) {
 			if (!wire.removed && !wire.shouldBreak && !wire.state.canPlaceAt(world, wire.pos)) {
 				wire.shouldBreak = true;
 			}
 			
-			wire.prevPower = wireBlock.clampPower(wire.power);
+			wire.prevPower = wireBlock.getPower(world, wire.pos, wire.state);
 			wire.power = wire.externalPower = getPreliminaryPower(wire);
 			
 			wire.prepared = true;
@@ -272,7 +271,7 @@ public class WireHandler {
 		return power;
 	}
 	
-	private void setPower(WireNode wire, boolean ignoreNetwork) {
+	private void findPower(WireNode wire, boolean ignoreNetwork) {
 		if (!wire.removed && !wire.shouldBreak) {
 			wire.power = wire.externalPower;
 			
@@ -301,47 +300,52 @@ public class WireHandler {
 	}
 	
 	private void findPoweredWires(WireNode sourceWire) {
-		setPower(sourceWire, true);
-		queuePowerChange(sourceWire);
+		findPower(sourceWire, true);
+		tryQueuePowerChange(sourceWire);
 		
 		for (int index = 1; index < network.size(); index++) {
 			WireNode wire = network.get(index);
-			setPower(wire, true);
+			findPower(wire, true);
 			
 			if (wire.power > minPower) {
-				queuePowerChange(wire);
+				tryQueuePowerChange(wire);
 			}
 		}
 	}
 	
+	private void tryQueuePowerChange(WireNode wire) {
+		if (isEdgeNode(wire)) {
+			transmitPower(wire);
+		} else {
+			queuePowerChange(wire);
+		}
+	}
+	
 	private void queuePowerChange(WireNode wire) {
-		poweredWires.add(wire);
+		powerChanges.add(wire);
+	}
+	
+	private void transmitPower(WireNode wire) {
+		int nextPower = wire.power - 1;
+		
+		for (BlockPos pos : wire.connectionsOut) {
+			WireNode connectedWire = wireBlock.getWire(world, pos);
+			
+			if (connectedWire != null && acceptsPower(connectedWire, nextPower)) {
+				connectedWire.power = nextPower;
+				tryQueuePowerChange(connectedWire);
+			}
+		}
 	}
 	
 	private void letPowerFlow() {
 		updatingPower = true;
 		
-		int currentPower = maxPower;
-		int nextPower = currentPower - 1;
-		
-		while (!poweredWires.isEmpty()) {
-			WireNode wire = poweredWires.poll();
+		while (!powerChanges.isEmpty()) {
+			WireNode wire = powerChanges.poll();
 			
-			if (wire.power > currentPower) {
+			if (isEdgeNode(wire)) {
 				continue;
-			}
-			if (wire.power < currentPower) {
-				currentPower = wire.power;
-				nextPower = currentPower - 1;
-			}
-			
-			for (BlockPos pos : wire.connectionsOut) {
-				WireNode connectedWire = wireBlock.getWire(world, pos);
-				
-				if (connectedWire != null && acceptsPower(connectedWire, nextPower)) {
-					connectedWire.power = nextPower;
-					queuePowerChange(connectedWire);
-				}
 			}
 			
 			allWires.add(wire.pos);
@@ -353,6 +357,8 @@ public class WireHandler {
 					dispatchShapeUpdates(wire);
 				}
 			}
+			
+			transmitPower(wire);
 		}
 		
 		updatingPower = false;
