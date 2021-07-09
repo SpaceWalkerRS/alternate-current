@@ -67,10 +67,26 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 				wire.updateConnections();
 				wireBlock.onWireAdded(world, pos, newState, wire, moved);
 			}
+		} else if (isWire) {
+			WireBlock wireBlock = (WireBlock)newBlock;
+			WireNode wire = getWire(wireBlock, pos);
+			
+			if (wire != null) {
+				wire.state = newState;
+			}
 		}
 		
-		if (!wasWire && !isWire) {
-			((IWorld)world).updateWireConnectionsAround(pos);
+		if (!wasWire || !isWire) {
+			// Other than placing or breaking blocks,
+			// the only way to affect wire connections
+			// is to place/break a solid block to (un)cut
+			// a connection.
+			boolean wasSolid = prevState.isSolidBlock(world, pos);
+			boolean isSolid = newState.isSolidBlock(world, pos);
+			
+			if (wasSolid != isSolid) {
+				((IWorld)world).updateWireConnectionsAround(pos);
+			}
 		}
 	}
 	
@@ -104,6 +120,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	@Override
 	public void removeWire(WireNode wire) {
 		wire.removed = true;
+		wire.shouldBreak = false;
 		setWire(wire.wireBlock, wire.pos, null);
 	}
 	
