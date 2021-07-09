@@ -20,20 +20,111 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
+/**
+ * This class handles power changes for redstone wire. The algorithm
+ * was design with the following goals in mind:
+ * 
+ * 1. Minimize the number of times a wire checks its surroundings to
+ *    determine its power level.
+ * 2. Minimize the number of block and shape updates emitted.
+ * 3. Emit block and shape updates in a predictable, non-locational
+ *    order, fixing bug MC-11193.
+ * 
+ * In Vanilla redstone wire is laggy because it fails on points 1 and 2.
+ * 
+ * It updates recursively and each wire calculates its power level in
+ * isolation rather than in the context of the network it is a part of.
+ * This means a wire in a grid can change its power level over half a
+ * dozen times before settling on its final power level. 
+ * 
+ * In addition to this, a wire emits 42 block updates and up to 22 shape
+ * updates each time it changes its power level.
+ * 
+ * Of those 42 block updates, 6 are to itself, which are thus not only
+ * redundant, but a big source of lag, since those cause the wire to
+ * unnecessarily re-calculate its power level. A block only has 24 
+ * neighbors within a Manhattan distance of 2, meaning 12 of the remaining
+ * 36 block updates are also redundant.
+ * 
+ * Of the 22 shape updates, only 6 are strictly necessary. The other 16
+ * are sent to blocks diagonally above or below. These are necessary
+ * if a wire changed its connections, but not when it changed its power.
+ * 
+ * Let's discuss how this algorithm fixes each of these problems to
+ * achieve each of our 3 goals.
+ * 
+ * 1.
+ * To make sure a wire calculates its power level as little as possible,
+ * we remove the recursive nature in which redstone wire updates in
+ * Vanilla. Instead, we build a network of connected wires, find those
+ * wires that receive redstone power from "outside" the network, and
+ * spread the power from there. This has a few advantages:
+ * - Each wire checks for power from non-wire components just once, 
+ *   and from nearby wires just twice.
+ * - Each wire only sets its power level in the world once. This is
+ *   important, because calls to World.setBlockState are even more
+ *   expensive than calls to World.getBlockState.
+ * 
+ * 2.
+ * There are 2 obvious ways in which we can reduce the number of block
+ * and shape updates.
+ * - Get rid of the 18 redundant block updates and 16 redundant shape
+ *   updates, so each wire only emits 24 block updates and 6 shape updates.
+ * - Only emit block updates and shape updates once a wire reaches its
+ *   final power level, rather than at each intermediary stage. 
+ * For an individual wire, these two optimizations are the best you can
+ * do, but for an entire grid, we can do better!
+ * 
+ * Notice that, while each wire individually makes sure it updates each
+ * neighbor only once, each neighbor could still be updated by multiple
+ * wires. Removing those redundant block updates can reduce the number
+ * of block updates by up to 66%.
+ * 
+ * And there is more! Because we calculate the power of the entire
+ * network, sending block and shape updates to the wires in it is
+ * redundant. Removing those updates can reduce the number of block and
+ * shape updates by 20%.
+ * 
+ * 3.
+ * -- TO DO --
+ * 
+ * @author Space Walker
+ */
 public class WireHandler {
 	
+	/*
+	 * While these fields are not strictly necessary, I opted to add
+	 * them with "future proofing" in mind, and to avoid hard-coding
+	 * certain constants.
+	 * 
+	 * If Vanilla will ever multi-thread the ticking of dimensions,
+	 * there should be only one WireHandler per dimension, in case 
+	 * redstone updates in both dimensions at the same time. There are
+	 * already mods that add multi-threading as well.
+	 * 
+	 * If Vanilla ever adds new redstone wire types that cannot interact
+	 * with each other, there should be one WireHandler for each wire
+	 * type, in case two networks of different types update each other.
+	 */
 	private final ServerWorld world;
 	private final WireBlock wireBlock;
 	private final int minPower;
 	private final int maxPower;
 	private final int powerStep;
 	
+	/** List of all the wires in the network */
 	private final List<WireNode> network;
+	/** Map of wires and neighboring blocks */
 	private final Long2ObjectMap<Node> nodes;
+	/** Queue of all the power changes that need to happen */
 	private final PriorityQueue<WireNode> powerChanges;
+	/** List of positions that contain a wire that is part of the network */
 	private final List<BlockPos> allWires;
+	/** List of wires that changed power level */
 	private final List<BlockPos> updatedWires;
 	
+	// Rather than creating new nodes every time a network is updated
+	// we keep a cache of nodes that can be re-used
 	private Node[] nodeCache;
 	private int usedNodes;
 	
@@ -80,6 +171,11 @@ public class WireHandler {
 		return node;
 	}
 	
+	/**
+	 * Check the BlockState that occupies the given position.
+	 * If it is a wire, then retrieve its WireNode. Otherwise,
+	 * grab the next Node from the cache and update it.
+	 */
 	private Node getNextNode(BlockPos pos) {
 		BlockState state = world.getBlockState(pos);
 		
@@ -125,6 +221,10 @@ public class WireHandler {
 		}
 	}
 	
+	/**
+	 * This method is called whenever a wire is added, removed,
+	 * or updated.
+	 */
 	public void updatePower(WireNode wire) {
 		Profiler profiler = AlternateCurrentMod.createProfiler();
 		profiler.start();
@@ -429,14 +529,14 @@ public class WireHandler {
 	
 	/**
 	 * Collect all neighboring positions of the given position (the "origin").
-	 * The order in which these are added follows three rules:
+	 * The order in which these are added follows 3 rules:
 	 * 
-	 * <br> 1) add positions in order of their distance from the origin
-	 * <br> 2) use the following basic order: WEST -> EAST -> NORTH -> SOUTH -> DOWN -> UP
-	 * <br> 3) every pair of positions are "opposites" (relative to the origin)
+	 * 1. add positions in order of their distance from the origin
+	 * 2. use the following basic order: WEST -> EAST -> NORTH -> SOUTH -> DOWN -> UP
+	 * 3. every pair of positions are "opposites" (relative to the origin)
 	 * 
-	 * @param pos the origin
-	 * @param positions the collection to which the neighboring positions should be added
+	 * @param pos        the origin
+	 * @param positions  the collection to which the neighboring positions should be added
 	 */
 	public static void collectNeighborPositions(BlockPos pos, Collection<BlockPos> positions) {
 		BlockPos west = pos.west();

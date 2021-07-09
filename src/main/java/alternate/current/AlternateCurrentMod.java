@@ -4,7 +4,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import alternate.current.utils.profiler.ACProfiler;
-import alternate.current.utils.profiler.ACProfilerDummy;
 import alternate.current.utils.profiler.Profiler;
 
 import net.fabricmc.api.ModInitializer;
@@ -28,6 +27,6 @@ public class AlternateCurrentMod implements ModInitializer {
 	}
 	
 	public static Profiler createProfiler() {
-		return DEBUG ? new ACProfiler() : ACProfilerDummy.INSTANCE;
+		return DEBUG ? new ACProfiler() : Profiler.DUMMY;
 	}
 }
