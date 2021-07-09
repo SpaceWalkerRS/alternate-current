@@ -26,6 +26,7 @@ public class WireHandler {
 	private final WireBlock wireBlock;
 	private final int minPower;
 	private final int maxPower;
+	private final int powerStep;
 	
 	private final List<WireNode> network;
 	private final Long2ObjectMap<Node> nodes;
@@ -43,6 +44,7 @@ public class WireHandler {
 		this.wireBlock = wireBlock;
 		this.minPower = this.wireBlock.getMinPower();
 		this.maxPower = this.wireBlock.getMaxPower();
+		this.powerStep = this.wireBlock.getPowerStep();
 		
 		this.network = new ArrayList<>();
 		this.nodes = new Long2ObjectOpenHashMap<>();
@@ -160,6 +162,10 @@ public class WireHandler {
 	}
 	
 	private void buildNetwork(WireNode sourceWire) {
+		// The source wire might be removed,
+		// in which case its position is now
+		// occupied by another block, most
+		// likely air.
 		addNode(sourceWire.pos);
 		addToNetwork(sourceWire);
 		
@@ -196,7 +202,7 @@ public class WireHandler {
 	
 	private int getMinUpdateDepth(WireNode sourceWire) {
 		if (sourceWire.power < sourceWire.prevPower) {
-			return sourceWire.prevPower - minPower + 2;
+			return (sourceWire.prevPower - minPower) / powerStep + 2;
 		}
 		
 		return 0;
@@ -288,7 +294,7 @@ public class WireHandler {
 			WireNode connectedWire = getOrAddWire(pos);
 			
 			if (connectedWire != null && (!ignoreNetwork || !connectedWire.inNetwork)) {
-				power = Math.max(power, connectedWire.power - 1);
+				power = Math.max(power, connectedWire.power - powerStep);
 			}
 		}
 		
@@ -301,39 +307,39 @@ public class WireHandler {
 	
 	private void findPoweredWires(WireNode sourceWire) {
 		findPower(sourceWire, true);
-		tryQueuePowerChange(sourceWire);
+		queuePowerChanges(sourceWire);
 		
 		for (int index = 1; index < network.size(); index++) {
 			WireNode wire = network.get(index);
 			findPower(wire, true);
 			
 			if (wire.power > minPower) {
-				tryQueuePowerChange(wire);
+				queuePowerChanges(wire);
 			}
 		}
 	}
 	
-	private void tryQueuePowerChange(WireNode wire) {
+	private void queuePowerChanges(WireNode wire) {
 		if (isEdgeNode(wire)) {
 			transmitPower(wire);
 		} else {
-			queuePowerChange(wire);
+			addPowerChange(wire);
 		}
 	}
 	
-	private void queuePowerChange(WireNode wire) {
+	private void addPowerChange(WireNode wire) {
 		powerChanges.add(wire);
 	}
 	
 	private void transmitPower(WireNode wire) {
-		int nextPower = wire.power - 1;
+		int nextPower = wire.power - powerStep;
 		
 		for (BlockPos pos : wire.connectionsOut) {
 			WireNode connectedWire = wireBlock.getWire(world, pos);
 			
 			if (connectedWire != null && acceptsPower(connectedWire, nextPower)) {
 				connectedWire.power = nextPower;
-				tryQueuePowerChange(connectedWire);
+				queuePowerChanges(connectedWire);
 			}
 		}
 	}

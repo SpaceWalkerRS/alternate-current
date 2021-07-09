@@ -26,6 +26,8 @@ public interface WireBlock {
 	
 	public int getMaxPower();
 	
+	public int getPowerStep();
+	
 	default int clampPower(int power) {
 		return MathHelper.clamp(power, getMinPower(), getMaxPower());
 	}

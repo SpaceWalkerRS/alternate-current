@@ -28,6 +28,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	
 	private static final int MIN_POWER = 0;
 	private static final int MAX_POWER = 15;
+	private static final int POWER_STEP = 1;
 	
 	@Shadow private boolean wiresGivePower;
 	
@@ -87,6 +88,11 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Override
+	public int getPowerStep() {
+		return POWER_STEP;
+	}
+	
+	@Override
 	public void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		tryUpdatePower(wire);
 		
@@ -119,10 +125,6 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 		wire.prevPower = getPower(wire.world, wire.pos, wire.state);
 		
 		if (wire.removed || wire.shouldBreak) {
-			if (wire.power <= MIN_POWER) {
-				return false;
-			}
-			
 			wire.power = MIN_POWER;
 		} else {
 			wiresGivePower = false;
@@ -196,7 +198,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			WireNode connectedWire = getOrCreateWire(wire.world, pos, true);
 			
 			if (connectedWire != null) {
-				power = Math.max(power, connectedWire.power - 1);
+				power = Math.max(power, connectedWire.power - POWER_STEP);
 			}
 		}
 		
@@ -231,7 +233,8 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	// not updated at all. 
 	// Weirdly, when a wire block is placed or destroyed,
 	// it updates all the neighbors around neighboring
-	// wire blocks. This behavior is replicated here.
+	// wire blocks. This behavior is replicated here,
+	// though not perfectly.
 	private void updateNeighborsOfConnectedWires(WireNode wire) {
 		for (BlockPos pos : wire.connectionsOut) {
 			tryUpdateNeighborsOfWire(wire.world, pos);
