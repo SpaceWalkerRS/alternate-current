@@ -6,17 +6,26 @@ import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+/**
+ * A Node represents a block in the world. It is tied to a
+ * specific wire block type so it can be identified as part of
+ * a wire network or as a neighbor of a wire network. It also
+ * holds a few other pieces of information that speed up the
+ * calculations in the WireHandler class.
+ * 
+ * @author Space Walker
+ */
 public class Node {
-	
-	private static final int SOLID_BLOCK = 1;
-	private static final int REDSTONE_COMPONENT = 2;
 	
 	public final World world;
 	public final WireBlock wireBlock;
 	
 	public BlockPos pos;
 	public BlockState state;
-	private int attributes;
+	
+	public boolean isWire;
+	public boolean isSolidBlock;
+	public boolean isRedstoneComponent;
 	
 	public Node(World world, WireBlock wireBlock) {
 		this.world = world;
@@ -41,32 +50,23 @@ public class Node {
 	public Node update(BlockPos pos, BlockState state) {
 		this.pos = pos.toImmutable();
 		this.state = state;
-		this.attributes = 0;
+		
+		this.isWire = false;
+		this.isSolidBlock = false;
+		this.isRedstoneComponent = false;
 		
 		if (wireBlock.isOf(state)) {
-			AlternateCurrentMod.LOGGER.warn("Cannot update a regular Node to a WireNode!");
+			AlternateCurrentMod.LOGGER.warn("Cannot update a Node to a WireNode!");
 		} else {
 			if (state.isSolidBlock(world, pos)) {
-				this.attributes |= SOLID_BLOCK;
+				this.isSolidBlock = true;
 			}
 			if (state.emitsRedstonePower()) {
-				this.attributes |= REDSTONE_COMPONENT;
+				this.isRedstoneComponent = true;
 			}
 		}
 		
 		return this;
-	}
-	
-	public boolean isWire() {
-		return false;
-	}
-	
-	public boolean isSolidBlock() {
-		return (attributes & SOLID_BLOCK) != 0;
-	}
-	
-	public boolean isRedstoneComponent() {
-		return (attributes & REDSTONE_COMPONENT) != 0;
 	}
 	
 	public WireNode asWire() {

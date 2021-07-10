@@ -65,12 +65,14 @@ public interface WireBlock {
 		if (isOf(state)) {
 			BlockState newState = state.with(Properties.POWER, clampPower(power));
 			
-			if (newState != state) {
-				return world.setBlockState(pos, newState, flags);
+			if (newState == state) {
+				return false;
 			}
+			
+			return world.setBlockState(pos, newState, flags);
 		}
 		
-		return false;
+		throw new IllegalArgumentException("BlockState " + state + " is not of Block " + this);
 	}
 	
 	public default WireNode getWire(World world, BlockPos pos) {
