@@ -20,9 +20,10 @@ public class WireNode extends Node implements Comparable<WireNode> {
 	public final List<BlockPos> connectionsOut;
 	public final List<BlockPos> connectionsIn;
 	
-	public int power;
 	public int prevPower;
+	public int virtualPower;
 	public int externalPower;
+	public int ticket;
 	public boolean shouldBreak;
 	public boolean removed;
 	public boolean prepared;
@@ -38,26 +39,13 @@ public class WireNode extends Node implements Comparable<WireNode> {
 		
 		this.pos = pos.toImmutable();
 		this.state = state;
-		this.power = this.prevPower = this.wireBlock.getPower(this.world, this.pos, this.state);
+		this.virtualPower = this.prevPower = this.wireBlock.getPower(this.world, this.pos, this.state);
 	}
 	
 	@Override
 	public int compareTo(WireNode wire) {
-		int c = Integer.compare(wire.power, power);
-		
-		if (c == 0) {
-			c = Integer.compare(pos.getX(), wire.pos.getX());
-			
-			if (c == 0) {
-				c = Integer.compare(pos.getZ(), wire.pos.getZ());
-				
-				if (c == 0) {
-					c = Integer.compare(pos.getY(), wire.pos.getY());
-				}
-			}
-		}
-		
-		return c;
+		int c = Integer.compare(wire.virtualPower, virtualPower);
+		return (c == 0) ? Integer.compare(ticket, wire.ticket) : c;
 	}
 	
 	@Override

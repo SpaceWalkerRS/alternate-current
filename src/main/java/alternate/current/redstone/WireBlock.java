@@ -150,7 +150,7 @@ public interface WireBlock {
 	default void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		tryUpdatePower(wire);
 		
-		if (wire.power > getMinPower()) {
+		if (wire.virtualPower > getMinPower()) {
 			wire.state.updateNeighbors(world, pos, 2);
 			wire.state.prepare(world, pos, 2);
 		}
@@ -160,7 +160,9 @@ public interface WireBlock {
 	
 	default void onWireRemoved(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		if (!moved) {
-			tryUpdatePower(wire);
+			if (!wire.shouldBreak) {
+				tryUpdatePower(wire);
+			}
 			
 			updateNeighborsOf(world, pos);
 			updateNeighborsOfConnectedWires(wire);
@@ -177,20 +179,20 @@ public interface WireBlock {
 		wire.prevPower = getPower(wire.world, wire.pos, wire.state);
 		
 		if (wire.removed || wire.shouldBreak) {
-			wire.power = getMinPower();
+			wire.virtualPower = getMinPower();
 		} else {
-			wire.power = wire.externalPower = getExternalPower(wire);
+			wire.virtualPower = wire.externalPower = getExternalPower(wire);
 			
-			if (wire.power < getMaxPower()) {
+			if (wire.virtualPower < getMaxPower()) {
 				int wirePower = getWirePower(wire);
 				
-				if (wirePower > wire.power) {
-					wire.power = wirePower;
+				if (wirePower > wire.virtualPower) {
+					wire.virtualPower = wirePower;
 				}
 			}
 		}
 		
-		return wire.power != wire.prevPower;
+		return wire.virtualPower != wire.prevPower;
 	}
 	
 	default int getExternalPower(WireNode wire) {
@@ -235,7 +237,7 @@ public interface WireBlock {
 			BlockPos side = pos.offset(dir);
 			BlockState neighbor = world.getBlockState(side);
 			
-			if (neighbor.emitsRedstonePower()) {
+			if (neighbor.emitsRedstonePower() && !isOf(neighbor)) {
 				power = Math.max(power, neighbor.getStrongRedstonePower(world, side, dir));
 				
 				if (power >= max) {
@@ -255,7 +257,7 @@ public interface WireBlock {
 			WireNode connectedWire = getOrCreateWire(wire.world, pos, true);
 			
 			if (connectedWire != null) {
-				power = Math.max(power, connectedWire.power - step);
+				power = Math.max(power, connectedWire.virtualPower - step);
 			}
 		}
 		
