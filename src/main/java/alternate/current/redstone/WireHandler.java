@@ -176,6 +176,8 @@ public class WireHandler {
 	// power level, determines its place in the queue to change power.
 	private int nextTicket;
 	
+	private boolean updatingPower;
+	
 	public WireHandler(ServerWorld world, WireBlock wireBlock) {
 		this.world = world;
 		this.wireBlock = wireBlock;
@@ -350,7 +352,7 @@ public class WireHandler {
 		// If that happens, we can simply exit here, since the power
 		// changes required for this network will be integrated into
 		// the already ongoing method call.
-		if (powerChanges.isEmpty()) {
+		if (!updatingPower) {
 			profiler.swap("let power flow");
 			letPowerFlow();
 			nextTicket = 0;
@@ -575,6 +577,8 @@ public class WireHandler {
 	}
 	
 	private void letPowerFlow() {
+		updatingPower = true;
+		
 		while (!powerChanges.isEmpty()) {
 			WireNode wire = powerChanges.poll();
 			
@@ -594,6 +598,8 @@ public class WireHandler {
 			
 			transmitPower(wire);
 		}
+		
+		updatingPower = false;
 	}
 	
 	private boolean acceptsPower(WireNode wire, int power) {
