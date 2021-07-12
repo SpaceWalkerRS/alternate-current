@@ -120,7 +120,6 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	@Override
 	public void removeWire(WireNode wire) {
 		wire.removed = true;
-		wire.shouldBreak = false;
 		setWire(wire.wireBlock, wire.pos, null);
 	}
 	
