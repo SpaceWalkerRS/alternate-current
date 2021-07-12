@@ -39,9 +39,9 @@ import net.minecraft.util.math.Direction;
  * It updates recursively and each wire calculates its power level in
  * isolation rather than in the context of the network it is a part of.
  * This means a wire in a grid can change its power level over half a
- * dozen times before settling on its final power level. This problem
- * used to be worse in 1.14 and below, where a wire would only decrease
- * its power level by 1 at a time.
+ * dozen times before settling on its final value. This problem used to
+ * be worse in 1.14 and below, where a wire would only decrease its power
+ * level by 1 at a time.
  * 
  * <p>
  * In addition to this, a wire emits 42 block updates and up to 22 shape
@@ -57,7 +57,7 @@ import net.minecraft.util.math.Direction;
  * <p>
  * Of the 22 shape updates, only 6 are strictly necessary. The other 16
  * are sent to blocks diagonally above and below. These are necessary
- * if a wire changed its connections, but not when it changed its power.
+ * if a wire changes its connections, but not when it changes its power.
  * 
  * <p>
  * Redstone wire in Vanilla also fails on point 3. The recursive nature
@@ -112,9 +112,10 @@ import net.minecraft.util.math.Direction;
  * 
  * <p>
  * 3.
- * The first thing we must do is to remove the location-dependant order
- * in which a wire updates its neighbors. The order I have chosen to use
- * can be seen at the bottom of this class.
+ * To make the order of block updates to neighbors of a network
+ * deterministic, the first thing we must do is to replace the location-
+ * dependant order in which a wire updates its neighbors. The order I have
+ * chosen to use can be seen at the bottom of this class.
  * 
  * <p>
  * Next, we make the order of block updates to neighbors of a network as
@@ -168,14 +169,12 @@ public class WireHandler {
 	private final List<BlockPos> updatedWires;
 	
 	// Rather than creating new nodes every time a network is updated
-	// we keep a cache of nodes that can be re-used
+	// we keep a cache of nodes that can be re-used.
 	private Node[] nodeCache;
 	private int usedNodes;
 	// Each WireNode is given a "ticket" number that, together with its
-	// power level, determines its place in the queue.
+	// power level, determines its place in the queue to change power.
 	private int nextTicket;
-	
-	private boolean updatingPower;
 	
 	public WireHandler(ServerWorld world, WireBlock wireBlock) {
 		this.world = world;
@@ -351,11 +350,15 @@ public class WireHandler {
 		// If that happens, we can simply exit here, since the power
 		// changes required for this network will be integrated into
 		// the already ongoing method call.
-		if (!updatingPower) {
+		if (powerChanges.isEmpty()) {
 			profiler.swap("let power flow");
 			letPowerFlow();
 			nextTicket = 0;
 			
+			// Block updates are emitted after all the power changes
+			// so duplicates block updates from multiple wires can be
+			// prevented. This is done by adding all the positions that
+			// should be updated to a LinkedHashSet.
 			profiler.swap("queue block updates");
 			Collection<BlockPos> blockUpdates = queueBlockUpdates();
 			
@@ -572,8 +575,6 @@ public class WireHandler {
 	}
 	
 	private void letPowerFlow() {
-		updatingPower = true;
-		
 		while (!powerChanges.isEmpty()) {
 			WireNode wire = powerChanges.poll();
 			
@@ -593,8 +594,6 @@ public class WireHandler {
 			
 			transmitPower(wire);
 		}
-		
-		updatingPower = false;
 	}
 	
 	private boolean acceptsPower(WireNode wire, int power) {
