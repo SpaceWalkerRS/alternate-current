@@ -11,13 +11,12 @@ import alternate.current.interfaces.mixin.IWorld;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.registry.RegistryKey;
-import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 
 @Mixin(MinecraftServer.class)
 public class MinecraftServerMixin implements IMinecraftServer {
 	
-	@Shadow @Final private Map<RegistryKey<World>, ServerWorld> worlds;
+	@Shadow @Final private Map<DimensionType, ServerWorld> worlds;
 	
 	@Override
 	public void clearWires() {

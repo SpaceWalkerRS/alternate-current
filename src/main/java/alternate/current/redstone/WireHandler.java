@@ -635,7 +635,7 @@ public class WireHandler {
 			// anyway.
 			if (!wireBlock.isOf(prevState)) {
 				BlockState newState = prevState.getStateForNeighborUpdate(dir.getOpposite(), wireState, world, side, wirePos);
-				Block.replace(prevState, newState, world, side, 2);
+				Block.replaceBlock(prevState, newState, world, side, 2);
 			}
 		}
 	}

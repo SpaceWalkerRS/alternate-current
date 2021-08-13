@@ -8,8 +8,8 @@ import alternate.current.AlternateCurrentMod;
 import alternate.current.PerformanceMode;
 import alternate.current.interfaces.mixin.IMinecraftServer;
 
-import net.minecraft.command.CommandSource;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.CommandSource;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.LiteralText;
 

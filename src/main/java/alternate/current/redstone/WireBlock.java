@@ -110,8 +110,8 @@ public interface WireBlock {
 		BlockPos down = pos.down();
 		BlockState aboveNeighbor = world.getBlockState(up);
 		BlockState belowNeighbor = world.getBlockState(down);
-		boolean aboveIsSolid = aboveNeighbor.isSolidBlock(world, up);
-		boolean belowIsSolid = belowNeighbor.isSolidBlock(world, down);
+		boolean aboveIsSolid = aboveNeighbor.isSimpleFullBlock(world, up);
+		boolean belowIsSolid = belowNeighbor.isSimpleFullBlock(world, down);
 		
 		for (int index = 0; index < Directions.HORIZONTAL.length; index++) {
 			Direction dir = Directions.ALL[index];
@@ -123,7 +123,7 @@ public interface WireBlock {
 				continue;
 			}
 			
-			boolean sideIsSolid = neighbor.isSolidBlock(world, side);
+			boolean sideIsSolid = neighbor.isSimpleFullBlock(world, side);
 			
 			if (!aboveIsSolid) {
 				BlockPos aboveSide = side.up();
@@ -153,8 +153,8 @@ public interface WireBlock {
 		tryUpdatePower(wire);
 		
 		if (wire.virtualPower > getMinPower()) {
-			wire.state.updateNeighbors(world, pos, 2);
-			wire.state.prepare(world, pos, 2);
+			wire.state.updateNeighborStates(world, pos, 2);
+			wire.state.method_11637(world, pos, 2);
 		}
 		
 		updateNeighborsOfConnectedWires(wire);
@@ -210,7 +210,7 @@ public interface WireBlock {
 				continue;
 			}
 			
-			if (neighbor.isSolidBlock(wire.world, side)) {
+			if (neighbor.isSimpleFullBlock(wire.world, side)) {
 				power = Math.max(power, getStrongPowerTo(wire.world, side, dir.getOpposite()));
 			}
 			if (neighbor.emitsRedstonePower()) {

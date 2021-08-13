@@ -4,6 +4,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.AlternateCurrentMod;
 import alternate.current.PerformanceMode;
@@ -32,13 +33,13 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Inject(
-			method = "onStateReplaced",
+			method = "onBlockRemoved",
 			cancellable = true,
 			at = @At(
 					value = "HEAD"
 			)
 	)
-	private void onOnStateReplacedInjectAtHead(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
+	private void onOnBlockRemovedInjectAtHead(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
 			ci.cancel(); // replaced by WireBlock.onWireRemoved
 		}
@@ -51,7 +52,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					value = "HEAD"
 			)
 	)
-	private void onUpdateInjectAtHead(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void onUpdateInjectAtHead(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> ci) {
 		if (AlternateCurrentMod.MODE == PerformanceMode.MAX_PERFORMANCE) {
 			WireNode wire = getOrCreateWire(world, pos, true);
 			
@@ -59,6 +60,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 				tryUpdatePower(wire);
 			}
 			
+			ci.setReturnValue(null);
 			ci.cancel();
 		}
 	}

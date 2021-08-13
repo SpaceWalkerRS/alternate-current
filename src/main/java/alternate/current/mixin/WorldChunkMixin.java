@@ -37,11 +37,11 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/BlockState;onStateReplaced(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)V"
+					target = "Lnet/minecraft/block/BlockState;onBlockRemoved(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)V"
 			)
 	)
-	private void onSetBlockStateInjectBeforeStateReplaced(BlockPos pos, BlockState newState, boolean moved, CallbackInfoReturnable<BlockState> cir, int chunkX, int y, int chunkZ, ChunkSection chunkSection, boolean isEmpty, BlockState prevState, Block newBlock, Block prevBlock) {
-		if (world.isClient() || world.isDebugWorld() || (AlternateCurrentMod.MODE != PerformanceMode.MAX_PERFORMANCE)) {
+	private void onSetBlockStateInjectBeforeStateRemoved(BlockPos pos, BlockState newState, boolean moved, CallbackInfoReturnable<BlockState> cir, int chunkX, int y, int chunkZ, ChunkSection chunkSection, boolean isEmpty, BlockState prevState, Block newBlock, Block prevBlock) {
+		if (world.isClient() || (AlternateCurrentMod.MODE != PerformanceMode.MAX_PERFORMANCE)) {
 			return;
 		}
 		
@@ -81,8 +81,8 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			// the only way to affect wire connections
 			// is to place/break a solid block to (un)cut
 			// a connection.
-			boolean wasSolid = prevState.isSolidBlock(world, pos);
-			boolean isSolid = newState.isSolidBlock(world, pos);
+			boolean wasSolid = prevState.isSimpleFullBlock(world, pos);
+			boolean isSolid = newState.isSimpleFullBlock(world, pos);
 			
 			if (wasSolid != isSolid) {
 				((IWorld)world).updateWireConnectionsAround(pos);

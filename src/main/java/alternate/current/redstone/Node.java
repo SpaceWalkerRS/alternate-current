@@ -58,7 +58,7 @@ public class Node {
 		if (wireBlock.isOf(state)) {
 			AlternateCurrentMod.LOGGER.warn("Cannot update a Node to a WireNode!");
 		} else {
-			if (state.isSolidBlock(world, pos)) {
+			if (state.isSimpleFullBlock(world, pos)) {
 				this.isSolidBlock = true;
 			}
 			if (state.emitsRedstonePower()) {

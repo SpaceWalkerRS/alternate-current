@@ -20,7 +20,7 @@ public class CommandManagerMixin {
 @Shadow @Final private CommandDispatcher<ServerCommandSource> dispatcher;
 	
 	@Inject(method="<init>", at = @At("RETURN"))
-	private void registerCommands(CommandManager.RegistrationEnvironment environment, CallbackInfo ci) {
+	private void registerCommands(boolean isDedicatedServer, CallbackInfo ci) {
 		AlternateCurrentCommand.registerCommand(dispatcher);
 	}
 }
