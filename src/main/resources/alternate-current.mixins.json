@@ -12,7 +12,8 @@
   	"ServerWorldMixin",
   	"ThreadedAnvilChunkStorageMixin",
   	"WorldChunkMixin",
-  	"WorldMixin"
+  	"WorldMixin",
+  	"debug.MinecraftServerMixin"
   ],
   "client": [
   ],

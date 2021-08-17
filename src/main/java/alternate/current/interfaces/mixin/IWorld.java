@@ -2,8 +2,7 @@ package alternate.current.interfaces.mixin;
 
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireNode;
-import alternate.current.utils.Directions;
-
+import alternate.current.util.Directions;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 

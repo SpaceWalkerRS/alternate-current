@@ -64,7 +64,7 @@ public abstract class ServerWorldMixin implements WorldAccess, IWorld, IServerWo
 		WireNode wire = getWire(wireBlock, pos);
 		
 		if (wire != null) {
-			wire.updateConnections();
+			wire.connections.update();
 		}
 	}
 	
