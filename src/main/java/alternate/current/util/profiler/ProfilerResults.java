@@ -22,19 +22,14 @@ public class ProfilerResults {
 	}
 	
 	public static void add(List<String> locations, List<Long> times) {
-		LOGGER.info("..... Alternate Current Profiler Results .....");
-		
 		long total = times.get(0);
-		
 		totalTime += total;
-		LOGGER.info("total: " + total);
 		
 		for (int index = 1; index < locations.size(); index++) {
 			String location = locations.get(index);
 			long time = times.get(index);
 			
 			RESULTS.compute(location, (l, t) -> t == null ? time : t + time);
-			LOGGER.info(String.format("%s: %d (~%d%%)", location, time, (100 * time / total)));
 		}
 	}
 	

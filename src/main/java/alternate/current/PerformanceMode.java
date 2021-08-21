@@ -1,5 +1,5 @@
 package alternate.current;
 
 public enum PerformanceMode {
-	VANILLA, MAX_PERFORMANCE
+	DISABLED, MAX_PERFORMANCE, MIN_IMPACT
 }

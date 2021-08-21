@@ -6,6 +6,7 @@ public class Directions {
 	
 	public static final Direction[] ALL        = { Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.DOWN, Direction.UP };
 	public static final Direction[] HORIZONTAL = { Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH };
+	public static final Direction[] VERTICAL   = { Direction.DOWN, Direction.UP };
 	
 	// Indices for the arrays above
 	public static final int WEST  = 0;

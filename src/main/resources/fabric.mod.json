@@ -24,7 +24,9 @@
     ]
   },
   "mixins": [
-    "alternate-current.mixins.json"
+    "alternate-current.mixins.json",
+    "MAX_PERFORMANCE.mixins.json",
+    "MIN_IMPACT.mixins.json"
   ],
 
   "depends": {

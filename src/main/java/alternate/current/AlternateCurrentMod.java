@@ -19,10 +19,10 @@ public class AlternateCurrentMod implements ModInitializer {
 	
 	@Override
 	public void onInitialize() {
-		LOGGER.info(String.format("Alternate Current %s has been initialized!", VERSION));
+		LOGGER.info(String.format("%s %s has been initialized!", MOD_NAME, VERSION));
 		
 		if (DEBUG) {
-			LOGGER.warn("You are running a DEBUG version of Alternate Current!");
+			LOGGER.warn(String.format("You are running a DEBUG version of %s!", MOD_NAME));
 		}
 	}
 	

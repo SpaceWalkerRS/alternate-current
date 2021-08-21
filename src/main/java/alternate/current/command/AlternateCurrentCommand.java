@@ -6,7 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import alternate.current.AlternateCurrentMod;
 import alternate.current.PerformanceMode;
-import alternate.current.interfaces.mixin.IMinecraftServer;
+import alternate.current.MAX_PERFORMANCE.interfaces.mixin.IMinecraftServer;
 import alternate.current.util.profiler.ProfilerResults;
 
 import net.minecraft.command.CommandSource;
@@ -48,7 +48,7 @@ public class AlternateCurrentCommand {
 	private static int queryMode(ServerCommandSource source) {
 		String message;
 		
-		if (AlternateCurrentMod.MODE == PerformanceMode.VANILLA) {
+		if (AlternateCurrentMod.MODE == PerformanceMode.DISABLED) {
 			message = "Alternate Current is currently disabled.";
 		} else {
 			message = String.format("Alternate Current is running in %s mode.", AlternateCurrentMod.MODE.toString());
@@ -61,11 +61,11 @@ public class AlternateCurrentCommand {
 	
 	private static int setMode(ServerCommandSource source, PerformanceMode mode) {
 		AlternateCurrentMod.MODE = mode;
-		((IMinecraftServer)source.getMinecraftServer()).clearWires();
+		((IMinecraftServer)source.getServer()).clearWires();
 		
 		String message;
 		
-		if (mode == PerformanceMode.VANILLA) {
+		if (mode == PerformanceMode.DISABLED) {
 			message = "Alternate Current has been disabled.";
 		} else {
 			message = String.format("Alternate Current will now run in %s mode.", mode.toString());
