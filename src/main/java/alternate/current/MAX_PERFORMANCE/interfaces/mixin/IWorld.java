@@ -57,7 +57,7 @@ public interface IWorld {
 	/**
 	 * Update the wire connections of any {@code WireNode}s
 	 * at the horizontal neighbors of the given position
-	 * in the world
+	 * in the world.
 	 */
 	default void updateWireConnectionsAround(BlockPos pos) {
 		for (int index = 0; index < Directions.HORIZONTAL.length; index++) {
