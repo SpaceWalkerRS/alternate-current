@@ -4,8 +4,28 @@
   "package": "alternate.current.mixin",
   "compatibilityLevel": "JAVA_16",
   "mixins": [
-  ],
-  "client": [
+  	"CommandManagerMixin",
+  	"ChunkSectionMixin",
+  	"RedstoneWireBlockMixin",
+  	"ServerWorldMixin",
+  	"WorldChunkMixin",
+  	"WorldMixin",
+  	"block.AbstractButtonBlockMixin",
+  	"block.AbstractPressurePlateBlockMixin",
+  	"block.AbstractRedstoneGateBlockMixin",
+  	"block.BlockMixin",
+  	"block.DaylightDetectorBlockMixin",
+  	"block.LecternBlockMixin",
+  	"block.LeverBlockMixin",
+  	"block.LightningRodBlockMixin",
+  	"block.ObserverBlockMixin",
+  	"block.RedstoneBlockMixin",
+  	"block.RedstoneTorchBlockMixin",
+  	"block.SculkSensorBlockMixin",
+  	"block.TargetBlockMixin",
+  	"block.TrappedChestBlockMixin",
+  	"block.TripwireHookBlockMixin",
+  	"block.WallRedstoneTorchBlockMixin"
   ],
   "injectors": {
     "defaultRequire": 1
