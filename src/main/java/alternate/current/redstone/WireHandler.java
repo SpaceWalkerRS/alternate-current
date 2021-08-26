@@ -531,11 +531,7 @@ public class WireHandler {
 			Node neighbor = getOrAddNode(side);
 			
 			if (neighbor.isWire) {
-				WireNode wire = neighbor.asWire();
-				
-				if (!wire.prepared) {
-					tryAddRoot(wire);
-				}
+				tryAddRoot(neighbor.asWire());
 			} else if (checkRedstone && neighbor.emitsStrongPowerTo(dir)) {
 				findRootsAroundRedstone(neighbor, dir.getOpposite());
 			}
@@ -557,6 +553,9 @@ public class WireHandler {
 			boolean weak = redstoneNode.emitsWeakPowerTo(opp);
 			boolean strong = redstoneNode.emitsStrongPowerTo(opp);
 			
+			// If the redstone component emits neither strong nor
+			// weak power in this direction, there is no need to
+			// check for wires there.
 			if (!weak && !strong) {
 				continue;
 			}
@@ -565,11 +564,7 @@ public class WireHandler {
 			Node neighbor = getOrAddNode(side);
 			
 			if (weak && neighbor.isWire) {
-				WireNode wire = neighbor.asWire();
-				
-				if (!wire.prepared) {
-					tryAddRoot(wire);
-				}
+				tryAddRoot(neighbor.asWire());
 			} else if (strong && neighbor.isSolidBlock) {
 				findRootsAround(neighbor, opp, false);
 			}
@@ -603,7 +598,16 @@ public class WireHandler {
 		}
 	}
 	
+	/**
+	 * Check if the given wire needs power changes and add it
+	 * to the network as a root if it does.
+	 */
 	private void tryAddRoot(WireNode wire) {
+		// No need to check the same wire multiple times.
+		if (wire.prepared) {
+			return;
+		}
+		
 		prepareForNetwork(wire);
 		findPower(wire, false);
 		
@@ -617,6 +621,14 @@ public class WireHandler {
 		rootCount++;
 	}
 	
+	/**
+	 * Add the given wire to the network and set its flow to
+	 * some backup value. This backup value is 0 for roots but
+	 * for all other wires it is the direction from which they
+	 * were discovered. This is large non-directional, which
+	 * makes it an excellent backup value if the power flow
+	 * is otherwise determined to be ambiguous.
+	 */
 	private void addToNetwork(WireNode wire, int backupFlow) {
 		network.add(wire);
 		
@@ -624,6 +636,18 @@ public class WireHandler {
 		wire.inNetwork = true;
 	}
 	
+	/**
+	 * Before a wire can be added to the network, it must be
+	 * properly prepared. This method
+	 * <br>
+	 * - checks if this wire should break. Rather than break
+	 *   the wire right away, we integrate its effects into
+	 *   the power calculations.
+	 * <br>
+	 * - determines the 'external power' this wire receives
+	 *   (power from non-wire components).
+	 * - 
+	 */
 	private void prepareForNetwork(WireNode wire) {
 		if (!wire.prepared) {
 			wire.prepared = true;
@@ -632,19 +656,34 @@ public class WireHandler {
 				wire.shouldBreak = true;
 			}
 			
-			findPreliminaryPower(wire);
+			// If the wire is removed or going to break, we
+			// treat it as a power source that emits the
+			// minimum signal strength. That way the power
+			// changes that result from it do not have to be
+			// calculated separately afterwards.
+			wire.virtualPower = wire.externalPower = (wire.removed || wire.shouldBreak) ? minPower : getExternalPower(wire);
 		}
 	}
 	
-	private void findPreliminaryPower(WireNode wire) {
-		wire.virtualPower = wire.externalPower = (wire.removed || wire.shouldBreak) ? minPower : getExternalPower(wire);
-	}
-	
+	/**
+	 * Determine the power the given wire receives from non-wire
+	 * components.
+	 */
 	private int getExternalPower(WireNode wire) {
 		int power = minPower;
 		
 		for (Direction dir : Directions.ALL) {
-			power = Math.max(power, getExternalPowerFrom(wire, dir));
+			BlockPos side = wire.pos.offset(dir);
+			Node neighbor = getOrAddNode(side);
+			
+			// A block can be both a solid block and a redstone
+			// component: target blocks.
+			if (neighbor.isSolidBlock) {
+				power = Math.max(power, getStrongPowerTo(neighbor.pos, dir.getOpposite()));
+			}
+			if (neighbor.isRedstoneComponent) {
+				power = Math.max(power, neighbor.state.getWeakRedstonePower(world, neighbor.pos, dir));
+			}
 			
 			if (power >= maxPower) {
 				return maxPower;
@@ -654,22 +693,10 @@ public class WireHandler {
 		return power;
 	}
 	
-	private int getExternalPowerFrom(WireNode wire, Direction dir) {
-		int power = minPower;
-		
-		BlockPos side = wire.pos.offset(dir);
-		Node neighbor = getOrAddNode(side);
-		
-		if (neighbor.isSolidBlock) {
-			power = Math.max(power, getStrongPowerTo(neighbor.pos, dir.getOpposite()));
-		}
-		if (neighbor.isRedstoneComponent) {
-			power = Math.max(power, neighbor.state.getWeakRedstonePower(world, neighbor.pos, dir));
-		}
-		
-		return power;
-	}
-	
+	/**
+	 * Determine the strong power the block at the given position
+	 * receives from non-wire components around it. 
+	 */
 	private int getStrongPowerTo(BlockPos pos, Direction ignore) {
 		int power = minPower;
 		
@@ -693,8 +720,21 @@ public class WireHandler {
 		return power;
 	}
 	
+	/**
+	 * Determine what the power level of this wire should be.
+	 * The power from non-wire components has already been
+	 * determined, so only the power received from surrounding
+	 * wires needs to be checked. There are a few caveats:
+	 * <br>
+	 * - If the wire is removed or going to break, its power
+	 *   level should always be the minimum value.
+	 * <br>
+	 * - If the external power received is the maximum value,
+	 *   there is no point in looking for power received from
+	 *   neighboring wires, as that power will always be less.
+	 */
 	private void findPower(WireNode wire, boolean ignoreNetwork) {
-		if (!wire.removed && !wire.shouldBreak && wire.virtualPower < maxPower) {
+		if (!wire.removed && !wire.shouldBreak && wire.externalPower < maxPower) {
 			wire.virtualPower = wire.externalPower;
 			wire.flowIn = 0;
 			
@@ -702,6 +742,10 @@ public class WireHandler {
 		}
 	}
 	
+	/**
+	 * Determine the power level the given wire receives from
+	 * neighboring wires.
+	 */
 	private void findWirePower(WireNode wire, boolean ignoreNetwork) {
 		for (int iDir = 0; iDir < 4; iDir++) {
 			for (BlockPos pos : wire.connections.in[iDir]) {

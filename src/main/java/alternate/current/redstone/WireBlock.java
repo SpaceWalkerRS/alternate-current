@@ -153,6 +153,9 @@ public interface WireBlock {
 	
 	default void onWireRemoved(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		if (!moved) {
+			// If the 'shouldBreak' field is set to 'true', the
+			// removal of this wire is part of already ongoing
+			// power changes.
 			if (!wire.shouldBreak) {
 				tryUpdatePower(wire);
 			}

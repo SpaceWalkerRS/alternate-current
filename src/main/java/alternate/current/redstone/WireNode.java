@@ -23,10 +23,22 @@ public class WireNode extends Node {
 	
 	public final WireConnectionManager connections;
 	
+	/** The power level this wire currently has in the world */
 	public int currentPower;
+	/**
+	 * While calculating power changes for a network, this field
+	 * is used to keep track of the power level this wire should
+	 * have.
+	 */
 	public int virtualPower;
+	/** The power level received from non-wire components */
 	public int externalPower;
+	/**
+	 * A 4-bit number that keeps track of the power flow of the
+	 * wires that give this wire its power level.
+	 */
 	public int flowIn;
+	/** The direction of power flow, based on the incoming flow */
 	public int flowOut;
 	public boolean shouldBreak;
 	public boolean removed;

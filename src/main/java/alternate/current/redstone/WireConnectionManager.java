@@ -13,8 +13,11 @@ public class WireConnectionManager {
 	
 	public static final int DEFAULT_MAX_UPDATE_DEPTH = 512;
 	
+	/** The owner of these connections */
 	public final WireNode wire;
+	/** Positions of wires that can provide power to this wire */
 	public final BlockPos[][] in;
+	/** Positions of wires that this wire can provide power to */
 	public final BlockPos[][] out;
 	
 	private boolean ignoreUpdates;
@@ -99,8 +102,7 @@ public class WireConnectionManager {
 	
 	private static void addConnection(BlockPos[][] connections, BlockPos pos, int iDir) {
 		BlockPos[] oldArray = connections[iDir];
-		int newLength = oldArray.length + 1;
-		BlockPos[] newArray = new BlockPos[newLength];
+		BlockPos[] newArray = new BlockPos[oldArray.length + 1];
 		
 		for (int index = 0; index < oldArray.length; index++) {
 			newArray[index] = oldArray[index];
