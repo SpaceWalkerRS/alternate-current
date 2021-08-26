@@ -1,9 +1,8 @@
-package alternate.current.interfaces.mixin;
+package alternate.current.redstone.interfaces.mixin;
 
 import alternate.current.redstone.WireBlock;
+import alternate.current.redstone.WireHandler;
 import alternate.current.redstone.WireNode;
-import alternate.current.utils.Directions;
-
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -61,10 +60,8 @@ public interface IWorld {
 	 * in the world
 	 */
 	default void updateWireConnectionsAround(BlockPos pos) {
-		for (int index = 0; index < Directions.HORIZONTAL.length; index++) {
-			Direction dir = Directions.HORIZONTAL[index];
+		for (Direction dir : WireHandler.Directions.HORIZONTAL) {
 			BlockPos side = pos.offset(dir);
-			
 			updateWireConnections(side);
 		}
 	}
@@ -76,10 +73,8 @@ public interface IWorld {
 	 * given {@code WireBlock}.
 	 */
 	default void updateWireConnectionsAround(WireBlock wireBlock, BlockPos pos) {
-		for (int index = 0; index < Directions.HORIZONTAL.length; index++) {
-			Direction dir = Directions.HORIZONTAL[index];
+		for (Direction dir : WireHandler.Directions.HORIZONTAL) {
 			BlockPos side = pos.offset(dir);
-			
 			updateWireConnections(wireBlock, side);
 		}
 	}

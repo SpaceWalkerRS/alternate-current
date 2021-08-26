@@ -9,14 +9,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-import alternate.current.AlternateCurrentMod;
-import alternate.current.PerformanceMode;
-import alternate.current.interfaces.mixin.IChunk;
-import alternate.current.interfaces.mixin.IChunkSection;
-import alternate.current.interfaces.mixin.IWorld;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireNode;
-
+import alternate.current.redstone.interfaces.mixin.IChunk;
+import alternate.current.redstone.interfaces.mixin.IChunkSection;
+import alternate.current.redstone.interfaces.mixin.IWorld;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
@@ -41,7 +38,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			)
 	)
 	private void onSetBlockStateInjectBeforeStateReplaced(BlockPos pos, BlockState newState, boolean moved, CallbackInfoReturnable<BlockState> cir, int chunkX, int y, int chunkZ, ChunkSection chunkSection, boolean isEmpty, BlockState prevState, Block newBlock, Block prevBlock) {
-		if (world.isClient() || world.isDebugWorld() || (AlternateCurrentMod.MODE != PerformanceMode.MAX_PERFORMANCE)) {
+		if (world.isDebugWorld()) {
 			return;
 		}
 		
@@ -64,7 +61,7 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 				WireNode wire = wireBlock.createWire(world, pos, newState);
 				
 				placeWire(wire);
-				wire.updateConnections();
+				wire.connections.update();
 				wireBlock.onWireAdded(world, pos, newState, wire, moved);
 			}
 		} else if (isWire) {
@@ -72,29 +69,19 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			WireNode wire = getWire(wireBlock, pos);
 			
 			if (wire != null) {
-				wire.state = newState;
+				wire.stateChanged(newState);
 			}
 		}
 		
 		if (!wasWire || !isWire) {
-			// Other than placing or breaking blocks,
-			// the only way to affect wire connections
-			// is to place/break a solid block to (un)cut
-			// a connection.
+			// Other than placing or breaking wire blocks, the only way
+			// to affect wire connections is to place/break a solid
+			// block to (un)cut a connection.
 			boolean wasSolid = prevState.isSolidBlock(world, pos);
 			boolean isSolid = newState.isSolidBlock(world, pos);
 			
 			if (wasSolid != isSolid) {
 				((IWorld)world).updateWireConnectionsAround(pos);
-			}
-		}
-	}
-	
-	@Override
-	public void clearWires() {
-		for (ChunkSection section : sections) {
-			if (!ChunkSection.isEmpty(section)) {
-				((IChunkSection)section).clearWires();
 			}
 		}
 	}
