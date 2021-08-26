@@ -108,7 +108,7 @@ import net.minecraft.util.math.Direction;
  * of block updates by up to 66%.
  * 
  * <p>
- * And there is more! Since we calculate the power of the entire network,
+ * There is more! Since we calculate the power of the entire network,
  * sending block and shape updates to the wires in it is redundant.
  * Removing those updates can reduce the number of block and shape updates
  * by up to 20%.
