@@ -16,10 +16,10 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldView;
+import net.minecraft.world.CollisionView;
 
 @Mixin(ServerWorld.class)
-public abstract class ServerWorldMixin implements WorldView, IWorld, IServerWorld {
+public abstract class ServerWorldMixin implements CollisionView, IWorld, IServerWorld {
 	
 	private final Map<WireBlock, WireHandler> wireHandlers = new HashMap<>();
 	
