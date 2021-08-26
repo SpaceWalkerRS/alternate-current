@@ -1,4 +1,4 @@
-package alternate.current.utils.profiler;
+package alternate.current.util.profiler;
 
 public interface Profiler {
 	

@@ -1,4 +1,4 @@
-package alternate.current.interfaces.mixin;
+package alternate.current.redstone.interfaces.mixin;
 
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireHandler;

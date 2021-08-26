@@ -1,4 +1,4 @@
-package alternate.current.utils.profiler;
+package alternate.current.util.profiler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,7 @@ import alternate.current.AlternateCurrentMod;
 
 public class ACProfiler implements Profiler {
 	
-	public static final Logger LOGGER = AlternateCurrentMod.LOGGER;
+	private static final Logger LOGGER = AlternateCurrentMod.LOGGER;
 	
 	private final Stack<Integer> indexStack;
 	private final List<String> locations;
@@ -48,7 +48,7 @@ public class ACProfiler implements Profiler {
 				LOGGER.warn("profiling ended before stack was fully popped, did something go wrong?");
 			}
 			
-			logResults();
+			ProfilerResults.add(locations, times);
 		} else {
 			LOGGER.warn("profiling already ended!");
 		}
@@ -86,19 +86,5 @@ public class ACProfiler implements Profiler {
 	public void swap(String location) {
 		pop();
 		push(location);
-	}
-	
-	private void logResults() {
-		LOGGER.info("--- Alternate Current Profiler Results ---");
-		
-		long total = times.get(0);
-		LOGGER.info("total: " + total);
-		
-		for (int index = 1; index < times.size(); index++) {
-			String loc = locations.get(index);
-			long time = times.get(index);
-			
-			LOGGER.info(String.format("%s: %d (~%d%%)", loc, time, (100 * time / total)));
-		}
 	}
 }

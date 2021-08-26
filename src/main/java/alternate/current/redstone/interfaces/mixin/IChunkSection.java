@@ -1,13 +1,10 @@
-package alternate.current.interfaces.mixin;
+package alternate.current.redstone.interfaces.mixin;
 
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireNode;
-
 import net.minecraft.util.math.BlockPos;
 
 public interface IChunkSection {
-	
-	public void clearWires();
 	
 	/**
 	 * Retrieve the {@code WireNode} at this position in the chunk section.

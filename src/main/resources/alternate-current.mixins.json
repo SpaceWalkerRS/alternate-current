@@ -4,17 +4,25 @@
   "package": "alternate.current.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-  	"ChunkSectionMixin",
   	"CommandManagerMixin",
-  	"MinecraftServerMixin",
+  	"ChunkSectionMixin",
   	"RedstoneWireBlockMixin",
-  	"ServerChunkManagerMixin",
   	"ServerWorldMixin",
-  	"ThreadedAnvilChunkStorageMixin",
   	"WorldChunkMixin",
-  	"WorldMixin"
-  ],
-  "client": [
+  	"WorldMixin",
+  	"block.AbstractButtonBlockMixin",
+  	"block.AbstractPressurePlateBlockMixin",
+  	"block.AbstractRedstoneGateBlockMixin",
+  	"block.BlockMixin",
+  	"block.DaylightDetectorBlockMixin",
+  	"block.LecternBlockMixin",
+  	"block.LeverBlockMixin",
+  	"block.ObserverBlockMixin",
+  	"block.RedstoneBlockMixin",
+  	"block.RedstoneTorchBlockMixin",
+  	"block.TrappedChestBlockMixin",
+  	"block.TripwireHookBlockMixin",
+  	"block.WallRedstoneTorchBlockMixin"
   ],
   "injectors": {
     "defaultRequire": 1

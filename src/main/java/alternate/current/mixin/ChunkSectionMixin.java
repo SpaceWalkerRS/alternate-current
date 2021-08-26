@@ -1,13 +1,10 @@
 package alternate.current.mixin;
 
-import java.util.Arrays;
-
 import org.spongepowered.asm.mixin.Mixin;
 
-import alternate.current.interfaces.mixin.IChunkSection;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireNode;
-
+import alternate.current.redstone.interfaces.mixin.IChunkSection;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.ChunkSection;
 
@@ -15,14 +12,6 @@ import net.minecraft.world.chunk.ChunkSection;
 public class ChunkSectionMixin implements IChunkSection {
 	
 	private final WireNode[] wires = new WireNode[4096];
-	private int wireCount;
-	
-	@Override
-	public void clearWires() {
-		if (wireCount > 0) {
-			Arrays.fill(wires, null);
-		}
-	}
 	
 	@Override
 	public WireNode getWire(WireBlock wireBlock, BlockPos pos) {
@@ -36,13 +25,6 @@ public class ChunkSectionMixin implements IChunkSection {
 		
 		WireNode prevWire = wires[index];
 		wires[index] = wire;
-		
-		if (prevWire != null) {
-			wireCount--;
-		}
-		if (wire != null) {
-			wireCount++;
-		}
 		
 		return prevWire;
 	}
