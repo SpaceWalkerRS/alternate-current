@@ -1,4 +1,4 @@
-package alternate.current.redstone.interfaces.mixin;
+package alternate.current.interfaces.mixin;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;

@@ -1,11 +1,9 @@
 package alternate.current.redstone;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.redstone.interfaces.mixin.IBlock;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
 
 /**
  * A Node represents a block in the world. It is tied to a
@@ -18,8 +16,8 @@ import net.minecraft.world.World;
  */
 public class Node {
 	
-	public final World world;
 	public final WireBlock wireBlock;
+	public final WorldAccess world;
 	
 	public BlockPos pos;
 	public BlockState state;
@@ -28,9 +26,9 @@ public class Node {
 	public boolean isSolidBlock;
 	public boolean isRedstoneComponent;
 	
-	public Node(World world, WireBlock wireBlock) {
-		this.world = world;
+	public Node(WireBlock wireBlock, WorldAccess world) {
 		this.wireBlock = wireBlock;
+		this.world = world;
 	}
 	
 	@Override
@@ -59,7 +57,7 @@ public class Node {
 		if (wireBlock.isOf(state)) {
 			AlternateCurrentMod.LOGGER.warn("Cannot update a Node to a WireNode!");
 		} else {
-			if (state.isSolidBlock(world, pos)) {
+			if (world.isSolidBlock(pos, state)) {
 				this.isSolidBlock = true;
 			}
 			if (state.emitsRedstonePower()) {
@@ -72,13 +70,5 @@ public class Node {
 	
 	public WireNode asWire() {
 		throw new UnsupportedOperationException("Not a WireNode!");
-	}
-	
-	public boolean emitsWeakPowerTo(Direction dir) {
-		return ((IBlock)state.getBlock()).emitsWeakPowerTo(world, pos, state, dir);
-	}
-	
-	public boolean emitsStrongPowerTo(Direction dir) {
-		return ((IBlock)state.getBlock()).emitsStrongPowerTo(world, pos, state, dir);
 	}
 }

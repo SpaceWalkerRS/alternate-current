@@ -2,69 +2,58 @@ package alternate.current.mixin;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.spongepowered.asm.mixin.Mixin;
 
+import alternate.current.interfaces.mixin.IChunk;
+import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireHandler;
 import alternate.current.redstone.WireNode;
-import alternate.current.redstone.interfaces.mixin.IChunk;
-import alternate.current.redstone.interfaces.mixin.IServerWorld;
-import alternate.current.redstone.interfaces.mixin.IWorld;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
+import alternate.current.redstone.WorldAccess;
+
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldAccess;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.profiler.Profiler;
+import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.world.MutableWorldProperties;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.dimension.DimensionType;
 
 @Mixin(ServerWorld.class)
-public abstract class ServerWorldMixin implements WorldAccess, IWorld, IServerWorld {
+public abstract class ServerWorldMixin extends World implements IServerWorld {
 	
-	private final Map<WireBlock, WireHandler> wireHandlers = new HashMap<>();
+	private final Map<WireBlock, WorldAccess> access = new HashMap<>();
 	
-	@Override
-	public WireNode getWire(WireBlock wireBlock, BlockPos pos) {
-		return ((IChunk)getChunk(pos)).getWire(wireBlock, pos);
+	protected ServerWorldMixin(MutableWorldProperties properties, RegistryKey<World> registryRef, DimensionType dimensionType, Supplier<Profiler> profiler, boolean isClient, boolean debugWorld, long seed) {
+		super(properties, registryRef, dimensionType, profiler, isClient, debugWorld, seed);
 	}
 	
 	@Override
-	public void placeWire(WireNode wire) {
-		((IChunk)getChunk(wire.pos)).placeWire(wire);
-	}
-	
-	@Override
-	public void removeWire(WireNode wire) {
-		((IChunk)getChunk(wire.pos)).removeWire(wire);
-	}
-	
-	@Override
-	public void updateWireConnections(BlockPos pos) {
-		BlockState state = getBlockState(pos);
-		Block block = state.getBlock();
+	public WorldAccess getAccess(WireBlock wireBlock) {
+		WorldAccess world = access.get(wireBlock);
 		
-		if (block instanceof WireBlock) {
-			updateWireConnections((WireBlock)block, pos);
-		}
-	}
-	
-	@Override
-	public void updateWireConnections(WireBlock wireBlock, BlockPos pos) {
-		WireNode wire = getWire(wireBlock, pos);
-		
-		if (wire != null) {
-			wire.connections.update();
-		}
-	}
-	
-	@Override
-	public WireHandler getWireHandler(WireBlock wireBlock) {
-		WireHandler wireHandler = wireHandlers.get(wireBlock);
-		
-		if (wireHandler == null) {
-			wireHandler = new WireHandler((ServerWorld)(Object)this, wireBlock);
-			wireHandlers.put(wireBlock, wireHandler);
+		if (world == null) {
+			world = new WorldAccess(wireBlock, (ServerWorld)(Object)this);
+			access.put(wireBlock, world);
 		}
 		
-		return wireHandler;
+		return world;
+	}
+	
+	@Override
+	public void updateWireConnectionsAround(BlockPos pos) {
+		for (Direction dir : WireHandler.Directions.ALL) {
+			BlockPos side = pos.offset(dir);
+			WorldChunk chunk = getWorldChunk(side);
+			WireNode wire = ((IChunk)chunk).getWire(pos);
+			
+			if (wire != null) {
+				wire.connections.update();
+			}
+		}
 	}
 }

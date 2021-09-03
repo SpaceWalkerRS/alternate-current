@@ -2,8 +2,14 @@ package alternate.current.redstone;
 
 import java.util.Collection;
 
+import alternate.current.interfaces.mixin.IServerWorld;
+
 import net.minecraft.block.BlockState;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtHelper;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 
 /**
@@ -45,8 +51,8 @@ public class WireNode extends Node {
 	public boolean prepared;
 	public boolean inNetwork;
 	
-	public WireNode(WireBlock wireBlock, World world, BlockPos pos, BlockState state) {
-		super(world, wireBlock);
+	public WireNode(WireBlock wireBlock, WorldAccess world, BlockPos pos, BlockState state) {
+		super(wireBlock, world);
 		
 		this.connections = new WireConnectionManager(this);
 		
@@ -68,6 +74,39 @@ public class WireNode extends Node {
 	@Override
 	public WireNode asWire() {
 		return this;
+	}
+	
+	public void toNbt(NbtCompound nbt) {
+		Identifier blockId = Registry.BLOCK.getId(wireBlock.asBlock());
+		nbt.putString("WireBlock", blockId.toString());
+		
+		if (connections.count > 0) {
+			NbtCompound connectionData = new NbtCompound();
+			connections.toNbt(connectionData);
+			nbt.put("connections", connectionData);
+		}
+		
+		nbt.put("pos", NbtHelper.fromBlockPos(pos));
+	}
+	
+	public void fromNbt(NbtCompound nbt) {
+		if (nbt.contains("connections")) {
+			NbtCompound connectionData = nbt.getCompound("connections");
+			connections.fromNbt(connectionData);
+		}
+		
+		pos = NbtHelper.toBlockPos(nbt.getCompound("pos"));
+	}
+	
+	public static WireNode fromNbt(NbtCompound nbt, World world) {
+		Identifier blockId = new Identifier(nbt.getString("WireBlock"));
+		WireBlock wireBlock = (WireBlock)Registry.BLOCK.get(blockId);
+		WorldAccess worldAccess = ((IServerWorld)world).getAccess(wireBlock);
+		
+		WireNode wire = new WireNode(wireBlock, worldAccess, BlockPos.ORIGIN, wireBlock.asBlock().getDefaultState());
+		wire.fromNbt(nbt);
+		
+		return wire;
 	}
 	
 	public boolean isOf(WireBlock wireBlock) {
@@ -94,7 +133,7 @@ public class WireNode extends Node {
 	 */
 	public void updateNeighboringWires(Collection<BlockPos> wires, int maxDepth) {
 		for (BlockPos pos : wires) {
-			WireNode wire = wireBlock.getOrCreateWire(world, pos, false);
+			WireNode wire = world.getWire(pos, true, false);
 			
 			if (wire != null) {
 				wire.connections.update(maxDepth);

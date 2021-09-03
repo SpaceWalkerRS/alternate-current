@@ -3,16 +3,12 @@ package alternate.current.redstone;
 import java.util.ArrayList;
 import java.util.List;
 
-import alternate.current.redstone.interfaces.mixin.IServerWorld;
-import alternate.current.redstone.interfaces.mixin.IWorld;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
 
 /**
  * This interface should be implemented by each wire block type.
@@ -50,55 +46,16 @@ public interface WireBlock {
 		return MathHelper.clamp(power, getMinPower(), getMaxPower());
 	}
 	
-	default int getPower(World world, BlockPos pos, BlockState state) {
+	default int getPower(WorldAccess world, BlockPos pos, BlockState state) {
 		return state.get(Properties.POWER);
 	}
 	
-	default boolean setPower(World world, BlockPos pos, BlockState state, int power, int flags) {
-		BlockState newState = state.with(Properties.POWER, clampPower(power));
-		
-		if (newState == state) {
-			return false;
-		}
-		
-		return world.setBlockState(pos, newState, flags);
-	}
-	
-	public default WireNode getWire(World world, BlockPos pos) {
-		return ((IWorld)world).getWire(this, pos);
-	}
-	
-	public default WireNode createWire(World world, BlockPos pos, BlockState state) {
-		return new WireNode(this, world, pos, state);
-	}
-	
-	public default WireNode getOrCreateWire(World world, BlockPos pos, boolean updateConnections) {
-		WireNode wire = getWire(world, pos);
-		
-		if (wire == null) {
-			BlockState state = world.getBlockState(pos);
-			
-			if (isOf(state)) {
-				wire = createWire(world, pos, state);
-				((IWorld)world).placeWire(wire);
-				
-				if (updateConnections) {
-					wire.connections.update();
-				}
-			}
-		}
-		
-		return wire;
-	}
-	
 	default void findWireConnections(WireNode wire) {
-		World world = wire.world;
+		WorldAccess world = wire.world;
 		BlockPos pos = wire.pos;
 		
-		BlockPos up = pos.up();
-		BlockPos down = pos.down();
-		boolean aboveIsSolid = world.getBlockState(up).isSolidBlock(world, up);
-		boolean belowIsSolid = world.getBlockState(down).isSolidBlock(world, down);
+		boolean aboveIsSolid = world.isSolidBlock(pos.up());
+		boolean belowIsSolid = world.isSolidBlock(pos.down());
 		
 		for (int iDir = 0; iDir < WireHandler.Directions.HORIZONTAL.length; iDir++) {
 			Direction dir = WireHandler.Directions.HORIZONTAL[iDir];
@@ -110,7 +67,7 @@ public interface WireBlock {
 				continue;
 			}
 			
-			boolean sideIsSolid = neighbor.isSolidBlock(world, side);
+			boolean sideIsSolid = world.isSolidBlock(side, neighbor);
 			
 			if (!aboveIsSolid) {
 				BlockPos aboveSide = side.up();
@@ -131,27 +88,17 @@ public interface WireBlock {
 		}
 	}
 	
-	default boolean shouldBreak(World world, BlockPos pos, BlockState state) {
-		return !state.canPlaceAt(world, pos);
-	}
-	
-	default boolean breakBlock(World world, BlockPos pos, BlockState state, int flags) {
-		Block.dropStacks(state, world, pos);
-		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), flags);
-	}
-	
-	default void onWireAdded(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
+	default void onWireAdded(WorldAccess world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		tryUpdatePower(wire);
 		
 		if (wire.virtualPower > getMinPower()) {
-			wire.state.updateNeighbors(world, pos, 2);
-			wire.state.prepare(world, pos, 2);
+			world.updateShapesAround(wire.pos, wire.state);
 		}
 		
 		updateNeighborsOfConnectedWires(wire);
 	}
 	
-	default void onWireRemoved(World world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
+	default void onWireRemoved(WorldAccess world, BlockPos pos, BlockState state, WireNode wire, boolean moved) {
 		if (!moved) {
 			// If the 'shouldBreak' field is set to 'true', the
 			// removal of this wire is part of already ongoing
@@ -167,7 +114,7 @@ public interface WireBlock {
 	
 	default void tryUpdatePower(WireNode wire) {
 		if (shouldUpdatePower(wire)) {
-			((IServerWorld)wire.world).getWireHandler(this).updatePower(wire);
+			wire.world.getWireHandler().updatePower(wire);
 		}
 	}
 	
@@ -203,11 +150,11 @@ public interface WireBlock {
 				continue;
 			}
 			
-			if (neighbor.isSolidBlock(wire.world, side)) {
+			if (wire.world.isSolidBlock(side, neighbor)) {
 				power = Math.max(power, getStrongPowerTo(wire.world, side, dir.getOpposite()));
 			}
 			if (neighbor.emitsRedstonePower()) {
-				power = Math.max(power, neighbor.getWeakRedstonePower(wire.world, side, dir));
+				power = Math.max(power, wire.world.getWeakPowerFrom(side, neighbor, dir));
 			}
 			
 			if (power >= max) {
@@ -218,7 +165,7 @@ public interface WireBlock {
 		return power;
 	}
 	
-	default int getStrongPowerTo(World world, BlockPos pos, Direction ignore) {
+	default int getStrongPowerTo(WorldAccess world, BlockPos pos, Direction ignore) {
 		int power = getMinPower();
 		int max = getMaxPower();
 		
@@ -231,7 +178,7 @@ public interface WireBlock {
 			BlockState neighbor = world.getBlockState(side);
 			
 			if (neighbor.emitsRedstonePower() && !isOf(neighbor)) {
-				power = Math.max(power, neighbor.getStrongRedstonePower(world, side, dir));
+				power = Math.max(power, world.getStrongPowerFrom(side, neighbor, dir));
 				
 				if (power >= max) {
 					return max;
@@ -248,7 +195,7 @@ public interface WireBlock {
 		
 		for (int iDir = 0; iDir < 4; iDir++) {
 			for (BlockPos pos : wire.connections.in[iDir]) {
-				WireNode connectedWire = getOrCreateWire(wire.world, pos, true);
+				WireNode connectedWire = wire.world.getWire(pos, true, true);
 				
 				if (connectedWire != null) {
 					power = Math.max(power, connectedWire.currentPower - step);
@@ -259,23 +206,45 @@ public interface WireBlock {
 		return power;
 	}
 	
-	default void tryUpdateNeighborsOfWire(World world, BlockPos pos) {
+	default boolean setPower(WireNode wire) {
+		BlockState newState = wire.state.with(Properties.POWER, clampPower(wire.virtualPower));
+		
+		if (newState != wire.state && wire.world.setBlockState(wire.pos, newState)) {
+			wire.stateChanged(newState);
+			return true;
+		}
+		
+		return false;
+	}
+	
+	default boolean updateWireState(WireNode wire) {
+		if (wire.removed) {
+			return true;
+		}
+		if (wire.shouldBreak) {
+			return wire.world.breakBlock(wire.pos, wire.state);
+		}
+		
+		return setPower(wire);
+	}
+	
+	default void tryUpdateNeighborsOfWire(WorldAccess world, BlockPos pos) {
 		tryUpdateNeighborsOfWire(world, pos, world.getBlockState(pos));
 	}
 	
-	default void tryUpdateNeighborsOfWire(World world, BlockPos pos, BlockState state) {
+	default void tryUpdateNeighborsOfWire(WorldAccess world, BlockPos pos, BlockState state) {
 		if (isOf(state)) {
 			updateNeighborsOf(world, pos);
 		}
 	}
 	
-	default void updateNeighborsOf(World world, BlockPos pos) {
+	default void updateNeighborsOf(WorldAccess world, BlockPos pos) {
 		Block block = asBlock();
 		List<BlockPos> positions = new ArrayList<>();
 		WireHandler.collectNeighborPositions(positions, pos);
 		
 		for (BlockPos neighborPos : positions) {
-			world.updateNeighbor(neighborPos, block, pos);
+			world.updateNeighborBlock(neighborPos, pos, block);
 		}
 	}
 	

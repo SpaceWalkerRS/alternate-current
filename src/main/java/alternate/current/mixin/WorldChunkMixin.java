@@ -1,32 +1,50 @@
 package alternate.current.mixin;
 
+import java.util.function.Consumer;
+
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
+import alternate.current.interfaces.mixin.IChunk;
+import alternate.current.interfaces.mixin.IChunkSection;
+import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireNode;
-import alternate.current.redstone.interfaces.mixin.IChunk;
-import alternate.current.redstone.interfaces.mixin.IChunkSection;
-import alternate.current.redstone.interfaces.mixin.IWorld;
+import alternate.current.redstone.WorldAccess;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
+import net.minecraft.world.chunk.ProtoChunk;
 import net.minecraft.world.chunk.WorldChunk;
 
 @Mixin(WorldChunk.class)
-public abstract class WorldChunkMixin implements Chunk, IChunk {
+public abstract class WorldChunkMixin implements IChunk {
 	
 	@Shadow @Final private ChunkSection[] sections;
 	@Shadow @Final private World world;
+	
+	@Inject(
+			method = "<init>(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/world/chunk/ProtoChunk;Ljava/util/function/Consumer;)V",
+			at = @At(
+					value = "RETURN"
+			)
+	)
+	private void onInitFromProtoChunk(ServerWorld serverWorld, ProtoChunk protoChunk, Consumer<WorldChunk> consumer, CallbackInfo ci) {
+		for (WireNode wire : ((IChunk)protoChunk).getWires()) {
+			placeWire(wire);
+		}
+	}
 	
 	@Inject(
 			method = "setBlockState",
@@ -49,29 +67,37 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 		
 		if (newBlock != prevBlock) {
 			if (wasWire) {
-				WireBlock wireBlock = (WireBlock)prevBlock;
-				WireNode wire = getWire(wireBlock, pos);
+				WireNode wire = getWire(pos);
 				
 				if (wire != null) {
 					removeWire(wire);
 					wire.updateConnectedWires();
-					wireBlock.onWireRemoved(world, pos, prevState, wire, moved);
+					wire.wireBlock.onWireRemoved(wire.world, pos, prevState, wire, moved);
 				}
 			}
 			if (isWire) {
 				WireBlock wireBlock = (WireBlock)newBlock;
-				WireNode wire = wireBlock.createWire(world, pos, newState);
+				WorldAccess worldAccess = ((IServerWorld)world).getAccess(wireBlock);
+				WireNode wire = new WireNode(wireBlock, worldAccess, pos, newState);
 				
 				placeWire(wire);
 				wire.connections.update();
-				wireBlock.onWireAdded(world, pos, newState, wire, moved);
+				wireBlock.onWireAdded(worldAccess, pos, newState, wire, moved);
 			}
 		} else if (isWire) {
-			WireBlock wireBlock = (WireBlock)newBlock;
-			WireNode wire = getWire(wireBlock, pos);
+			WireNode wire = getWire(pos);
 			
 			if (wire != null) {
-				wire.stateChanged(newState);
+				if (wire.isOf((WireBlock)newBlock)) {
+					wire.stateChanged(newState);
+				} else {
+					WireBlock wireBlock = (WireBlock)newBlock;
+					WorldAccess worldAccess = ((IServerWorld)world).getAccess(wireBlock);
+					wire = new WireNode(wireBlock, worldAccess, pos, newState);
+					
+					placeWire(wire);
+					wire.connections.update();
+				}
 			}
 		}
 		
@@ -83,20 +109,20 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 			boolean isSolid = newState.isSolidBlock(world, pos);
 			
 			if (wasSolid != isSolid) {
-				((IWorld)world).updateWireConnectionsAround(pos);
+				((IServerWorld)world).updateWireConnectionsAround(pos);
 			}
 		}
 	}
 	
 	@Override
-	public WireNode getWire(WireBlock wireBlock, BlockPos pos) {
+	public WireNode getWire(BlockPos pos) {
 		ChunkSection section = getChunkSection(pos.getY());
 		
-		if (ChunkSection.isEmpty(section)) {
+		if (section == null) {
 			return null;
 		}
 		
-		return ((IChunkSection)section).getWire(wireBlock, pos);
+		return ((IChunkSection)section).getWire(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
 	}
 	
 	@Override
@@ -114,19 +140,19 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	
 	private ChunkSection getChunkSection(int y) {
 		if (y < 0) {
-			return WorldChunk.EMPTY_SECTION;
+			return null;
 		}
 		
 		int index = y >> 4;
 		
 		if (index >= sections.length) {
-			return WorldChunk.EMPTY_SECTION;
+			return null;
 		}
 		
 		ChunkSection section = sections[index];
 		
 		if (ChunkSection.isEmpty(section)) {
-			return WorldChunk.EMPTY_SECTION;
+			return null;
 		}
 		
 		return section;
@@ -135,8 +161,8 @@ public abstract class WorldChunkMixin implements Chunk, IChunk {
 	private void setWire(WireBlock wireBlock, BlockPos pos, WireNode wire) {
 		ChunkSection section = getChunkSection(pos.getY());
 		
-		if (!ChunkSection.isEmpty(section)) {
-			((IChunkSection)section).setWire(pos, wire);
+		if (section != null) {
+			((IChunkSection)section).setWire(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15, wire);
 		}
 	}
 }

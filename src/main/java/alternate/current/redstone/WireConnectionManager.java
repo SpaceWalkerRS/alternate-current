@@ -7,6 +7,9 @@ import java.util.Set;
 
 import alternate.current.util.collection.CollectionsUtils;
 
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtHelper;
+import net.minecraft.nbt.NbtList;
 import net.minecraft.util.math.BlockPos;
 
 public class WireConnectionManager {
@@ -32,6 +35,30 @@ public class WireConnectionManager {
 		this.out = new BlockPos[4][];
 		
 		clear();
+	}
+	
+	public void toNbt(NbtCompound nbt) {
+		NbtCompound nbtIn = new NbtCompound();
+		NbtCompound nbtOut = new NbtCompound();
+		nbt.put("in", nbtIn);
+		nbt.put("out", nbtOut);
+		writeConnections(nbtIn, in);
+		writeConnections(nbtOut, out);
+		
+		nbt.putInt("count", count);
+		nbt.putInt("flow", flow);
+	}
+	
+	public void fromNbt(NbtCompound nbt) {
+		clear();
+		
+		NbtCompound nbtIn = nbt.getCompound("in");
+		NbtCompound nbtOut = nbt.getCompound("out");
+		readConnections(nbtIn, in);
+		readConnections(nbtOut, out);
+		
+		count = nbt.getInt("count");
+		flow = nbt.getInt("flow");
 	}
 	
 	public Collection<BlockPos> getAll() {
@@ -97,6 +124,37 @@ public class WireConnectionManager {
 			}
 			
 			ignoreUpdates = false;
+		}
+	}
+	
+	private static void writeConnections(NbtCompound nbt, BlockPos[][] connections) {
+		for (int iDir = 0; iDir < 4; iDir++) {
+			BlockPos[] array = connections[iDir];
+			
+			if (array.length > 0) {
+				NbtList list = new NbtList();
+				nbt.put(String.valueOf(iDir), list);
+				
+				for (BlockPos pos : array) {
+					list.add(NbtHelper.fromBlockPos(pos));
+				}
+			}
+		}
+	}
+	
+	private static void readConnections(NbtCompound nbt, BlockPos[][] connections) {
+		for (String key : nbt.getKeys()) {
+			try {
+				int iDir = Integer.valueOf(key);
+				NbtList list = nbt.getList(key, 10);
+				
+				for (int index = 0; index < list.size(); index++) {
+					NbtCompound pos = list.getCompound(index);
+					addConnection(connections, NbtHelper.toBlockPos(pos), iDir);
+				}
+			} catch (NumberFormatException e) {
+				
+			}
 		}
 	}
 	

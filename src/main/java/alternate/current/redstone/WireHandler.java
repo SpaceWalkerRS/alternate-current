@@ -2,7 +2,6 @@ package alternate.current.redstone;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +17,6 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -158,7 +156,7 @@ public class WireHandler {
 		public static final Direction[] ALL        = { Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.DOWN, Direction.UP };
 		public static final Direction[] HORIZONTAL = { Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH };
 		
-		// Indices for the 'ALL' and 'HORIZONTAL' arrays above
+		// Indices for the 'ALL' and 'HORIZONTAL' arrays above.
 		// The cardinal directions are ordered clockwise. This allows
 		// conversion between relative and absolute directions
 		// ('left' 'right' vs 'east' 'west') with simple arithmetic.
@@ -239,8 +237,8 @@ public class WireHandler {
 	 * with each other, there should be one WireHandler for each wire
 	 * type, in case two networks of different types update each other.
 	 */
-	private final ServerWorld world;
 	private final WireBlock wireBlock;
+	private final WorldAccess world;
 	private final int minPower;
 	private final int maxPower;
 	private final int powerStep;
@@ -251,8 +249,6 @@ public class WireHandler {
 	private final Long2ObjectMap<Node> nodes;
 	/** All the power changes that need to happen */
 	private final Queue<WireNode> powerChanges;
-	/** Positions of wires that are part of the network */
-	private final Set<BlockPos> wirePositions;
 	/** Neighboring positions that should receive block updates */
 	private final List<BlockUpdateEntry> blockUpdates;
 	
@@ -264,9 +260,9 @@ public class WireHandler {
 	
 	private boolean updatingPower;
 	
-	public WireHandler(ServerWorld world, WireBlock wireBlock) {
-		this.world = world;
+	public WireHandler(WireBlock wireBlock, WorldAccess world) {
 		this.wireBlock = wireBlock;
+		this.world = world;
 		this.minPower = this.wireBlock.getMinPower();
 		this.maxPower = this.wireBlock.getMaxPower();
 		this.powerStep = this.wireBlock.getPowerStep();
@@ -274,30 +270,19 @@ public class WireHandler {
 		this.network = new ArrayList<>();
 		this.nodes = new Long2ObjectOpenHashMap<>();
 		this.powerChanges = new PowerQueue(this.minPower, this.maxPower);
-		this.wirePositions = new HashSet<>();
 		this.blockUpdates = new ArrayList<>();
 		
 		this.nodeCache = new Node[16];
 		this.fillNodeCache(0, 16);
 	}
 	
-	private Node getNode(BlockPos pos) {
-		return nodes.get(pos.asLong());
-	}
-	
 	private Node getOrAddNode(BlockPos pos) {
-		Node node = getNode(pos);
-		return node == null ? addNode(pos) : node;
+		return nodes.computeIfAbsent(pos.asLong(), key -> getNextNode(pos));
 	}
 	
 	private WireNode getOrAddWire(BlockPos pos) {
 		Node node = getOrAddNode(pos);
 		return node.isWire ? node.asWire() : null;
-	}
-	
-	private Node addNode(BlockPos pos) {
-		Node node = getNextNode(pos);
-		return addNode(node);
 	}
 	
 	private Node addNode(Node node) {
@@ -314,7 +299,7 @@ public class WireHandler {
 		BlockState state = world.getBlockState(pos);
 		
 		if (wireBlock.isOf(state)) {
-			WireNode wire = wireBlock.getOrCreateWire(world, pos, true);
+			WireNode wire = world.getWire(pos, true, true);
 			
 			if (wire != null) {
 				wire.flowIn = 0;
@@ -342,22 +327,19 @@ public class WireHandler {
 	}
 	
 	private void increaseNodeCache() {
-		int oldSize = nodeCache.length;
-		int newSize = 2 * oldSize;
-		
 		Node[] oldCache = nodeCache;
-		nodeCache = new Node[newSize];
+		nodeCache = new Node[oldCache.length << 1];
 		
-		for (int index = 0; index < oldSize; index++) {
+		for (int index = 0; index < oldCache.length; index++) {
 			nodeCache[index] = oldCache[index];
 		}
 		
-		fillNodeCache(oldSize, newSize);
+		fillNodeCache(oldCache.length, nodeCache.length);
 	}
 	
 	private void fillNodeCache(int start, int end) {
 		for (int index = start; index < end; index++) {
-			nodeCache[index] = new Node(world, wireBlock);
+			nodeCache[index] = new Node(wireBlock, world);
 		}
 	}
 	
@@ -404,7 +386,7 @@ public class WireHandler {
 		// In the simple case of a single dot changing power it is
 		// not necessary to build up an entire network first.
 		if (wire.connections.count == 0) {
-			if (updateWireState(wire) && !wire.removed) {
+			if (wireBlock.updateWireState(wire) && !wire.removed) {
 				dispatchShapeUpdates(wire);
 			}
 			
@@ -475,7 +457,6 @@ public class WireHandler {
 			Collection<BlockPos> blockUpdateQueue = getBlockUpdateQueue();
 			
 			profiler.swap("clean up");
-			wirePositions.clear();
 			blockUpdates.clear();
 			
 			profiler.swap("update neighbors");
@@ -497,22 +478,24 @@ public class WireHandler {
 		// source wire.
 		addRootToNetwork(wire);
 		
-		if (!wire.removed) {
-			addNode(wire);
+		if (wire.removed || wire.connections.count == 0) {
+			return;
+		}
+		
+		addNode(wire);
+		
+		for (Direction dir : Directions.ALL) {
+			BlockPos side = wire.pos.offset(dir);
+			Node neighbor = getOrAddNode(side);
 			
-			for (Direction dir : Directions.ALL) {
-				BlockPos side = wire.pos.offset(dir);
-				Node neighbor = getOrAddNode(side);
-				
-				if (neighbor.emitsWeakPowerTo(dir)) {
-					// Any redstone component that toggled on/off could
-					// (de)power multiple wires at once.
-					findRootsAroundRedstone(neighbor, dir.getOpposite());
-				} else if (neighbor.isSolidBlock || neighbor.state.isAir() || neighbor.state.isOf(Blocks.MOVING_PISTON)) {
-					// When blocks are moved by pistons, multiple wires
-					// could be (de)powered at once.
-					findRootsAround(neighbor, dir.getOpposite(), neighbor.isSolidBlock);
-				}
+			if (world.emitsWeakPowerTo(neighbor.pos, neighbor.state, dir)) {
+				// Any redstone component that toggled on/off could
+				// (de)power multiple wires at once.
+				findRootsAroundRedstone(neighbor, dir.getOpposite());
+			} else if (neighbor.isSolidBlock || neighbor.state.isAir() || neighbor.state.isOf(Blocks.MOVING_PISTON)) {
+				// When blocks are moved by pistons, multiple wires
+				// could be (de)powered at once.
+				findRootsAround(neighbor, dir.getOpposite(), neighbor.isSolidBlock);
 			}
 		}
 	}
@@ -532,7 +515,7 @@ public class WireHandler {
 			
 			if (neighbor.isWire) {
 				tryAddRoot(neighbor.asWire());
-			} else if (checkRedstone && neighbor.emitsStrongPowerTo(dir)) {
+			} else if (checkRedstone && world.emitsStrongPowerTo(neighbor.pos, neighbor.state, dir)) {
 				findRootsAroundRedstone(neighbor, dir.getOpposite());
 			}
 		}
@@ -550,8 +533,8 @@ public class WireHandler {
 			
 			Direction opp = dir.getOpposite();
 			
-			boolean weak = redstoneNode.emitsWeakPowerTo(opp);
-			boolean strong = redstoneNode.emitsStrongPowerTo(opp);
+			boolean weak = world.emitsWeakPowerTo(redstoneNode.pos, redstoneNode.state, opp);
+			boolean strong = world.emitsStrongPowerTo(redstoneNode.pos, redstoneNode.state, opp);
 			
 			// If the redstone component emits neither strong nor
 			// weak power in this direction, there is no need to
@@ -652,7 +635,7 @@ public class WireHandler {
 		if (!wire.prepared) {
 			wire.prepared = true;
 			
-			if (!wire.removed && !wire.shouldBreak && wireBlock.shouldBreak(world, wire.pos, wire.state)) {
+			if (!wire.removed && !wire.shouldBreak && world.shouldBreak(wire.pos, wire.state)) {
 				wire.shouldBreak = true;
 			}
 			
@@ -682,7 +665,7 @@ public class WireHandler {
 				power = Math.max(power, getStrongPowerTo(neighbor.pos, dir.getOpposite()));
 			}
 			if (neighbor.isRedstoneComponent) {
-				power = Math.max(power, neighbor.state.getWeakRedstonePower(world, neighbor.pos, dir));
+				power = Math.max(power, world.getWeakPowerFrom(neighbor.pos, neighbor.state, dir));
 			}
 			
 			if (power >= maxPower) {
@@ -709,7 +692,7 @@ public class WireHandler {
 			Node neighbor = getOrAddNode(side);
 			
 			if (neighbor.isRedstoneComponent) {
-				power = Math.max(power, neighbor.state.getStrongRedstonePower(world, side, dir));
+				power = Math.max(power, world.getStrongPowerFrom(neighbor.pos, neighbor.state, dir));
 				
 				if (power >= maxPower) {
 					return maxPower;
@@ -724,7 +707,7 @@ public class WireHandler {
 	 * Determine what the power level of this wire should be.
 	 * The power from non-wire components has already been
 	 * determined, so only the power received from surrounding
-	 * wires needs to be checked. There are a few caveats:
+	 * wires needs to be checked. There are a few exceptions:
 	 * <br>
 	 * - If the wire is removed or going to break, its power
 	 *   level should always be the minimum value.
@@ -734,7 +717,7 @@ public class WireHandler {
 	 *   neighboring wires, as that power will always be less.
 	 */
 	private void findPower(WireNode wire, boolean ignoreNetwork) {
-		if (!wire.removed && !wire.shouldBreak && wire.externalPower < maxPower) {
+		if (!wire.removed && !wire.shouldBreak && wire.externalPower < (maxPower - powerStep)) {
 			wire.virtualPower = wire.externalPower;
 			wire.flowIn = 0;
 			
@@ -803,9 +786,9 @@ public class WireHandler {
 			int iDir = (wire.flowOut + offset) & 0b11;
 			
 			for (BlockPos pos : wire.connections.out[iDir]) {
-				WireNode connectedWire = wireBlock.getOrCreateWire(world, pos, true);
+				WireNode connectedWire = world.getWire(pos, true, true);
 				
-				if (connectedWire != null && !connectedWire.removed && !connectedWire.shouldBreak && connectedWire.offerPower(nextPower, iDir)) {
+				if (connectedWire != null && !connectedWire.shouldBreak && connectedWire.offerPower(nextPower, iDir)) {
 					queuePowerChange(connectedWire);
 				}
 			}
@@ -822,10 +805,9 @@ public class WireHandler {
 				continue;
 			}
 			
-			wirePositions.add(wire.pos);
 			findPowerFlow(wire);
 			
-			if (updateWireState(wire)) {
+			if (wireBlock.updateWireState(wire)) {
 				queueBlockUpdates(wire);
 				
 				if (!wire.removed) {
@@ -839,29 +821,12 @@ public class WireHandler {
 		updatingPower = false;
 	}
 	
-	private boolean updateWireState(WireNode wire) {
-		if (wire.removed) {
-			return true;
-		}
-		if (wire.shouldBreak) {
-			return wireBlock.breakBlock(world, wire.pos, wire.state, Block.NOTIFY_LISTENERS);
-		}
-		
-		return wireBlock.setPower(world, wire.pos, wire.state, wire.virtualPower, Block.FORCE_STATE | Block.NOTIFY_LISTENERS);
-	}
-	
 	private void dispatchShapeUpdates(WireNode wire) {
+		BlockPos wirePos = wire.pos;
+		BlockState wireState = wire.state;
+		
 		for (Direction dir : BlockUtil.DIRECTIONS) {
-			BlockPos side = wire.pos.offset(dir);
-			BlockState prevState = world.getBlockState(side);
-			
-			// Shape updates to redstone wires are super expensive
-			// and should never happen as a result of power changes
-			// anyway.
-			if (!wireBlock.isOf(prevState)) {
-				BlockState newState = prevState.getStateForNeighborUpdate(dir.getOpposite(), wire.state, world, side, wire.pos);
-				Block.replace(prevState, newState, world, side, Block.NOTIFY_LISTENERS);
-			}
+			world.updateNeighborShape(wirePos.offset(dir), dir.getOpposite(), wirePos, wireState);
 		}
 	}
 	
@@ -877,7 +842,6 @@ public class WireHandler {
 			BlockUpdateEntry entry = blockUpdates.get(index);
 			collectNeighborPositions(queue, entry.pos, entry.flowDir);
 		}
-		queue.removeAll(wirePositions);
 		
 		return queue;
 	}
@@ -886,7 +850,7 @@ public class WireHandler {
 		Block block = wireBlock.asBlock();
 		
 		for (BlockPos pos : blockUpdates) {
-			world.updateNeighbor(pos, block, pos);
+			world.updateNeighborBlock(pos, pos, block);
 		}
 	}
 	

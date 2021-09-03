@@ -5,8 +5,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireNode;
+import alternate.current.redstone.WorldAccess;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.util.math.BlockPos;
@@ -45,7 +48,8 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onUpdateInjectAtHead(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
-		WireNode wire = getOrCreateWire(world, pos, true);
+		WorldAccess worldAccess = ((IServerWorld)world).getAccess(this);
+		WireNode wire = worldAccess.getWire(pos, true, true);
 		
 		if (wire != null) {
 			tryUpdatePower(wire);
