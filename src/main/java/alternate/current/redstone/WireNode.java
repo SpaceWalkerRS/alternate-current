@@ -146,29 +146,24 @@ public class WireNode extends Node {
 	}
 	
 	public boolean offerPower(int power, int iDir) {
+		if (power == virtualPower) {
+			flowIn |= (1 << iDir);
+			return false;
+		}
+		
 		int min = wireBlock.getMinPower();
 		
-		if (virtualPower == min || power > virtualPower) {
-			return setPower(power, iDir);
-		}
-		if (virtualPower < min) {
+		if (power <= min && virtualPower <= min) {
 			flowIn |= (1 << iDir);
-		} else {
-			if (power > virtualPower) {
-				return setPower(power, iDir);
-			}
-			if (power == virtualPower) {
-				flowIn |= (1 << iDir);
-			}
+			return false;
+		}
+		if (power > virtualPower) {
+			virtualPower = power;
+			flowIn = (1 << iDir);
+			
+			return true;
 		}
 		
 		return false;
-	}
-	
-	private boolean setPower(int power, int iDir) {
-		virtualPower = power;
-		flowIn = (1 << iDir);
-		
-		return true;
 	}
 }

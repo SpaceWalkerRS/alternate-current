@@ -2,9 +2,7 @@ package alternate.current.redstone;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Queue;
 
 import alternate.current.AlternateCurrentMod;
@@ -249,8 +247,6 @@ public class WireHandler {
 	private final Long2ObjectMap<Node> nodes;
 	/** All the power changes that need to happen */
 	private final Queue<WireNode> powerChanges;
-	/** Neighboring positions that should receive block updates */
-	private final List<BlockUpdateEntry> blockUpdates;
 	
 	private int rootCount;
 	// Rather than creating new nodes every time a network is updated
@@ -270,7 +266,6 @@ public class WireHandler {
 		this.network = new ArrayList<>();
 		this.nodes = new Long2ObjectOpenHashMap<>();
 		this.powerChanges = new PowerQueue(this.minPower, this.maxPower);
-		this.blockUpdates = new ArrayList<>();
 		
 		this.nodeCache = new Node[16];
 		this.fillNodeCache(0, 16);
@@ -386,13 +381,13 @@ public class WireHandler {
 		// In the simple case of a single dot changing power it is
 		// not necessary to build up an entire network first.
 		if (wire.connections.count == 0) {
-			if (wireBlock.updateWireState(wire) && !wire.removed) {
-				dispatchShapeUpdates(wire);
+			if (wireBlock.updateWireState(wire)) {
+				if (!wire.removed) {
+					dispatchShapeUpdates(wire);
+				}
+				
+				dispatchBlockUpdates(wire);
 			}
-			
-			List<BlockPos> neighbors = new ArrayList<>();
-			collectNeighborPositions(neighbors, wire.pos);
-			dispatchBlockUpdates(neighbors);
 			
 			return;
 		}
@@ -447,20 +442,6 @@ public class WireHandler {
 			// Carry out the power changes and emit shape updates.
 			profiler.swap("let power flow");
 			letPowerFlow();
-			
-			// Block updates are emitted after all the power changes
-			// so duplicate block updates from multiple wires can be
-			// prevented. This is done by adding all the positions that
-			// should be updated to a Set. A LinkedHashSet is used so
-			// that order is preserved.
-			profiler.swap("condense block update queue");
-			Collection<BlockPos> blockUpdateQueue = getBlockUpdateQueue();
-			
-			profiler.swap("clean up");
-			blockUpdates.clear();
-			
-			profiler.swap("update neighbors");
-			dispatchBlockUpdates(blockUpdateQueue);
 		}
 		
 		profiler.pop();
@@ -735,7 +716,7 @@ public class WireHandler {
 				WireNode connectedWire = getOrAddWire(pos);
 				
 				if (connectedWire != null && (!ignoreNetwork || !connectedWire.inNetwork) && connectedWire.virtualPower >= (minPower + powerStep)) {
-					wire.offerPower(connectedWire.virtualPower - powerStep, (iDir + 2) & 0b11);
+					wire.offerPower(Math.max(minPower, connectedWire.virtualPower - powerStep), (iDir + 2) & 0b11);
 				}
 			}
 		}
@@ -808,11 +789,11 @@ public class WireHandler {
 			findPowerFlow(wire);
 			
 			if (wireBlock.updateWireState(wire)) {
-				queueBlockUpdates(wire);
-				
 				if (!wire.removed) {
 					dispatchShapeUpdates(wire);
 				}
+				
+				dispatchBlockUpdates(wire);
 			}
 			
 			transmitPower(wire);
@@ -830,28 +811,53 @@ public class WireHandler {
 		}
 	}
 	
-	private void queueBlockUpdates(WireNode wire) {
-		BlockUpdateEntry entry = new BlockUpdateEntry(wire.pos, wire.flowOut);
-		blockUpdates.add(entry);
-	}
-	
-	private Collection<BlockPos> getBlockUpdateQueue() {
-		Set<BlockPos> queue = new LinkedHashSet<>();
-		
-		for (int index = blockUpdates.size() - 1; index >= 0; index--) {
-			BlockUpdateEntry entry = blockUpdates.get(index);
-			collectNeighborPositions(queue, entry.pos, entry.flowDir);
-		}
-		
-		return queue;
-	}
-	
-	private void dispatchBlockUpdates(Collection<BlockPos> blockUpdates) {
+	private void dispatchBlockUpdates(WireNode wire) {
+		int iDir = wire.flowOut;
 		Block block = wireBlock.asBlock();
 		
-		for (BlockPos pos : blockUpdates) {
-			world.updateNeighborBlock(pos, pos, block);
-		}
+		Direction forward   = Directions.HORIZONTAL[ iDir            ];
+		Direction rightward = Directions.HORIZONTAL[(iDir + 1) & 0b11];
+		Direction backward  = Directions.HORIZONTAL[(iDir + 2) & 0b11];
+		Direction leftward  = Directions.HORIZONTAL[(iDir + 3) & 0b11];
+		Direction downward  = Direction.DOWN;
+		Direction upward    = Direction.UP;
+		
+		BlockPos front = wire.pos.offset(forward);
+		BlockPos right = wire.pos.offset(rightward);
+		BlockPos back  = wire.pos.offset(backward);
+		BlockPos left  = wire.pos.offset(leftward);
+		BlockPos below = wire.pos.offset(downward);
+		BlockPos above = wire.pos.offset(upward);
+		
+		// direct neighbors (6)
+		world.updateNeighborBlock(front, wire.pos, block);
+		world.updateNeighborBlock(back, wire.pos, block);
+		world.updateNeighborBlock(right, wire.pos, block);
+		world.updateNeighborBlock(left, wire.pos, block);
+		world.updateNeighborBlock(below, wire.pos, block);
+		world.updateNeighborBlock(above, wire.pos, block);
+		
+		// diagonal neighbors (12)
+		world.updateNeighborBlock(front.offset(rightward), wire.pos, block);
+		world.updateNeighborBlock(back .offset(leftward), wire.pos, block);
+		world.updateNeighborBlock(front.offset(leftward), wire.pos, block);
+		world.updateNeighborBlock(back .offset(rightward), wire.pos, block);
+		world.updateNeighborBlock(front.offset(downward), wire.pos, block);
+		world.updateNeighborBlock(back .offset(upward), wire.pos, block);
+		world.updateNeighborBlock(front.offset(upward), wire.pos, block);
+		world.updateNeighborBlock(back .offset(downward), wire.pos, block);
+		world.updateNeighborBlock(right.offset(downward), wire.pos, block);
+		world.updateNeighborBlock(left .offset(upward), wire.pos, block);
+		world.updateNeighborBlock(right.offset(upward), wire.pos, block);
+		world.updateNeighborBlock(left .offset(downward), wire.pos, block);
+		
+		// far neighbors (6)
+		world.updateNeighborBlock(front.offset(forward), wire.pos, block);
+		world.updateNeighborBlock(back .offset(backward), wire.pos, block);
+		world.updateNeighborBlock(right.offset(rightward), wire.pos, block);
+		world.updateNeighborBlock(left .offset(leftward), wire.pos, block);
+		world.updateNeighborBlock(below.offset(downward), wire.pos, block);
+		world.updateNeighborBlock(above.offset(upward), wire.pos, block);
 	}
 	
 	public static void collectNeighborPositions(Collection<BlockPos> p, BlockPos o) {
@@ -923,16 +929,5 @@ public class WireHandler {
 		p.add(above.offset(upward));
 		
 		// total: 24
-	}
-	
-	private class BlockUpdateEntry {
-		
-		private final BlockPos pos;
-		private final int flowDir;
-		
-		public BlockUpdateEntry(BlockPos pos, int flowDir) {
-			this.pos = pos;
-			this.flowDir = flowDir;
-		}
 	}
 }

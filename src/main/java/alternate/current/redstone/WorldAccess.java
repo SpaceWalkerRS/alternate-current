@@ -141,7 +141,7 @@ public class WorldAccess {
 		BlockState prevState = getBlockState(pos);
 		
 		if (!prevState.isAir() && !wireBlock.isOf(prevState)) {
-			BlockState newState = prevState.getStateForNeighborUpdate(fromDir, fromState, world, fromPos, fromPos);
+			BlockState newState = prevState.getStateForNeighborUpdate(fromDir, fromState, world, pos, fromPos);
 			Block.replace(prevState, newState, world, pos, Block.NOTIFY_LISTENERS);
 		}
 	}
