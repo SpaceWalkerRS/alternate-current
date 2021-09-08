@@ -30,6 +30,9 @@ public class WorldAccess {
 		return wireHandler;
 	}
 	
+	/**
+	 * A slightly optimized version of World.getBlockState.
+	 */
 	public BlockState getBlockState(BlockPos pos) {
 		int y = pos.getY();
 		
@@ -50,7 +53,12 @@ public class WorldAccess {
 		return section.getBlockState(x & 15, y & 15, z & 15);
 	}
 	
-	public boolean setBlockState(BlockPos pos, BlockState state) {
+	/**
+	 * An optimized version of World.setBlockState. Since this method is
+	 * only used to update redstone wire block states, lighting checks,
+	 * height map updates, and block entity updates.
+	 */
+	public boolean setWireState(BlockPos pos, BlockState state) {
 		int y = pos.getY();
 		
 		if (y < world.getBottomY() || y >= world.getTopY()) {
@@ -104,7 +112,9 @@ public class WorldAccess {
 		
 		WireNode wire = ((IChunkSection)section).getWire(x, y, z);
 		
-		if (wire == null) {
+		if (wire == null || !wire.isOf(wireBlock)) {
+			wire = null;
+			
 			if (create) {
 				BlockState state = section.getBlockState(x, y, z);
 				
@@ -117,38 +127,68 @@ public class WorldAccess {
 					}
 				}
 			}
-			
-			return wire;
 		}
 		
-		return wire.isOf(wireBlock) ? wire : null;
+		return wire;
 	}
 	
+	public boolean placeWire(WireNode wire) {
+		if (setWire(wire.pos, wire)) {
+			wire.shouldBreak = false;
+			wire.removed = false;
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public boolean removeWire(WireNode wire) {
+		if (setWire(wire.pos, null)) {
+			wire.removed = true;
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
+	private boolean setWire(BlockPos pos, WireNode wire) {
+		int y = pos.getY();
+		
+		if (y < world.getBottomY() || y >= world.getTopY()) {
+			return false;
+		}
+		
+		int x = pos.getX();
+		int z = pos.getZ();
+		
+		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
+		ChunkSection section = chunk.getSectionArray()[y >> 4];
+		
+		if (section == null) {
+			return false;
+		}
+		
+		((IChunkSection)section).setWire(x & 15, y & 15, z & 15, wire);
+		
+		return true;
+	}
+	
+	// move this to the WireBlock class eventually
+	// it is only used to break wire blocks anyway...
 	public boolean breakBlock(BlockPos pos, BlockState state) {
 		Block.dropStacks(state, world, pos);
 		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), Block.NOTIFY_LISTENERS);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
-		BlockState state = getBlockState(pos);
-		
-		if (!state.isAir() && !wireBlock.isOf(state)) {
-			state.neighborUpdate(world, pos, fromBlock, fromPos, false);
-		}
+		getBlockState(pos).neighborUpdate(world, pos, fromBlock, fromPos, false);
 	}
 	
-	public void updateNeighborShape(BlockPos pos, Direction fromDir, BlockPos fromPos, BlockState fromState) {
-		BlockState prevState = getBlockState(pos);
-		
-		if (!prevState.isAir() && !wireBlock.isOf(prevState)) {
-			BlockState newState = prevState.getStateForNeighborUpdate(fromDir, fromState, world, pos, fromPos);
-			Block.replace(prevState, newState, world, pos, Block.NOTIFY_LISTENERS);
-		}
-	}
-	
-	public void updateShapesAround(BlockPos pos, BlockState state) {
-		state.updateNeighbors(world, pos, Block.NOTIFY_LISTENERS);
-		state.prepare(world, pos, Block.NOTIFY_LISTENERS);
+	public void updateNeighborShape(BlockPos pos, BlockState state, Direction fromDir, BlockPos fromPos, BlockState fromState) {
+		BlockState newState = state.getStateForNeighborUpdate(fromDir, fromState, world, pos, fromPos);
+		Block.replace(state, newState, world, pos, Block.NOTIFY_LISTENERS);
 	}
 	
 	public boolean isSolidBlock(BlockPos pos) {

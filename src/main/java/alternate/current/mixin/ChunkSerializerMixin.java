@@ -1,16 +1,12 @@
 package alternate.current.mixin;
 
-import java.util.Collection;
-import java.util.Collections;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.interfaces.mixin.IChunk;
-import alternate.current.redstone.WireNode;
+import alternate.current.interfaces.mixin.IChunkSection;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
@@ -19,6 +15,7 @@ import net.minecraft.structure.StructureManager;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.ChunkSerializer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.ProtoChunk;
 import net.minecraft.world.poi.PointOfInterestStorage;
 
@@ -40,14 +37,23 @@ public class ChunkSerializerMixin {
 		}
 		
 		NbtCompound acData = levelData.getCompound(AlternateCurrentMod.MOD_ID);
-		NbtList wireNodes = acData.getList("WireNodes", 10);
+		NbtList wiresPerSection = acData.getList("WireNodes", 9);
 		
-		for (int index = 0; index < wireNodes.size(); index++) {
-			NbtCompound wireData = wireNodes.getCompound(index);
-			WireNode wire = WireNode.fromNbt(wireData, world);
+		ChunkSection[] sections = chunk.getSectionArray();
+		
+		for (int index = 0; index < wiresPerSection.size(); index++) {
+			if (index >= sections.length) {
+				break;
+			}
 			
-			wire.stateChanged(chunk.getBlockState(wire.pos));
-			((IChunk)chunk).placeWire(wire);
+			ChunkSection section = sections[index];
+			
+			if (section == null) {
+				continue;
+			}
+			
+			NbtList wires = wiresPerSection.getList(index);
+			((IChunkSection)section).readWireNbt(wires, world);
 		}
 	}
 	
@@ -58,25 +64,22 @@ public class ChunkSerializerMixin {
 			)
 	)
 	private static void onSerialize(ServerWorld world, Chunk chunk, CallbackInfoReturnable<NbtCompound> cir) {
-		Collection<WireNode> wires = Collections.emptyList();
-		
-		if (wires.isEmpty()) {
-			return;
-		}
-		
 		NbtCompound chunkData = cir.getReturnValue();
 		NbtCompound levelData = chunkData.getCompound("Level");
 		
 		NbtCompound acData = new NbtCompound();
 		levelData.put(AlternateCurrentMod.MOD_ID, acData);
 		
-		NbtList wireNodes = new NbtList();
-		acData.put("WireNodes", wireNodes);
+		NbtList wiresPerSection = new NbtList();
+		acData.put("WireNodes", wiresPerSection);
 		
-		for (WireNode wire : wires) {
-			NbtCompound wireData = new NbtCompound();
-			wire.toNbt(wireData);
-			wireNodes.add(wireData);
+		for (ChunkSection section : chunk.getSectionArray()) {
+			if (section == null) {
+				wiresPerSection.add(new NbtList());
+			} else {
+				NbtList wires = ((IChunkSection)section).getWireNbt();
+				wiresPerSection.add(wires);
+			}
 		}
 	}
 }

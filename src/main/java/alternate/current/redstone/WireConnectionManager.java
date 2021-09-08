@@ -8,7 +8,6 @@ import java.util.Set;
 import alternate.current.util.collection.CollectionsUtils;
 
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.util.math.BlockPos;
 
@@ -18,85 +17,68 @@ public class WireConnectionManager {
 	
 	/** The owner of these connections */
 	public final WireNode wire;
-	/** Positions of wires that can provide power to this wire */
-	public final BlockPos[][] in;
-	/** Positions of wires that this wire can provide power to */
-	public final BlockPos[][] out;
+	
+	public WireConnection[] all;
+	public final WireConnection[][] byDir;
 	
 	private boolean ignoreUpdates;
 	
-	public int count;
 	private int flowTotal;
 	public int flow;
 	
 	public WireConnectionManager(WireNode wire) {
 		this.wire = wire;
-		this.in = new BlockPos[4][];
-		this.out = new BlockPos[4][];
+		this.byDir = new WireConnection[WireHandler.Directions.HORIZONTAL.length][];
 		
-		clear();
+		this.clear();
 	}
 	
-	public void toNbt(NbtCompound nbt) {
-		NbtCompound nbtIn = new NbtCompound();
-		NbtCompound nbtOut = new NbtCompound();
-		nbt.put("in", nbtIn);
-		nbt.put("out", nbtOut);
-		writeConnections(nbtIn, in);
-		writeConnections(nbtOut, out);
+	public NbtList toNbt() {
+		NbtList nbt = new NbtList();
 		
-		nbt.putInt("count", count);
-		nbt.putInt("flow", flow);
+		for (WireConnection connection : all) {
+			nbt.add(connection.toNbt());
+		}
+		
+		return nbt;
 	}
 	
-	public void fromNbt(NbtCompound nbt) {
-		clear();
+	public void fromNbt(NbtList nbt) {
+		if (all.length > 0) {
+			clear();
+		}
 		
-		NbtCompound nbtIn = nbt.getCompound("in");
-		NbtCompound nbtOut = nbt.getCompound("out");
-		readConnections(nbtIn, in);
-		readConnections(nbtOut, out);
-		
-		count = nbt.getInt("count");
-		flow = nbt.getInt("flow");
+		for (int index = 0; index < nbt.size(); index++) {
+			NbtCompound connectionNbt = nbt.getCompound(index);
+			WireConnection connection = WireConnection.fromNbt(connectionNbt);
+			
+			addConnection(connection);
+		}
 	}
 	
-	public Collection<BlockPos> getAll() {
-		Set<BlockPos> wires = new HashSet<>();
-		
-		wires.addAll(collectConnections(in));
-		wires.addAll(collectConnections(out));
-		
-		return wires;
-	}
-	
-	public Collection<BlockPos> getAllIn() {
-		return collectConnections(in);
-	}
-	
-	public Collection<BlockPos> getAllOut() {
-		return collectConnections(out);
+	public Collection<BlockPos> getPositions() {
+		return collectPositions(all);
 	}
 	
 	private void clear() {
-		Arrays.fill(in, new BlockPos[0]);
-		Arrays.fill(out, new BlockPos[0]);
+		all = new WireConnection[0];
+		Arrays.fill(byDir, new WireConnection[0]);
 		
-		count = 0;
 		flowTotal = 0;
 		flow = WireHandler.FLOW_IN_TO_FLOW_OUT[flowTotal];
 	}
 	
 	public void add(BlockPos pos, int iDir, boolean in, boolean out) {
-		if (in) {
-			addConnection(this.in, pos, iDir);
-		}
-		if (out) {
-			addConnection(this.out, pos, iDir);
-		}
+		addConnection(new WireConnection(pos, iDir, in, out));
+	}
+	
+	private void addConnection(WireConnection connection) {
+		all = withConnection(all, connection);
 		
-		count++;
-		flowTotal |= (1 << iDir);
+		WireConnection[] connections = byDir[connection.iDir];
+		byDir[connection.iDir] = withConnection(connections, connection);
+		
+		flowTotal |= (1 << connection.iDir);
 		flow = WireHandler.FLOW_IN_TO_FLOW_OUT[flowTotal];
 	}
 	
@@ -108,77 +90,57 @@ public class WireConnectionManager {
 		if (!ignoreUpdates) {
 			ignoreUpdates = true;
 			
-			Collection<BlockPos> prevIn = getAllIn();
-			Collection<BlockPos> prevOut = getAllOut();
+			WireConnection[] prev = all;
 			
 			clear();
 			wire.wireBlock.findWireConnections(wire);
 			
 			if (maxDepth-- > 0) {
-				Set<BlockPos> affectedWires = new HashSet<>();
+				Collection<WireConnection> c1 = collectConnections(prev);
+				Collection<WireConnection> c2 = collectConnections(all);
+				Collection<WireConnection> difference = CollectionsUtils.difference(c1, c2);
 				
-				affectedWires.addAll(CollectionsUtils.difference(prevIn, getAllIn()));
-				affectedWires.addAll(CollectionsUtils.difference(prevOut, getAllOut()));
+				Collection<BlockPos> positions = new HashSet<>();
 				
-				wire.updateNeighboringWires(affectedWires, maxDepth);
+				for (WireConnection connection : difference) {
+					positions.add(connection.pos);
+				}
+				
+				wire.updateNeighboringWires(positions, maxDepth);
 			}
 			
 			ignoreUpdates = false;
 		}
 	}
 	
-	private static void writeConnections(NbtCompound nbt, BlockPos[][] connections) {
-		for (int iDir = 0; iDir < 4; iDir++) {
-			BlockPos[] array = connections[iDir];
-			
-			if (array.length > 0) {
-				NbtList list = new NbtList();
-				nbt.put(String.valueOf(iDir), list);
-				
-				for (BlockPos pos : array) {
-					list.add(NbtHelper.fromBlockPos(pos));
-				}
-			}
+	private static Collection<WireConnection> collectConnections(WireConnection[] connections) {
+		Set<WireConnection> positions = new HashSet<>();
+		
+		for (WireConnection connection : connections) {
+			positions.add(connection);
 		}
+		
+		return positions;
 	}
 	
-	private static void readConnections(NbtCompound nbt, BlockPos[][] connections) {
-		for (String key : nbt.getKeys()) {
-			try {
-				int iDir = Integer.valueOf(key);
-				NbtList list = nbt.getList(key, 10);
-				
-				for (int index = 0; index < list.size(); index++) {
-					NbtCompound pos = list.getCompound(index);
-					addConnection(connections, NbtHelper.toBlockPos(pos), iDir);
-				}
-			} catch (NumberFormatException e) {
-				
-			}
+	private static Collection<BlockPos> collectPositions(WireConnection[] connections) {
+		Set<BlockPos> positions = new HashSet<>();
+		
+		for (WireConnection connection : connections) {
+			positions.add(connection.pos);
 		}
+		
+		return positions;
 	}
 	
-	private static void addConnection(BlockPos[][] connections, BlockPos pos, int iDir) {
-		BlockPos[] oldArray = connections[iDir];
-		BlockPos[] newArray = new BlockPos[oldArray.length + 1];
+	private static WireConnection[] withConnection(WireConnection[] connections, WireConnection connection) {
+		WireConnection[] newArray = new WireConnection[connections.length + 1];
 		
-		for (int index = 0; index < oldArray.length; index++) {
-			newArray[index] = oldArray[index];
+		for (int index = 0; index < connections.length; index++) {
+			newArray[index] = connections[index];
 		}
+		newArray[connections.length] = connection;
 		
-		newArray[oldArray.length] = pos;
-		connections[iDir] = newArray;
-	}
-	
-	private static Collection<BlockPos> collectConnections(BlockPos[][] connections) {
-		Set<BlockPos> wires = new HashSet<>();
-		
-		for (BlockPos[] array : connections) {
-			for (BlockPos wire : array) {
-				wires.add(wire);
-			}
-		}
-		
-		return wires;
+		return newArray;
 	}
 }

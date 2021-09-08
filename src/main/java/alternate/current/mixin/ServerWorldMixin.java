@@ -49,7 +49,7 @@ public abstract class ServerWorldMixin extends World implements IServerWorld {
 		for (Direction dir : WireHandler.Directions.ALL) {
 			BlockPos side = pos.offset(dir);
 			WorldChunk chunk = getWorldChunk(side);
-			WireNode wire = ((IChunk)chunk).getWire(pos);
+			WireNode wire = ((IChunk)chunk).getWireNode(side);
 			
 			if (wire != null) {
 				wire.connections.update();

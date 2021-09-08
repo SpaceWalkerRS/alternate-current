@@ -4,13 +4,16 @@ import java.util.Collection;
 
 import alternate.current.interfaces.mixin.IServerWorld;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.world.World;
+import net.minecraft.world.chunk.ChunkSection;
 
 /**
  * A WireNode is a Node that represents a redstone wire in the world.
@@ -29,7 +32,7 @@ public class WireNode extends Node {
 	
 	public final WireConnectionManager connections;
 	
-	/** The power level this wire currently has in the world */
+	/** The power level this wire currently holds in the world */
 	public int currentPower;
 	/**
 	 * While calculating power changes for a network, this field
@@ -59,10 +62,6 @@ public class WireNode extends Node {
 		this.pos = pos.toImmutable();
 		this.state = state;
 		
-		this.isWire = true;
-		this.isSolidBlock = false;
-		this.isRedstoneComponent = false;
-		
 		this.virtualPower = this.currentPower = this.wireBlock.getPower(this.world, this.pos, this.state);
 	}
 	
@@ -72,39 +71,52 @@ public class WireNode extends Node {
 	}
 	
 	@Override
+	public boolean isWire() {
+		return true;
+	}
+	
+	@Override
 	public WireNode asWire() {
 		return this;
 	}
 	
-	public void toNbt(NbtCompound nbt) {
-		Identifier blockId = Registry.BLOCK.getId(wireBlock.asBlock());
-		nbt.putString("WireBlock", blockId.toString());
+	public NbtCompound toNbt() {
+		NbtCompound nbt = new NbtCompound();
 		
-		if (connections.count > 0) {
-			NbtCompound connectionData = new NbtCompound();
-			connections.toNbt(connectionData);
-			nbt.put("connections", connectionData);
-		}
+		Identifier blockId = Registry.BLOCK.getId(wireBlock.asBlock());
+		nbt.putString("block", blockId.toString());
 		
 		nbt.put("pos", NbtHelper.fromBlockPos(pos));
-	}
-	
-	public void fromNbt(NbtCompound nbt) {
-		if (nbt.contains("connections")) {
-			NbtCompound connectionData = nbt.getCompound("connections");
-			connections.fromNbt(connectionData);
+		
+		if (connections.all.length > 0) {
+			nbt.put("connections", connections.toNbt());
 		}
 		
-		pos = NbtHelper.toBlockPos(nbt.getCompound("pos"));
+		return nbt;
 	}
 	
-	public static WireNode fromNbt(NbtCompound nbt, World world) {
-		Identifier blockId = new Identifier(nbt.getString("WireBlock"));
-		WireBlock wireBlock = (WireBlock)Registry.BLOCK.get(blockId);
-		WorldAccess worldAccess = ((IServerWorld)world).getAccess(wireBlock);
+	public static WireNode fromNbt(NbtCompound nbt, ServerWorld world, ChunkSection section) {
+		Identifier blockId = new Identifier(nbt.getString("block"));
+		Block block = Registry.BLOCK.get(blockId);
 		
-		WireNode wire = new WireNode(wireBlock, worldAccess, BlockPos.ORIGIN, wireBlock.asBlock().getDefaultState());
-		wire.fromNbt(nbt);
+		if (!(block instanceof WireBlock)) {
+			return null;
+		}
+		BlockPos pos = NbtHelper.toBlockPos(nbt.getCompound("pos"));
+		BlockState state = section.getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
+		
+		if (!state.isOf(block)) {
+			return null;
+		}
+		
+		WireBlock wireBlock = (WireBlock)block;
+		WorldAccess worldAccess = ((IServerWorld)world).getAccess(wireBlock);
+		WireNode wire = new WireNode(wireBlock, worldAccess, pos, state);
+		NbtList connections = nbt.getList("connections", 10);
+		
+		if (!connections.isEmpty()) {
+			wire.connections.fromNbt(connections);
+		}
 		
 		return wire;
 	}
@@ -113,16 +125,11 @@ public class WireNode extends Node {
 		return this.wireBlock == wireBlock;
 	}
 	
-	public void stateChanged(BlockState newState) {
-		state = newState;
-		currentPower = wireBlock.getPower(world, pos, state);
-	}
-	
 	/**
 	 * Tell connected wires that they should update their connections.
 	 */
 	public void updateConnectedWires() {
-		updateNeighboringWires(connections.getAll(), WireConnectionManager.DEFAULT_MAX_UPDATE_DEPTH);
+		updateNeighboringWires(connections.getPositions(), WireConnectionManager.DEFAULT_MAX_UPDATE_DEPTH);
 	}
 	
 	/**
@@ -150,13 +157,6 @@ public class WireNode extends Node {
 			flowIn |= (1 << iDir);
 			return false;
 		}
-		
-		int min = wireBlock.getMinPower();
-		
-		if (power <= min && virtualPower <= min) {
-			flowIn |= (1 << iDir);
-			return false;
-		}
 		if (power > virtualPower) {
 			virtualPower = power;
 			flowIn = (1 << iDir);
@@ -165,5 +165,19 @@ public class WireNode extends Node {
 		}
 		
 		return false;
+	}
+	
+	public boolean updateState() {
+		if (removed) {
+			return true;
+		}
+		if (shouldBreak) {
+			return world.breakBlock(pos, state);
+		}
+		
+		currentPower = wireBlock.clampPower(virtualPower);
+		state = wireBlock.updatePowerState(world, pos, state, currentPower);
+		
+		return world.setWireState(pos, state);
 	}
 }

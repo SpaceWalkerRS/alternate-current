@@ -7,8 +7,6 @@
   	"CommandManagerMixin",
   	"ChunkSectionMixin",
   	"ChunkSerializerMixin",
-  	"ProtoChunkMixin",
-  	"ReadOnlyChunkMixin",
   	"RedstoneWireBlockMixin",
   	"ServerWorldMixin",
   	"WorldChunkMixin",

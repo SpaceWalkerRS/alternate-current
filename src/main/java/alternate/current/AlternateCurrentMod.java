@@ -12,9 +12,9 @@ public class AlternateCurrentMod implements ModInitializer {
 	
 	public static final String MOD_ID = "alternatecurrent";
 	public static final String MOD_NAME = "Alternate Current";
-	public static final String MOD_VERSION = "0.3.0";
+	public static final String MOD_VERSION = "0.4.0";
 	public static final Logger LOGGER = LogManager.getLogger(MOD_NAME);
-	public static final boolean DEBUG = false;
+	public static final boolean DEBUG = true;
 	
 	@Override
 	public void onInitialize() {
