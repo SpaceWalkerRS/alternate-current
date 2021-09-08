@@ -2,10 +2,8 @@ package alternate.current.redstone;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
-import java.util.Set;
 
 //import alternate.current.AlternateCurrentMod;
 import alternate.current.util.BlockUtil;
@@ -259,8 +257,6 @@ public class WireHandler {
 	private final Long2ObjectMap<Node> nodes;
 	/** All the power changes that need to happen */
 	private final Queue<WireNode> powerChanges;
-	/**  */
-	private final Set<BlockPos> wirePositions;
 	
 	private int rootCount;
 	// Rather than creating new nodes every time a network is updated
@@ -281,8 +277,6 @@ public class WireHandler {
 		this.nodes = new Long2ObjectOpenHashMap<>();
 		this.powerChanges = new PowerQueue(this.minPower, this.maxPower);
 		
-		this.wirePositions = new HashSet<>();
-		
 		this.nodeCache = new Node[16];
 		this.fillNodeCache(0, 16);
 	}
@@ -299,7 +293,6 @@ public class WireHandler {
 	private void cleanUp() {
 		usedNodes = 0;
 		nodes.clear();
-		wirePositions.clear();
 	}
 	
 	/**
@@ -562,12 +555,6 @@ public class WireHandler {
 		// That way the power changes that result from it do not
 		// have to be calculated separately afterwards.
 		wire.virtualPower = wire.externalPower = (wire.removed || wire.shouldBreak) ? minPower : getExternalPower(wire);
-		
-		if (wire.removed) {
-			wirePositions.remove(wire.pos);
-		} else {
-			wirePositions.add(wire.pos);
-		}
 	}
 	
 	/**
@@ -997,12 +984,6 @@ public class WireHandler {
 	}
 	
 	private void updateNeighbor(BlockPos pos, BlockPos fromPos) {
-		// Wires at these positions have already calculated their
-		// power level, so they do not need to receive a block update.
-		if (wirePositions.contains(pos)) {
-			return;
-		}
-		
 		BlockState state = world.getBlockState(pos);
 		
 		if (!state.isAir() && !wireBlock.isOf(state)) {

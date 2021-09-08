@@ -3,7 +3,7 @@ package alternate.current.mixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.interfaces.mixin.IServerWorld;
@@ -23,14 +23,28 @@ import net.minecraft.world.World;
 @Mixin(RedstoneWireBlock.class)
 public abstract class RedstoneWireBlockMixin implements WireBlock {
 	
-	@Redirect(
+	@Inject(
+			method = "update",
+			cancellable = true,
+			at = @At(
+					value = "HEAD"
+			)
+	)
+	private void onUpdate(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+		// Using redirects for calls to this method makes conflicts with
+		// other mods more likely, so we inject-cancel instead.
+		ci.cancel();
+	}
+	
+	@Inject(
 			method = "onBlockAdded",
 			at = @At(
 					value = "INVOKE",
+					shift = Shift.BEFORE,
 					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V"
 			)
 	)
-	private void onOnBlockAddedRedirectUpdate(RedstoneWireBlock redstoneWireBlock, World world, BlockPos pos, BlockState state) {
+	private void onOnBlockAddedInjectBeforeUpdate(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify, CallbackInfo ci) {
 		WorldAccess worldAccess = ((IServerWorld)world).getAccess(this);
 		WireNode wire = worldAccess.getWire(pos, true, true);
 		
@@ -46,14 +60,15 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 		wire.state.prepare(world, pos, Block.NOTIFY_LISTENERS);
 	}
 	
-	@Redirect(
+	@Inject(
 			method = "onStateReplaced",
 			at = @At(
 					value = "INVOKE",
+					shift = Shift.BEFORE,
 					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V"
 			)
 	)
-	private void onOnStateReplacedRedirectUpdate(RedstoneWireBlock redstoneWireBlock, World world, BlockPos pos, BlockState state) {
+	private void onOnStateReplacedInjectBeforeUpdate(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		WorldAccess worldAccess = ((IServerWorld)world).getAccess(this);
 		WireNode wire = worldAccess.getWire(pos, true, true);
 		
