@@ -18,7 +18,9 @@ public class WireConnectionManager {
 	/** The owner of these connections */
 	public final WireNode wire;
 	
+	/** All connections to other wires */
 	public WireConnection[] all;
+	/** Connections to other wires, sorted per cardinal direction */
 	public final WireConnection[][] byDir;
 	
 	private boolean ignoreUpdates;

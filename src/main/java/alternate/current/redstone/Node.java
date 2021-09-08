@@ -68,6 +68,10 @@ public class Node {
 		return this;
 	}
 	
+	public boolean isOf(WireBlock wireBlock) {
+		return this.wireBlock == wireBlock;
+	}
+	
 	public boolean isWire() {
 		return false;
 	}

@@ -58,6 +58,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 		WireNode wire = worldAccess.getWire(pos, true, true);
 		
 		worldAccess.removeWire(wire);
+		wire.updateConnectedWires();
 		
 		// Only call the wire handler if the wire was not removed
 		// by the wire handler.

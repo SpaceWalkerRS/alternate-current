@@ -126,7 +126,7 @@ import net.minecraft.util.math.Direction;
  * The idea is to determine the direction of power flow through a wire
  * based on the power it receives from neighboring wires. For example, if
  * the only power a wire receives is from a neighboring wire to its west,
- * it can be said that the direction of power flow is east. 
+ * it can be said that the direction of power flow through the wire is east. 
  * 
  * <p>
  * We make the order of block updates to neighbors of a wire depend on what
@@ -314,6 +314,7 @@ public class WireHandler {
 			WireNode wire = world.getWire(pos, true, true);
 			
 			if (wire != null) {
+				wire.state = state;
 				wire.flowIn = 0;
 				wire.flowOut = 0;
 				wire.prepared = false;
@@ -525,6 +526,10 @@ public class WireHandler {
 		if (needsPowerChange(wire)) {
 			network.add(wire);
 			rootCount++;
+			
+			if (wire.connections.flow >= 0) {
+				wire.flowOut = wire.connections.flow;
+			}
 			
 			wire.inNetwork = true;
 		}

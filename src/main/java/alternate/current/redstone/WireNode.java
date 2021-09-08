@@ -121,10 +121,6 @@ public class WireNode extends Node {
 		return wire;
 	}
 	
-	public boolean isOf(WireBlock wireBlock) {
-		return this.wireBlock == wireBlock;
-	}
-	
 	/**
 	 * Tell connected wires that they should update their connections.
 	 */
