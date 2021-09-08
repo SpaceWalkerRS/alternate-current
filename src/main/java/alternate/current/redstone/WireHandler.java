@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
-import alternate.current.AlternateCurrentMod;
+//import alternate.current.AlternateCurrentMod;
 import alternate.current.util.BlockUtil;
-import alternate.current.util.profiler.Profiler;
+//import alternate.current.util.profiler.Profiler;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -732,37 +732,37 @@ public class WireHandler {
 		// The profiler keeps track of how long various parts of the
 		// algorithm take. It is only here for debugging purposes,
 		// and is commented out in production.
-		Profiler profiler = AlternateCurrentMod.createProfiler();
-		profiler.start();
+//		Profiler profiler = AlternateCurrentMod.createProfiler();
+//		profiler.start();
 		
 		// Build a network of wires that need power changes. This 
 		// includes the roots as well as any wires that will be
 		// affected by power changes to those roots.
-		profiler.push("build network");
+//		profiler.push("build network");
 		buildNetwork();
 		
 		// Find those wires in the network that receive redstone power
 		// from outside it. Remember that the power changes for those
 		// wires are already queued here!
-		profiler.swap("find powered wires");
+//		profiler.swap("find powered wires");
 		findPoweredWires();
 		
 		// Once the powered wires have been found, the network is
 		// no longer needed. In fact, it should be cleared before
 		// block and shape updates are emitted, in case a different
 		// network is updated that needs power changes.
-		profiler.swap("clear " + rootCount + " roots and network of " + network.size());
+//		profiler.swap("clear " + rootCount + " roots and network of " + network.size());
 		rootCount = 0;
 		network.clear();
 		
 		boolean wasUpdating = updatingPower;
 		
 		// Carry out the power changes and emit shape updates.
-		profiler.swap("let power flow");
+//		profiler.swap("let power flow");
 		letPowerFlow();
 		
-		profiler.pop();
-		profiler.end();
+//		profiler.pop();
+//		profiler.end();
 		
 		return wasUpdating;
 	}

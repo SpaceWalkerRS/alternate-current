@@ -30,6 +30,7 @@ public class WireConnectionManager {
 	
 	public WireConnectionManager(WireNode wire) {
 		this.wire = wire;
+		this.all = new WireConnection[0];
 		this.byDir = new WireConnection[WireHandler.Directions.HORIZONTAL.length][];
 		
 		this.clear();
