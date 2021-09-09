@@ -2,9 +2,18 @@ package alternate.current.redstone;
 
 import java.util.Collection;
 
+import alternate.current.interfaces.mixin.IServerWorld;
+
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtHelper;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.world.chunk.ChunkSection;
 
 /**
  * A WireNode is a Node that represents a redstone wire in the world.
@@ -23,7 +32,7 @@ public class WireNode extends Node {
 	
 	public final WireConnectionManager connections;
 	
-	/** The power level this wire currently has in the world */
+	/** The power level this wire currently holds in the world */
 	public int currentPower;
 	/**
 	 * While calculating power changes for a network, this field
@@ -45,17 +54,13 @@ public class WireNode extends Node {
 	public boolean prepared;
 	public boolean inNetwork;
 	
-	public WireNode(WireBlock wireBlock, World world, BlockPos pos, BlockState state) {
-		super(world, wireBlock);
+	public WireNode(WireBlock wireBlock, WorldAccess world, BlockPos pos, BlockState state) {
+		super(wireBlock, world);
 		
 		this.connections = new WireConnectionManager(this);
 		
 		this.pos = pos.toImmutable();
 		this.state = state;
-		
-		this.isWire = true;
-		this.isSolidBlock = false;
-		this.isRedstoneComponent = false;
 		
 		this.virtualPower = this.currentPower = this.wireBlock.getPower(this.world, this.pos, this.state);
 	}
@@ -66,24 +71,62 @@ public class WireNode extends Node {
 	}
 	
 	@Override
+	public boolean isWire() {
+		return true;
+	}
+	
+	@Override
 	public WireNode asWire() {
 		return this;
 	}
 	
-	public boolean isOf(WireBlock wireBlock) {
-		return this.wireBlock == wireBlock;
+	public CompoundTag toNbt() {
+		CompoundTag nbt = new CompoundTag();
+		
+		Identifier blockId = Registry.BLOCK.getId(wireBlock.asBlock());
+		nbt.putString("block", blockId.toString());
+		
+		nbt.put("pos", NbtHelper.fromBlockPos(pos));
+		
+		if (connections.all.length > 0) {
+			nbt.put("connections", connections.toNbt());
+		}
+		
+		return nbt;
 	}
 	
-	public void stateChanged(BlockState newState) {
-		state = newState;
-		currentPower = wireBlock.getPower(world, pos, state);
+	public static WireNode fromNbt(CompoundTag nbt, ServerWorld world, ChunkSection section) {
+		Identifier blockId = new Identifier(nbt.getString("block"));
+		Block block = Registry.BLOCK.get(blockId);
+		
+		if (!(block instanceof WireBlock)) {
+			return null;
+		}
+		
+		WireBlock wireBlock = (WireBlock)block;
+		BlockPos pos = NbtHelper.toBlockPos(nbt.getCompound("pos"));
+		BlockState state = section.getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
+		
+		if (!wireBlock.isOf(state)) {
+			return null;
+		}
+		
+		WorldAccess worldAccess = ((IServerWorld)world).getAccess(wireBlock);
+		WireNode wire = new WireNode(wireBlock, worldAccess, pos, state);
+		ListTag connections = nbt.getList("connections", 10);
+		
+		if (!connections.isEmpty()) {
+			wire.connections.fromNbt(connections);
+		}
+		
+		return wire;
 	}
 	
 	/**
 	 * Tell connected wires that they should update their connections.
 	 */
 	public void updateConnectedWires() {
-		updateNeighboringWires(connections.getAll(), WireConnectionManager.DEFAULT_MAX_UPDATE_DEPTH);
+		updateNeighboringWires(connections.getPositions(), WireConnectionManager.DEFAULT_MAX_UPDATE_DEPTH);
 	}
 	
 	/**
@@ -94,7 +137,7 @@ public class WireNode extends Node {
 	 */
 	public void updateNeighboringWires(Collection<BlockPos> wires, int maxDepth) {
 		for (BlockPos pos : wires) {
-			WireNode wire = wireBlock.getOrCreateWire(world, pos, false);
+			WireNode wire = world.getWire(pos, true, false);
 			
 			if (wire != null) {
 				wire.connections.update(maxDepth);
@@ -107,29 +150,31 @@ public class WireNode extends Node {
 	}
 	
 	public boolean offerPower(int power, int iDir) {
-		int min = wireBlock.getMinPower();
-		
-		if (virtualPower == min || power > virtualPower) {
-			return setPower(power, iDir);
-		}
-		if (virtualPower < min) {
+		if (power == virtualPower) {
 			flowIn |= (1 << iDir);
-		} else {
-			if (power > virtualPower) {
-				return setPower(power, iDir);
-			}
-			if (power == virtualPower) {
-				flowIn |= (1 << iDir);
-			}
+			return false;
+		}
+		if (power > virtualPower) {
+			virtualPower = power;
+			flowIn = (1 << iDir);
+			
+			return true;
 		}
 		
 		return false;
 	}
 	
-	private boolean setPower(int power, int iDir) {
-		virtualPower = power;
-		flowIn = (1 << iDir);
+	public boolean updateState() {
+		if (removed) {
+			return true;
+		}
+		if (shouldBreak) {
+			return world.breakBlock(pos, state);
+		}
 		
-		return true;
+		currentPower = wireBlock.clampPower(virtualPower);
+		state = wireBlock.updatePowerState(world, pos, state, currentPower);
+		
+		return world.setWireState(pos, state);
 	}
 }

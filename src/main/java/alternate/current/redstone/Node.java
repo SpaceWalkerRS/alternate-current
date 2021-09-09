@@ -1,11 +1,9 @@
 package alternate.current.redstone;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.redstone.interfaces.mixin.IBlock;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
 
 /**
  * A Node represents a block in the world. It is tied to a
@@ -18,19 +16,21 @@ import net.minecraft.world.World;
  */
 public class Node {
 	
-	public final World world;
+	// flags that encode the Node type
+	private static final int SOLID_BLOCK = 1;
+	private static final int REDSTONE = 2;
+	
 	public final WireBlock wireBlock;
+	public final WorldAccess world;
 	
 	public BlockPos pos;
 	public BlockState state;
 	
-	public boolean isWire;
-	public boolean isSolidBlock;
-	public boolean isRedstoneComponent;
+	private int flags;
 	
-	public Node(World world, WireBlock wireBlock) {
-		this.world = world;
+	public Node(WireBlock wireBlock, WorldAccess world) {
 		this.wireBlock = wireBlock;
+		this.world = world;
 	}
 	
 	@Override
@@ -52,33 +52,39 @@ public class Node {
 		this.pos = pos.toImmutable();
 		this.state = state;
 		
-		this.isWire = false;
-		this.isSolidBlock = false;
-		this.isRedstoneComponent = false;
+		this.flags = 0;
 		
 		if (wireBlock.isOf(state)) {
 			AlternateCurrentMod.LOGGER.warn("Cannot update a Node to a WireNode!");
 		} else {
-			if (state.isSimpleFullBlock(world, pos)) {
-				this.isSolidBlock = true;
+			if (world.isSolidBlock(pos, state)) {
+				this.flags |= SOLID_BLOCK;
 			}
 			if (state.emitsRedstonePower()) {
-				this.isRedstoneComponent = true;
+				this.flags |= REDSTONE;
 			}
 		}
 		
 		return this;
 	}
 	
+	public boolean isOf(WireBlock wireBlock) {
+		return this.wireBlock == wireBlock;
+	}
+	
+	public boolean isWire() {
+		return false;
+	}
+	
+	public boolean isSolidBlock() {
+		return (flags & SOLID_BLOCK) != 0;
+	}
+	
+	public boolean isRedstoneComponent() {
+		return (flags & REDSTONE) != 0;
+	}
+	
 	public WireNode asWire() {
 		throw new UnsupportedOperationException("Not a WireNode!");
-	}
-	
-	public boolean emitsWeakPowerTo(Direction dir) {
-		return ((IBlock)state.getBlock()).emitsWeakPowerTo(world, pos, state, dir);
-	}
-	
-	public boolean emitsStrongPowerTo(Direction dir) {
-		return ((IBlock)state.getBlock()).emitsStrongPowerTo(world, pos, state, dir);
 	}
 }
