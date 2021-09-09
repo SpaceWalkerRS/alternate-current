@@ -1,7 +1,6 @@
 package alternate.current.redstone;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
 
@@ -885,7 +884,6 @@ public class WireHandler {
 		while (!powerChanges.isEmpty()) {
 			WireNode wire = powerChanges.poll();
 			
-			// don't continue if an unpowered wire should break
 			if (!needsPowerChange(wire)) {
 				continue;
 			}
@@ -1011,76 +1009,5 @@ public class WireHandler {
 		if (!state.isAir() && !wireBlock.isOf(state)) {
 			world.updateNeighborBlock(pos, fromPos, wireBlock.asBlock());
 		}
-	}
-	
-	public static void collectNeighborPositions(Collection<BlockPos> p, BlockPos o) {
-		collectNeighborPositions(p, o, 0);
-	}
-	
-	/**
-	 * Collect all neighboring positions of the given position (the "origin").
-	 * The order in which these are added follows 3 rules:
-	 * <br>
-	 * 1. Add positions in order of their distance from the origin.
-	 * <br>
-	 * 2. use the following basic order: { front, back, right, left, down, up }.
-	 *    This order was chosen because it results in the following order when
-	 *    west is considered forwards: { west, east, north, south, down, up },
-	 *    which is the order of shape updates. The vertical directions are added
-	 *    after the cardinal directions, rather than "in between", so as to
-	 *    eliminate some directionality issues.
-	 * <br>
-	 * 3. Every pair of positions are "opposites" (relative to the origin).
-	 * 
-	 * @param p     the collection to which the neighboring positions should be added
-	 * @param o     the origin
-	 * @param iDir  the index of the cardinal direction that is to be considered forward
-	 */
-	public static void collectNeighborPositions(Collection<BlockPos> p, BlockPos o, int iDir) {
-		Direction forward   = Directions.HORIZONTAL[ iDir            ];
-		Direction rightward = Directions.HORIZONTAL[(iDir + 1) & 0b11];
-		Direction backward  = Directions.HORIZONTAL[(iDir + 2) & 0b11];
-		Direction leftward  = Directions.HORIZONTAL[(iDir + 3) & 0b11];
-		Direction downward  = Direction.DOWN;
-		Direction upward    = Direction.UP;
-		
-		BlockPos front = o.offset(forward);
-		BlockPos right = o.offset(rightward);
-		BlockPos back  = o.offset(backward);
-		BlockPos left  = o.offset(leftward);
-		BlockPos below = o.offset(downward);
-		BlockPos above = o.offset(upward);
-		
-		// direct neighbors (6)
-		p.add(front);
-		p.add(back);
-		p.add(right);
-		p.add(left);
-		p.add(below);
-		p.add(above);
-		
-		// diagonal neighbors (12)
-		p.add(front.offset(rightward));
-		p.add(back .offset(leftward));
-		p.add(front.offset(leftward));
-		p.add(back .offset(rightward));
-		p.add(front.offset(downward));
-		p.add(back .offset(upward));
-		p.add(front.offset(upward));
-		p.add(back .offset(downward));
-		p.add(right.offset(downward));
-		p.add(left .offset(upward));
-		p.add(right.offset(upward));
-		p.add(left .offset(downward));
-		
-		// far neighbors (6)
-		p.add(front.offset(forward));
-		p.add(back .offset(backward));
-		p.add(right.offset(rightward));
-		p.add(left .offset(leftward));
-		p.add(below.offset(downward));
-		p.add(above.offset(upward));
-		
-		// total: 24
 	}
 }
