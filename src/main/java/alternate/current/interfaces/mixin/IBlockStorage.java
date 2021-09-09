@@ -5,7 +5,7 @@ import alternate.current.redstone.WireNode;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.server.world.ServerWorld;
 
-public interface IChunkSection {
+public interface IBlockStorage {
 	
 	/**
 	 * Retrieve the WireNode at this position in the chunk section.

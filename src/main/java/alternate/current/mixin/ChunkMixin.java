@@ -9,8 +9,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
+import alternate.current.interfaces.mixin.IBlockStorage;
 import alternate.current.interfaces.mixin.IChunk;
-import alternate.current.interfaces.mixin.IChunkSection;
 import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireNode;
@@ -19,25 +19,25 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.ChunkSection;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.chunk.BlockStorage;
+import net.minecraft.world.chunk.Chunk;
 
-@Mixin(WorldChunk.class)
-public abstract class WorldChunkMixin implements IChunk {
+@Mixin(Chunk.class)
+public abstract class ChunkMixin implements IChunk {
 	
-	@Shadow @Final private ChunkSection[] sections;
+	@Shadow @Final private BlockStorage[] blockStorage;
 	@Shadow @Final private World world;
 	
 	@Inject(
-			method = "setBlockState",
+			method = "getBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;",
 			locals = LocalCapture.CAPTURE_FAILHARD,
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/BlockState;onBlockRemoved(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)V"
+					target = "Lnet/minecraft/block/Block;onBreaking(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V"
 			)
 	)
-	private void onSetBlockStateInjectBeforeBlockRemoved(BlockPos pos, BlockState newState, boolean moved, CallbackInfoReturnable<BlockState> cir, int chunkX, int y, int chunkZ, ChunkSection chunkSection, boolean isEmpty, BlockState prevState, Block newBlock, Block prevBlock) {
+	private void onGetBlockStateInjectBeforeOnBreaking(BlockPos pos, BlockState newState, CallbackInfoReturnable<BlockState> cir, int chunkX, int y, int chunkZ, int chunkIndex, int chunkHeight, BlockState prevState, Block newBlock, Block prevBlock) {
 		boolean wasWire = prevBlock instanceof WireBlock;
 		boolean isWire = newBlock instanceof WireBlock;
 		
@@ -45,8 +45,8 @@ public abstract class WorldChunkMixin implements IChunk {
 			// Other than placing or breaking wire blocks, the only way
 			// to affect wire connections is to place/break a solid
 			// block to (un)cut a connection.
-			boolean wasSolid = prevState.isSimpleFullBlock(world, pos);
-			boolean isSolid = newState.isSimpleFullBlock(world, pos);
+			boolean wasSolid = prevBlock.isFullCube();
+			boolean isSolid = newBlock.isFullCube();
 			
 			if (wasSolid != isSolid) {
 				((IServerWorld)world).updateWireConnectionsAround(pos);
@@ -56,32 +56,26 @@ public abstract class WorldChunkMixin implements IChunk {
 	
 	@Override
 	public WireNode getWireNode(BlockPos pos) {
-		ChunkSection section = getChunkSection(pos.getY());
+		BlockStorage section = getChunkSection(pos.getY());
 		
 		if (section == null) {
 			return null;
 		}
 		
-		return ((IChunkSection)section).getWire(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
+		return ((IBlockStorage)section).getWire(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
 	}
 	
-	private ChunkSection getChunkSection(int y) {
+	private BlockStorage getChunkSection(int y) {
 		if (y < 0) {
 			return null;
 		}
 		
 		int index = y >> 4;
 		
-		if (index >= sections.length) {
+		if (index >= blockStorage.length) {
 			return null;
 		}
 		
-		ChunkSection section = sections[index];
-		
-		if (ChunkSection.isEmpty(section)) {
-			return null;
-		}
-		
-		return section;
+		return blockStorage[index];
 	}
 }

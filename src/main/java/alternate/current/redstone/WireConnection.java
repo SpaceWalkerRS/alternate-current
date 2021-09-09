@@ -1,7 +1,8 @@
 package alternate.current.redstone;
 
+import alternate.current.util.NbtUtil;
+
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.util.math.BlockPos;
 
 /**
@@ -48,7 +49,7 @@ public class WireConnection {
 	public CompoundTag toNbt() {
 		CompoundTag nbt = new CompoundTag();
 		
-		nbt.put("pos", NbtHelper.fromBlockPos(pos));
+		nbt.put("pos", NbtUtil.posToTag(pos));
 		nbt.putInt("dir", iDir);
 		nbt.putBoolean("in", in);
 		nbt.putBoolean("out", out);
@@ -57,7 +58,7 @@ public class WireConnection {
 	}
 	
 	public static WireConnection fromNbt(CompoundTag nbt) {
-		BlockPos pos = NbtHelper.toBlockPos(nbt.getCompound("pos"));
+		BlockPos pos = NbtUtil.tagToPos(nbt.getCompound("pos"));
 		int iDir = nbt.getInt("dir");
 		boolean in = nbt.getBoolean("in");
 		boolean out = nbt.getBoolean("out");

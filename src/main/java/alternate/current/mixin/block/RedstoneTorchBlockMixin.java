@@ -3,6 +3,7 @@ package alternate.current.mixin.block;
 import org.spongepowered.asm.mixin.Mixin;
 
 import alternate.current.interfaces.mixin.IBlock;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.block.RedstoneTorchBlock;
 import net.minecraft.util.math.BlockPos;
@@ -14,7 +15,7 @@ public class RedstoneTorchBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return dir != Direction.UP;
+		return state.get(RedstoneTorchBlock.FACING) != dir;
 	}
 	
 	@Override

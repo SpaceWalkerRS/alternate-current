@@ -1,7 +1,7 @@
 package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IBlock;
-import alternate.current.interfaces.mixin.IChunkSection;
+import alternate.current.interfaces.mixin.IBlockStorage;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -9,10 +9,8 @@ import net.minecraft.block.Blocks;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.chunk.BlockStorage;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkSection;
-import net.minecraft.world.chunk.ChunkStatus;
-import net.minecraft.world.chunk.WorldChunk;
 
 public class WorldAccess {
 	
@@ -40,20 +38,20 @@ public class WorldAccess {
 		int y = pos.getY();
 		
 		if (y < Y_MIN || y >= Y_MAX) {
-			return Blocks.VOID_AIR.getDefaultState();
+			return Blocks.AIR.getDefaultState();
 		}
 		
 		int x = pos.getX();
 		int z = pos.getZ();
 		
-		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
-		ChunkSection section = chunk.getSectionArray()[y >> 4];
+		Chunk chunk = world.getChunk(x >> 4, z >> 4);
+		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
 		
-		if (section == null) {
+		if (storage == null) {
 			return Blocks.AIR.getDefaultState();
 		}
 		
-		return section.getBlockState(x & 15, y & 15, z & 15);
+		return storage.getBlockState(x & 15, y & 15, z & 15);
 	}
 	
 	/**
@@ -71,23 +69,29 @@ public class WorldAccess {
 		int x = pos.getX();
 		int z = pos.getZ();
 		
-		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
-		ChunkSection section = chunk.getSectionArray()[y >> 4];
+		Chunk chunk = world.getChunk(x >> 4, z >> 4);
+		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
 		
-		if (section == null) {
+		if (storage == null) {
 			return false;
 		}
 		
-		BlockState prevState = section.setBlockState(x & 15, y & 15, z & 15, state);
+		x &= 15;
+		y &= 15;
+		z &= 15;
+		
+		BlockState prevState = storage.getBlockState(x, y, z);
 		
 		if (state == prevState) {
 			return false;
 		}
 		
+		storage.method_1424(x, y, z, state);
+		
 		// notify clients of the BlockState change
-		world.getChunkManager().markForUpdate(pos);
+		world.onBlockUpdate(pos);
 		// mark the chunk for saving
-		((WorldChunk)chunk).markDirty();
+		chunk.setModified(true);
 		
 		return true;
 	}
@@ -102,10 +106,10 @@ public class WorldAccess {
 		int x = pos.getX();
 		int z = pos.getZ();
 		
-		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
-		ChunkSection section = chunk.getSectionArray()[y >> 4];
+		Chunk chunk = world.getChunk(x >> 4, z >> 4);
+		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
 		
-		if (section == null) {
+		if (storage == null) {
 			return null;
 		}
 		
@@ -113,17 +117,17 @@ public class WorldAccess {
 		y &= 15;
 		z &= 15;
 		
-		WireNode wire = ((IChunkSection)section).getWire(x, y, z);
+		WireNode wire = ((IBlockStorage)storage).getWire(x, y, z);
 		
 		if (wire == null || !wire.isOf(wireBlock)) {
 			wire = null;
 			
 			if (create) {
-				BlockState state = section.getBlockState(x, y, z);
+				BlockState state = storage.getBlockState(x, y, z);
 				
 				if (wireBlock.isOf(state)) {
 					wire = new WireNode(wireBlock, this, pos, state);
-					((IChunkSection)section).setWire(x, y, z, wire);
+					((IBlockStorage)storage).setWire(x, y, z, wire);
 					
 					if (update) {
 						wire.connections.update();
@@ -166,14 +170,14 @@ public class WorldAccess {
 		int x = pos.getX();
 		int z = pos.getZ();
 		
-		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
-		ChunkSection section = chunk.getSectionArray()[y >> 4];
+		Chunk chunk = world.getChunk(x >> 4, z >> 4);
+		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
 		
-		if (section == null) {
+		if (storage == null) {
 			return false;
 		}
 		
-		((IChunkSection)section).setWire(x & 15, y & 15, z & 15, wire);
+		((IBlockStorage)storage).setWire(x & 15, y & 15, z & 15, wire);
 		
 		return true;
 	}
@@ -181,25 +185,17 @@ public class WorldAccess {
 	// move this to the WireBlock class eventually
 	// it is only used to break wire blocks anyway...
 	public boolean breakBlock(BlockPos pos, BlockState state) {
-		Block.dropStacks(state, world, pos);
-		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
+		state.getBlock().dropAsItem(world, pos, state, 0);
+		return world.setAir(pos);
 	}
 	
-	public void updateNeighborShape(BlockPos pos, BlockState state, Direction fromDir, BlockPos fromPos, BlockState fromState) {
-		BlockState newState = state.getStateForNeighborUpdate(fromDir, fromState, world, pos, fromPos);
-		Block.replaceBlock(state, newState, world, pos, 2);
-	}
-	
-	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
-		getBlockState(pos).neighborUpdate(world, pos, fromBlock, fromPos, false);
+	public void updateNeighborBlock(BlockPos pos, Block fromBlock) {
+		BlockState state = getBlockState(pos);
+		state.getBlock().neighborUpdate(world, pos, state, fromBlock);
 	}
 	
 	public boolean isSolidBlock(BlockPos pos) {
-		return getBlockState(pos).isSimpleFullBlock(world, pos);
-	}
-	
-	public boolean isSolidBlock(BlockPos pos, BlockState state) {
-		return state.isSimpleFullBlock(world, pos);
+		return getBlockState(pos).getBlock().isFullCube();
 	}
 	
 	public boolean emitsWeakPowerTo(BlockPos pos, BlockState state, Direction dir) {
@@ -211,14 +207,14 @@ public class WorldAccess {
 	}
 	
 	public int getWeakPowerFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getWeakRedstonePower(world, pos, dir);
+		return state.getBlock().getWeakRedstonePower(world, pos, state, dir);
 	}
 	
 	public int getStrongPowerFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getStrongRedstonePower(world, pos, dir);
+		return state.getBlock().getStrongRedstonePower(world, pos, state, dir);
 	}
 	
 	public boolean shouldBreak(BlockPos pos, BlockState state) {
-		return !state.canPlaceAt(world, pos);
+		return !state.getBlock().canBePlacedAtPos(world, pos);
 	}
 }

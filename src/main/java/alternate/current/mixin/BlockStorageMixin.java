@@ -2,16 +2,16 @@ package alternate.current.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
 
-import alternate.current.interfaces.mixin.IChunkSection;
+import alternate.current.interfaces.mixin.IBlockStorage;
 import alternate.current.redstone.WireNode;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.chunk.ChunkSection;
+import net.minecraft.world.chunk.BlockStorage;
 
-@Mixin(ChunkSection.class)
-public class ChunkSectionMixin implements IChunkSection {
+@Mixin(BlockStorage.class)
+public class BlockStorageMixin implements IBlockStorage {
 	
 	private final WireNode[] wires = new WireNode[4096];
 	
@@ -60,7 +60,7 @@ public class ChunkSectionMixin implements IChunkSection {
 	public void readWireNbt(ListTag nbt, ServerWorld world) {
 		for (int index = 0; index < nbt.size(); index++) {
 			CompoundTag wireNbt = nbt.getCompound(index);
-			WireNode wire = WireNode.fromNbt(wireNbt, world, (ChunkSection)(Object)this);
+			WireNode wire = WireNode.fromNbt(wireNbt, world, (BlockStorage)(Object)this);
 			
 			if (wire != null) {
 				int x = wire.pos.getX() & 15;

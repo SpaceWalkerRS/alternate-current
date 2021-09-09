@@ -2,6 +2,7 @@ package alternate.current.redstone;
 
 import alternate.current.AlternateCurrentMod;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 
@@ -49,7 +50,7 @@ public class Node {
 	}
 	
 	public Node update(BlockPos pos, BlockState state) {
-		this.pos = pos.toImmutable();
+		this.pos = pos;
 		this.state = state;
 		
 		this.flags = 0;
@@ -57,10 +58,12 @@ public class Node {
 		if (wireBlock.isOf(state)) {
 			AlternateCurrentMod.LOGGER.warn("Cannot update a Node to a WireNode!");
 		} else {
-			if (world.isSolidBlock(pos, state)) {
+			Block block = state.getBlock();
+			
+			if (block.isFullCube()) {
 				this.flags |= SOLID_BLOCK;
 			}
-			if (state.emitsRedstonePower()) {
+			if (block.emitsRedstonePower()) {
 				this.flags |= REDSTONE;
 			}
 		}

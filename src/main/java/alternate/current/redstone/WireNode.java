@@ -3,17 +3,16 @@ package alternate.current.redstone;
 import java.util.Collection;
 
 import alternate.current.interfaces.mixin.IServerWorld;
+import alternate.current.util.NbtUtil;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.chunk.ChunkSection;
+import net.minecraft.world.chunk.BlockStorage;
 
 /**
  * A WireNode is a Node that represents a redstone wire in the world.
@@ -59,7 +58,7 @@ public class WireNode extends Node {
 		
 		this.connections = new WireConnectionManager(this);
 		
-		this.pos = pos.toImmutable();
+		this.pos = pos;
 		this.state = state;
 		
 		this.virtualPower = this.currentPower = this.wireBlock.getPower(this.world, this.pos, this.state);
@@ -83,10 +82,10 @@ public class WireNode extends Node {
 	public CompoundTag toNbt() {
 		CompoundTag nbt = new CompoundTag();
 		
-		Identifier blockId = Registry.BLOCK.getId(wireBlock.asBlock());
+		Identifier blockId = Block.REGISTRY.getIdentifier(wireBlock.asBlock());
 		nbt.putString("block", blockId.toString());
 		
-		nbt.put("pos", NbtHelper.fromBlockPos(pos));
+		nbt.put("pos", NbtUtil.posToTag(pos));
 		
 		if (connections.all.length > 0) {
 			nbt.put("connections", connections.toNbt());
@@ -95,17 +94,17 @@ public class WireNode extends Node {
 		return nbt;
 	}
 	
-	public static WireNode fromNbt(CompoundTag nbt, ServerWorld world, ChunkSection section) {
+	public static WireNode fromNbt(CompoundTag nbt, ServerWorld world, BlockStorage storage) {
 		Identifier blockId = new Identifier(nbt.getString("block"));
-		Block block = Registry.BLOCK.get(blockId);
+		Block block = Block.REGISTRY.get(blockId);
 		
 		if (!(block instanceof WireBlock)) {
 			return null;
 		}
 		
 		WireBlock wireBlock = (WireBlock)block;
-		BlockPos pos = NbtHelper.toBlockPos(nbt.getCompound("pos"));
-		BlockState state = section.getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
+		BlockPos pos = NbtUtil.tagToPos(nbt.getCompound("pos"));
+		BlockState state = storage.getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
 		
 		if (!wireBlock.isOf(state)) {
 			return null;

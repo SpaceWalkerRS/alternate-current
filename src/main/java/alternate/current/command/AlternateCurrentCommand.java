@@ -1,33 +1,40 @@
 package alternate.current.command;
 
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-
 import alternate.current.util.profiler.ProfilerResults;
 
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.LiteralText;
+import net.minecraft.command.AbstractCommand;
+import net.minecraft.command.CommandException;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.IncorrectUsageException;
 
-public class AlternateCurrentCommand {
+public class AlternateCurrentCommand extends AbstractCommand {
 	
-	public static void registerCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
-		LiteralArgumentBuilder<ServerCommandSource> builder = CommandManager.
-			literal("alternatecurrent").
-			requires(source -> source.hasPermissionLevel(2)).
-			then(CommandManager.
-				literal("resetProfiler").
-				executes(context -> resetProfiler(context.getSource())));
-		
-		dispatcher.register(builder);
+	@Override
+	public String getCommandName() {
+		return "alternatecurrent";
 	}
 	
-	private static int resetProfiler(ServerCommandSource source) {
-		source.sendFeedback(new LiteralText("profiler results have been cleared!"), true);
+	@Override
+	public int getPermissionLevel() {
+		return 2;
+	}
+	
+	@Override
+	public String getUsageTranslationKey(CommandSource source) {
+		return "/alternatecurrent resetProfiler";
+	}
+	
+	@Override
+	public void execute(CommandSource source, String[] args) throws CommandException {
+		if (args.length == 1 && args[0].equals("resetProfiler")) {
+			run(source, this, "profiler results have been cleared!");
+			
+			ProfilerResults.log();
+			ProfilerResults.clear();
+			
+			return;
+		}
 		
-		ProfilerResults.log();
-		ProfilerResults.clear();
-		
-		return 1;
+		throw new IncorrectUsageException(getUsageTranslationKey(source));
 	}
 }

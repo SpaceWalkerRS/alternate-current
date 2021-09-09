@@ -1,17 +1,16 @@
 package alternate.current.redstone;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 
 //import alternate.current.AlternateCurrentMod;
-import alternate.current.util.BlockUtil;
 //import alternate.current.util.profiler.Profiler;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -253,7 +252,7 @@ public class WireHandler {
 	/** All the wires in the network */
 	private final List<WireNode> network;
 	/** Map of wires and neighboring blocks */
-	private final Long2ObjectMap<Node> nodes;
+	private final Map<BlockPos, Node> nodes;
 	/** All the power changes that need to happen */
 	private final Queue<WireNode> powerChanges;
 	
@@ -273,7 +272,7 @@ public class WireHandler {
 		this.powerStep = this.wireBlock.getPowerStep();
 		
 		this.network = new ArrayList<>();
-		this.nodes = new Long2ObjectOpenHashMap<>();
+		this.nodes = new HashMap<>();
 		this.powerChanges = new PowerQueue(this.minPower, this.maxPower);
 		
 		this.nodeCache = new Node[16];
@@ -281,7 +280,7 @@ public class WireHandler {
 	}
 	
 	private Node getOrAddNode(BlockPos pos) {
-		return nodes.computeIfAbsent(pos.asLong(), key -> getNextNode(pos));
+		return nodes.computeIfAbsent(pos, key -> getNextNode(pos));
 	}
 	
 	private WireNode getOrAddWire(BlockPos pos) {
@@ -891,10 +890,6 @@ public class WireHandler {
 			findPowerFlow(wire);
 			
 			if (wire.updateState()) {
-				if (!wire.removed) {
-					updateNeighborShapes(wire);
-				}
-				
 				updateNeighborBlocks(wire);
 			}
 			
@@ -902,29 +897,6 @@ public class WireHandler {
 		}
 		
 		updatingPower = false;
-	}
-	
-	/**
-	 * Emit shape updates around the given wire.
-	 */
-	private void updateNeighborShapes(WireNode wire) {
-		BlockPos wirePos = wire.pos;
-		BlockState wireState = wire.state;
-		
-		for (Direction dir : BlockUtil.DIRECTIONS) {
-			updateNeighborShape(wirePos.offset(dir), dir.getOpposite(), wirePos, wireState);
-		}
-	}
-	
-	private void updateNeighborShape(BlockPos pos, Direction fromDir, BlockPos fromPos, BlockState fromState) {
-		BlockState state = world.getBlockState(pos);
-		
-		// Shape updates to redstone wire are very expensive,
-		// and should never happen as a result of power changes
-		// anyway.
-		if (!state.isAir() && !wireBlock.isOf(state)) {
-			world.updateNeighborShape(pos, state, fromDir, fromPos, fromState);
-		}
 	}
 	
 	/**
@@ -973,41 +945,41 @@ public class WireHandler {
 		BlockPos above = wire.pos.offset(upward);
 		
 		// direct neighbors (6)
-		updateNeighbor(front, wire.pos);
-		updateNeighbor(back, wire.pos);
-		updateNeighbor(right, wire.pos);
-		updateNeighbor(left, wire.pos);
-		updateNeighbor(below, wire.pos);
-		updateNeighbor(above, wire.pos);
+		updateNeighbor(front);
+		updateNeighbor(back);
+		updateNeighbor(right);
+		updateNeighbor(left);
+		updateNeighbor(below);
+		updateNeighbor(above);
 		
 		// diagonal neighbors (12)
-		updateNeighbor(front.offset(rightward), wire.pos);
-		updateNeighbor(back .offset(leftward), wire.pos);
-		updateNeighbor(front.offset(leftward), wire.pos);
-		updateNeighbor(back .offset(rightward), wire.pos);
-		updateNeighbor(front.offset(downward), wire.pos);
-		updateNeighbor(back .offset(upward), wire.pos);
-		updateNeighbor(front.offset(upward), wire.pos);
-		updateNeighbor(back .offset(downward), wire.pos);
-		updateNeighbor(right.offset(downward), wire.pos);
-		updateNeighbor(left .offset(upward), wire.pos);
-		updateNeighbor(right.offset(upward), wire.pos);
-		updateNeighbor(left .offset(downward), wire.pos);
+		updateNeighbor(front.offset(rightward));
+		updateNeighbor(back .offset(leftward));
+		updateNeighbor(front.offset(leftward));
+		updateNeighbor(back .offset(rightward));
+		updateNeighbor(front.offset(downward));
+		updateNeighbor(back .offset(upward));
+		updateNeighbor(front.offset(upward));
+		updateNeighbor(back .offset(downward));
+		updateNeighbor(right.offset(downward));
+		updateNeighbor(left .offset(upward));
+		updateNeighbor(right.offset(upward));
+		updateNeighbor(left .offset(downward));
 		
 		// far neighbors (6)
-		updateNeighbor(front.offset(forward), wire.pos);
-		updateNeighbor(back .offset(backward), wire.pos);
-		updateNeighbor(right.offset(rightward), wire.pos);
-		updateNeighbor(left .offset(leftward), wire.pos);
-		updateNeighbor(below.offset(downward), wire.pos);
-		updateNeighbor(above.offset(upward), wire.pos);
+		updateNeighbor(front.offset(forward));
+		updateNeighbor(back .offset(backward));
+		updateNeighbor(right.offset(rightward));
+		updateNeighbor(left .offset(leftward));
+		updateNeighbor(below.offset(downward));
+		updateNeighbor(above.offset(upward));
 	}
 	
-	private void updateNeighbor(BlockPos pos, BlockPos fromPos) {
+	private void updateNeighbor(BlockPos pos) {
 		BlockState state = world.getBlockState(pos);
 		
-		if (!state.isAir() && !wireBlock.isOf(state)) {
-			world.updateNeighborBlock(pos, fromPos, wireBlock.asBlock());
+		if (state.getBlock() != Blocks.AIR && !wireBlock.isOf(state)) {
+			world.updateNeighborBlock(pos, wireBlock.asBlock());
 		}
 	}
 }
