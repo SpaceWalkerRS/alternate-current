@@ -191,6 +191,10 @@ public class WorldAccess {
 		getBlockState(pos).neighborUpdate(world, pos, fromBlock, fromPos, false);
 	}
 	
+	public void updateNeighborBlock(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
+		state.neighborUpdate(world, pos, fromBlock, fromPos, false);
+	}
+	
 	public boolean isSolidBlock(BlockPos pos) {
 		return getBlockState(pos).isSolidBlock(world, pos);
 	}

@@ -1007,7 +1007,7 @@ public class WireHandler {
 		BlockState state = world.getBlockState(pos);
 		
 		if (!state.isAir() && !wireBlock.isOf(state)) {
-			world.updateNeighborBlock(pos, fromPos, wireBlock.asBlock());
+			world.updateNeighborBlock(pos, state, fromPos, wireBlock.asBlock());
 		}
 	}
 }
