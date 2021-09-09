@@ -2,7 +2,7 @@ package alternate.current.mixin.block;
 
 import org.spongepowered.asm.mixin.Mixin;
 
-import alternate.current.redstone.interfaces.mixin.IBlock;
+import alternate.current.interfaces.mixin.IBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.TargetBlock;
 import net.minecraft.util.math.BlockPos;
