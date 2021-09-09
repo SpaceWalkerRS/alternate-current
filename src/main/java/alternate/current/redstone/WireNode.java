@@ -102,6 +102,7 @@ public class WireNode extends Node {
 		if (!(block instanceof WireBlock)) {
 			return null;
 		}
+		
 		BlockPos pos = NbtHelper.toBlockPos(nbt.getCompound("pos"));
 		BlockState state = section.getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
 		
