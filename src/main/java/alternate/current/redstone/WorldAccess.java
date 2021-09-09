@@ -182,13 +182,13 @@ public class WorldAccess {
 		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), Block.NOTIFY_LISTENERS);
 	}
 	
-	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
-		getBlockState(pos).neighborUpdate(world, pos, fromBlock, fromPos, false);
-	}
-	
 	public void updateNeighborShape(BlockPos pos, BlockState state, Direction fromDir, BlockPos fromPos, BlockState fromState) {
 		BlockState newState = state.getStateForNeighborUpdate(fromDir, fromState, world, pos, fromPos);
 		Block.replace(state, newState, world, pos, Block.NOTIFY_LISTENERS);
+	}
+	
+	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
+		getBlockState(pos).neighborUpdate(world, pos, fromBlock, fromPos, false);
 	}
 	
 	public boolean isSolidBlock(BlockPos pos) {

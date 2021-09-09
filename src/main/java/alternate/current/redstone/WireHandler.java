@@ -672,9 +672,11 @@ public class WireHandler {
 	}
 	
 	private void tryUpdatePower() {
-		if (rootCount == 0 ? !updatingPower : !updatePower()) {
-			cleanUp();
+		if (rootCount > 0 ) {
+			updatePower();
 		}
+		
+		cleanUp();
 	}
 	
 	/**
@@ -706,16 +708,10 @@ public class WireHandler {
 	 * <b>3. Let power flow</b>
 	 * <br>
 	 * Work through the queue of power changes. After each wire's
-	 * power change, emit shape updates to neighboring blocks, then
-	 * queue power changes for connected wires.
-	 * 
-	 * <p>
-	 * <b>4. Update neighbors</b>
-	 * <br>
-	 * Emit block updates to neighbors of all wires that changed their
-	 * power levels.
+	 * power change, emit shape and block updates to neighboring
+	 * blocks, then queue power changes for connected wires.
 	 */
-	private boolean updatePower() {
+	private void updatePower() {
 		// The profiler keeps track of how long various parts of the
 		// algorithm take. It is only here for debugging purposes,
 		// and is commented out in production.
@@ -742,16 +738,12 @@ public class WireHandler {
 		rootCount = 0;
 		network.clear();
 		
-		boolean wasUpdating = updatingPower;
-		
-		// Carry out the power changes and emit shape updates.
+		// Carry out the power changes and emit shape and block updates.
 //		profiler.swap("let power flow");
 		letPowerFlow();
 		
 //		profiler.pop();
 //		profiler.end();
-		
-		return wasUpdating;
 	}
 	
 	/**
@@ -874,6 +866,11 @@ public class WireHandler {
 		}
 	}
 	
+	/**
+	 * Carry out power changes, setting the new power of each wire
+	 * in the world, notifying neighbors of the power change, then
+	 * queueing power changes of neighboring wires.
+	 */
 	private void letPowerFlow() {
 		// If an instantaneous update chain causes updates to another
 		// network (or the same network in another place), new power
@@ -889,7 +886,7 @@ public class WireHandler {
 			WireNode wire = powerChanges.poll();
 			
 			// don't continue if an unpowered wire should break
-			if (wire.virtualPower == wire.currentPower) {
+			if (!needsPowerChange(wire)) {
 				continue;
 			}
 			
@@ -933,7 +930,32 @@ public class WireHandler {
 	}
 	
 	/**
-	 * Emit block updates around the given wire.
+	 * Emit block updates around the given wire. The order in which neighbors
+	 * are updated is determined as follows:
+	 * <br>
+	 * 1. The direction of power flow through the wire is to be considered
+	 *    'forward'. The order in which neighbors are updated depends on their
+	 *    relative positions to the wire.
+	 * <br>
+	 * 2. Each neighbor is identified by the step(s) you must take, starting
+	 *    at the wire, to reach it. Each step is 1 block, thus the position
+	 *    of a neighbor is encoded by the direction(s) of the step(s), e.g.
+	 *    (right), (down), (up, left), etc.
+	 * <br>
+	 * 3. Neighbors are updated in pairs of neighbors that lie on opposite
+	 *    sides of the wire.
+	 * <br>
+	 * 4. Neighbors are updated in order of their distance from the wire. This
+	 *    means they are updated in 3 groups: direct neighbors are updated
+	 *    first, then diagonal neighbors, and last are the far neighbors that
+	 *    are 2 blocks directly out.
+	 * <br>
+	 * 5. The order within each group is determined using the following basic
+	 *    order: { front, back, right, left, down, up }.
+	 *    This order was chosen because it converts to the following order of
+	 *    absolute directions when west is said to be 'forward':
+	 *    { west, east, north, south, down, up } - this is the order of shape
+	 *    updates.
 	 */
 	private void updateNeighborBlocks(WireNode wire) {
 		int iDir = wire.flowOut;
