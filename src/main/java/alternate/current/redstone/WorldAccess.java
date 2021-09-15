@@ -88,8 +88,6 @@ public class WorldAccess {
 		return true;
 	}
 	
-	// move this to the WireBlock class eventually
-	// it is only used to break wire blocks anyway...
 	public boolean breakBlock(BlockPos pos, BlockState state) {
 		Block.dropStacks(state, world, pos);
 		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), Block.NOTIFY_LISTENERS);
