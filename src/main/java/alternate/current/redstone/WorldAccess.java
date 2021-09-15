@@ -1,7 +1,6 @@
 package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IBlock;
-import alternate.current.interfaces.mixin.IChunkSection;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -85,92 +84,6 @@ public class WorldAccess {
 		world.getChunkManager().markForUpdate(pos);
 		// mark the chunk for saving
 		((WorldChunk)chunk).markDirty();
-		
-		return true;
-	}
-	
-	public WireNode getWire(BlockPos pos, boolean create, boolean update) {
-		int y = pos.getY();
-		
-		if (y < world.getBottomY() || y >= world.getTopY()) {
-			return null;
-		}
-		
-		int x = pos.getX();
-		int z = pos.getZ();
-		
-		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
-		ChunkSection section = chunk.getSectionArray()[y >> 4];
-		
-		if (section == null) {
-			return null;
-		}
-		
-		x &= 15;
-		y &= 15;
-		z &= 15;
-		
-		WireNode wire = ((IChunkSection)section).getWire(x, y, z);
-		
-		if (wire == null || !wire.isOf(wireBlock)) {
-			wire = null;
-			
-			if (create) {
-				BlockState state = section.getBlockState(x, y, z);
-				
-				if (wireBlock.isOf(state)) {
-					wire = new WireNode(wireBlock, this, pos, state);
-					((IChunkSection)section).setWire(x, y, z, wire);
-					
-					if (update) {
-						wire.connections.update();
-					}
-				}
-			}
-		}
-		
-		return wire;
-	}
-	
-	public boolean placeWire(WireNode wire) {
-		if (setWire(wire.pos, wire)) {
-			wire.shouldBreak = false;
-			wire.removed = false;
-			
-			return true;
-		}
-		
-		return false;
-	}
-	
-	public boolean removeWire(WireNode wire) {
-		if (setWire(wire.pos, null)) {
-			wire.removed = true;
-			
-			return true;
-		}
-		
-		return false;
-	}
-	
-	private boolean setWire(BlockPos pos, WireNode wire) {
-		int y = pos.getY();
-		
-		if (y < world.getBottomY() || y >= world.getTopY()) {
-			return false;
-		}
-		
-		int x = pos.getX();
-		int z = pos.getZ();
-		
-		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
-		ChunkSection section = chunk.getSectionArray()[y >> 4];
-		
-		if (section == null) {
-			return false;
-		}
-		
-		((IChunkSection)section).setWire(x & 15, y & 15, z & 15, wire);
 		
 		return true;
 	}

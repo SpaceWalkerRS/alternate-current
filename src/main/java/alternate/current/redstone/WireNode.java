@@ -1,19 +1,7 @@
 package alternate.current.redstone;
 
-import java.util.Collection;
-
-import alternate.current.interfaces.mixin.IServerWorld;
-
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.chunk.ChunkSection;
 
 /**
  * A WireNode is a Node that represents a redstone wire in the world.
@@ -57,10 +45,10 @@ public class WireNode extends Node {
 	public WireNode(WireBlock wireBlock, WorldAccess world, BlockPos pos, BlockState state) {
 		super(wireBlock, world);
 		
-		this.connections = new WireConnectionManager(this);
-		
 		this.pos = pos.toImmutable();
 		this.state = state;
+		
+		this.connections = new WireConnectionManager(this);
 		
 		this.virtualPower = this.currentPower = this.wireBlock.getPower(this.world, this.pos, this.state);
 	}
@@ -78,71 +66,6 @@ public class WireNode extends Node {
 	@Override
 	public WireNode asWire() {
 		return this;
-	}
-	
-	public NbtCompound toNbt() {
-		NbtCompound nbt = new NbtCompound();
-		
-		Identifier blockId = Registry.BLOCK.getId(wireBlock.asBlock());
-		nbt.putString("block", blockId.toString());
-		
-		nbt.put("pos", NbtHelper.fromBlockPos(pos));
-		
-		if (connections.all.length > 0) {
-			nbt.put("connections", connections.toNbt());
-		}
-		
-		return nbt;
-	}
-	
-	public static WireNode fromNbt(NbtCompound nbt, ServerWorld world, ChunkSection section) {
-		Identifier blockId = new Identifier(nbt.getString("block"));
-		Block block = Registry.BLOCK.get(blockId);
-		
-		if (!(block instanceof WireBlock)) {
-			return null;
-		}
-		
-		BlockPos pos = NbtHelper.toBlockPos(nbt.getCompound("pos"));
-		BlockState state = section.getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
-		
-		if (!state.isOf(block)) {
-			return null;
-		}
-		
-		WireBlock wireBlock = (WireBlock)block;
-		WorldAccess worldAccess = ((IServerWorld)world).getAccess(wireBlock);
-		WireNode wire = new WireNode(wireBlock, worldAccess, pos, state);
-		NbtList connections = nbt.getList("connections", 10);
-		
-		if (!connections.isEmpty()) {
-			wire.connections.fromNbt(connections);
-		}
-		
-		return wire;
-	}
-	
-	/**
-	 * Tell connected wires that they should update their connections.
-	 */
-	public void updateConnectedWires() {
-		updateNeighboringWires(connections.getPositions(), WireConnectionManager.DEFAULT_MAX_UPDATE_DEPTH);
-	}
-	
-	/**
-	 * Tell some collection of wires that they should update their connections
-	 * 
-	 * @param wires     a collection of positions of redstone wires
-	 * @param maxDepth  the maximum depth to which these updates should propagate
-	 */
-	public void updateNeighboringWires(Collection<BlockPos> wires, int maxDepth) {
-		for (BlockPos pos : wires) {
-			WireNode wire = world.getWire(pos, true, false);
-			
-			if (wire != null) {
-				wire.connections.update(maxDepth);
-			}
-		}
 	}
 	
 	public int nextPower() {
@@ -168,6 +91,9 @@ public class WireNode extends Node {
 		if (removed) {
 			return true;
 		}
+		
+		state = world.getBlockState(pos);
+		
 		if (shouldBreak) {
 			return world.breakBlock(pos, state);
 		}
