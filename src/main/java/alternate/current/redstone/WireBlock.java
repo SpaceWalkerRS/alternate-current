@@ -1,5 +1,7 @@
 package alternate.current.redstone;
 
+import java.util.function.BiFunction;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
@@ -59,6 +61,6 @@ public interface WireBlock {
 	 * Find the connections between the given WireNode and
 	 * neighboring WireNodes.
 	 */
-	public void findWireConnections(WireNode wire);
+	public void findWireConnections(WireNode wire, BiFunction<Node, Integer, Node> nodeProvider);
 	
 }

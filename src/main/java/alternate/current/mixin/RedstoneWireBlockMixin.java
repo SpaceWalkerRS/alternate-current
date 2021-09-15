@@ -1,5 +1,7 @@
 package alternate.current.mixin;
 
+import java.util.function.BiFunction;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -8,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.interfaces.mixin.IServerWorld;
+import alternate.current.redstone.Node;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireHandler;
 import alternate.current.redstone.WireNode;
@@ -18,7 +21,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 @Mixin(RedstoneWireBlock.class)
@@ -34,7 +36,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	private void onUpdate(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
 		// Using redirects for calls to this method makes conflicts with
 		// other mods more likely, so we inject-cancel instead.
-		cir.cancel();
+		cir.setReturnValue(state);
 	}
 	
 	@Inject(
@@ -46,10 +48,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onOnBlockAddedInjectBeforeUpdate(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify, CallbackInfo ci) {
-		WorldAccess worldAccess = ((IServerWorld)world).getAccess(this);
-		WireNode wire = worldAccess.getWire(pos, true, true);
-		
-		worldAccess.getWireHandler().onWireAdded(wire);
+		((IServerWorld)world).getAccess(this).getWireHandler().onWireAdded(pos);
 		
 		// Because of a check in World.setBlockState, shape updates
 		// after placing a block are omitted if the block state
@@ -57,8 +56,12 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 		// due to the above call to the wire handler. To make sure
 		// connections are properly updated after placing a redstone
 		// wire, shape updates are emitted here.
-		wire.state.updateNeighborStates(world, pos, 2);
-		wire.state.method_11637(world, pos, 2);
+		BlockState newState = world.getBlockState(pos);
+		
+		if (newState != state) {
+			newState.updateNeighborStates(world, pos, 2);
+			newState.method_11637(world, pos, 2);
+		}
 	}
 	
 	@Inject(
@@ -69,18 +72,8 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
 			)
 	)
-	private void onOnBlockRemovedInjectBeforeUpdate(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
-		WorldAccess worldAccess = ((IServerWorld)world).getAccess(this);
-		WireNode wire = worldAccess.getWire(pos, true, true);
-		
-		worldAccess.removeWire(wire);
-		wire.updateConnectedWires();
-		
-		// Only call the wire handler if the wire was not removed
-		// by the wire handler.
-		if (!wire.shouldBreak) {
-			worldAccess.getWireHandler().onWireRemoved(wire);
-		}
+	private void onOnStateReplacedInjectBeforeUpdate(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
+		((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(pos);
 	}
 	
 	@Inject(
@@ -90,7 +83,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					value = "HEAD"
 			)
 	)
-	private void onNeighborUpdateInjectAtHead(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
+	private void onNeighborUpdateInjectAtHead(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean moved, CallbackInfo ci) {
 		if (!world.isClient()) {
 			((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(pos);
 		}
@@ -124,39 +117,32 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Override
-	public void findWireConnections(WireNode wire) {
-		WorldAccess world = wire.world;
-		BlockPos pos = wire.pos;
-		
-		boolean aboveIsSolid = world.isSolidBlock(pos.up());
-		boolean belowIsSolid = world.isSolidBlock(pos.down());
+	public void findWireConnections(WireNode wire, BiFunction<Node, Integer, Node> nodeProvider) {
+		boolean belowIsSolid = nodeProvider.apply(wire, WireHandler.Directions.DOWN).isSolidBlock();
+		boolean aboveIsSolid = nodeProvider.apply(wire, WireHandler.Directions.UP).isSolidBlock();
 		
 		for (int iDir = 0; iDir < WireHandler.Directions.HORIZONTAL.length; iDir++) {
-			Direction dir = WireHandler.Directions.HORIZONTAL[iDir];
-			BlockPos side = pos.offset(dir);
-			BlockState neighbor = world.getBlockState(side);
+			Node neighbor = nodeProvider.apply(wire, iDir);
 			
-			if (isOf(neighbor)) {
-				wire.connections.add(side, iDir, true, true);
+			if (neighbor.isWire()) {
+				wire.connections.add(neighbor.asWire(), iDir, true, true);
 				continue;
 			}
 			
-			boolean sideIsSolid = world.isSolidBlock(side, neighbor);
+			boolean sideIsSolid = neighbor.isSolidBlock();
 			
 			if (!sideIsSolid) {
-				BlockPos belowSide = side.down();
-				neighbor = world.getBlockState(belowSide);
+				Node node = nodeProvider.apply(neighbor, WireHandler.Directions.DOWN);
 				
-				if (isOf(neighbor)) {
-					wire.connections.add(belowSide, iDir, true, belowIsSolid);
+				if (node.isWire()) {
+					wire.connections.add(node.asWire(), iDir, true, belowIsSolid);
 				}
 			}
 			if (!aboveIsSolid) {
-				BlockPos aboveSide = side.up();
-				neighbor = world.getBlockState(aboveSide);
+				Node node = nodeProvider.apply(neighbor, WireHandler.Directions.UP);
 				
-				if (isOf(neighbor)) {
-					wire.connections.add(aboveSide, iDir, sideIsSolid, true);
+				if (node.isWire()) {
+					wire.connections.add(node.asWire(), iDir, sideIsSolid, true);
 				}
 			}
 		}
