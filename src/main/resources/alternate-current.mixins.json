@@ -4,12 +4,9 @@
   "package": "alternate.current.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-  	"ChunkSectionMixin",
-  	"ChunkSerializerMixin",
   	"CommandManagerMixin",
   	"RedstoneWireBlockMixin",
   	"ServerWorldMixin",
-  	"WorldChunkMixin",
   	"block.AbstractButtonBlockMixin",
   	"block.AbstractPressurePlateBlockMixin",
   	"block.AbstractRedstoneGateBlockMixin",
