@@ -8,12 +8,6 @@ import net.minecraft.util.math.BlockPos;
  * It stores all the information about the redstone wire that the
  * WireHandler needs to calculate power changes.
  * 
- * While regular Nodes are only used by and thus stored in the
- * WireHandler, WireNodes are stored in the WorldChunks. This is
- * done so that wire connections do not have to be re-calculated
- * each time a wire network is updated, which makes building the
- * network a lot faster.
- * 
  * @author Space Walker
  */
 public class WireNode extends Node {
