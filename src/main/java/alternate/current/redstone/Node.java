@@ -1,8 +1,7 @@
 package alternate.current.redstone;
 
-import alternate.current.AlternateCurrentMod;
+import java.util.Arrays;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 
@@ -23,6 +22,7 @@ public class Node {
 	
 	public final WireBlock wireBlock;
 	public final WorldAccess world;
+	public final Node[] neighbors;
 	
 	public BlockPos pos;
 	public BlockState state;
@@ -32,6 +32,7 @@ public class Node {
 	public Node(WireBlock wireBlock, WorldAccess world) {
 		this.wireBlock = wireBlock;
 		this.world = world;
+		this.neighbors = new Node[WireHandler.Directions.ALL.length];
 	}
 	
 	@Override
@@ -50,22 +51,21 @@ public class Node {
 	}
 	
 	public Node update(BlockPos pos, BlockState state) {
+		if (wireBlock.isOf(state)) {
+			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
+		}
+		
 		this.pos = pos;
 		this.state = state;
-		
 		this.flags = 0;
 		
-		if (wireBlock.isOf(state)) {
-			AlternateCurrentMod.LOGGER.warn("Cannot update a Node to a WireNode!");
-		} else {
-			Block block = state.getBlock();
-			
-			if (block.isFullCube()) {
-				this.flags |= SOLID_BLOCK;
-			}
-			if (block.emitsRedstonePower()) {
-				this.flags |= REDSTONE;
-			}
+		Arrays.fill(neighbors, null);
+		
+		if (this.world.isSolidBlock(this.pos, this.state)) {
+			this.flags |= SOLID_BLOCK;
+		}
+		if (this.state.getBlock().emitsRedstonePower()) {
+			this.flags |= REDSTONE;
 		}
 		
 		return this;

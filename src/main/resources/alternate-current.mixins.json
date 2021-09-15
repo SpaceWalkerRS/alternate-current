@@ -4,12 +4,9 @@
   "package": "alternate.current.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-  	"BlockStorageMixin",
-  	"ChunkMixin",
   	"CommandManagerMixin",
   	"RedstoneWireBlockMixin",
   	"ServerWorldMixin",
-  	"ThreadedAnvilChunkStorageMixin",
   	"block.AbstractButtonBlockMixin",
   	"block.AbstractPressurePlateBlockMixin",
   	"block.BlockMixin",
