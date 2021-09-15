@@ -5,11 +5,8 @@
   "compatibilityLevel": "JAVA_16",
   "mixins": [
   	"CommandManagerMixin",
-  	"ChunkSectionMixin",
-  	"ChunkSerializerMixin",
   	"RedstoneWireBlockMixin",
   	"ServerWorldMixin",
-  	"WorldChunkMixin",
   	"block.AbstractButtonBlockMixin",
   	"block.AbstractPressurePlateBlockMixin",
   	"block.AbstractRedstoneGateBlockMixin",
