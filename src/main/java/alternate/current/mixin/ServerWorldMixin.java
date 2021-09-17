@@ -28,13 +28,6 @@ public abstract class ServerWorldMixin extends World implements IServerWorld {
 	
 	@Override
 	public WorldAccess getAccess(WireBlock wireBlock) {
-		WorldAccess world = access.get(wireBlock);
-		
-		if (world == null) {
-			world = new WorldAccess(wireBlock, (ServerWorld)(Object)this);
-			access.put(wireBlock, world);
-		}
-		
-		return world;
+		return access.computeIfAbsent(wireBlock, key -> new WorldAccess(wireBlock, (ServerWorld)(Object)this));
 	}
 }
