@@ -58,7 +58,7 @@ public class WorldAccess {
 	/**
 	 * An optimized version of World.setBlockState. Since this method is
 	 * only used to update redstone wire block states, lighting checks,
-	 * height map updates, and block entity updates.
+	 * height map updates, and block entity updates are omitted.
 	 */
 	public boolean setWireState(BlockPos pos, BlockState state) {
 		int y = pos.getY();
