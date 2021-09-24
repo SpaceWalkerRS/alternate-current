@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
+import net.minecraft.block.Block;
+
 //import alternate.current.AlternateCurrentMod;
 //import alternate.current.util.profiler.Profiler;
 
@@ -154,6 +156,9 @@ public class WireHandler {
 		public static int iOpposite(int iDir) {
 			return iDir < 4 ? (iDir + 2) & 0b11 : (iDir + 1) & 0b101;
 		}
+		
+		public static final Direction[] FOR_OBSERVER_UPDATES = { Direction.WEST, Direction.EAST, Direction.DOWN, Direction.UP, Direction.NORTH, Direction.SOUTH };
+		
 	}
 	
 	/**
@@ -930,6 +935,10 @@ public class WireHandler {
 			findPowerFlow(wire);
 			
 			if (wire.updateState()) {
+				if (!wire.removed) {
+					updateObservers(wire);
+				}
+				
 				updateNeighborBlocks(wire);
 			}
 			
@@ -937,6 +946,20 @@ public class WireHandler {
 		}
 		
 		updatingPower = false;
+	}
+	
+	private void updateObservers(WireNode wire) {
+		BlockPos pos = wire.pos;
+		Block block = wireBlock.asBlock();
+		
+		for (Direction dir : Directions.FOR_OBSERVER_UPDATES) {
+			BlockPos side = pos.offset(dir);
+			BlockState neighbor = world.getBlockState(side);
+			
+			if (neighbor.getBlock() == Blocks.OBSERVER) {
+				world.updateObserver(side, neighbor, pos, block);
+			}
+		}
 	}
 	
 	/**
@@ -984,37 +1007,37 @@ public class WireHandler {
 		BlockPos above = wire.pos.offset(upward);
 		
 		// direct neighbors (6)
-		updateNeighbor(front);
-		updateNeighbor(back);
-		updateNeighbor(right);
-		updateNeighbor(left);
-		updateNeighbor(below);
-		updateNeighbor(above);
+		updateNeighbor(front, wire.pos);
+		updateNeighbor(back, wire.pos);
+		updateNeighbor(right, wire.pos);
+		updateNeighbor(left, wire.pos);
+		updateNeighbor(below, wire.pos);
+		updateNeighbor(above, wire.pos);
 		
 		// diagonal neighbors (12)
-		updateNeighbor(front.offset(rightward));
-		updateNeighbor(back .offset(leftward));
-		updateNeighbor(front.offset(leftward));
-		updateNeighbor(back .offset(rightward));
-		updateNeighbor(front.offset(downward));
-		updateNeighbor(back .offset(upward));
-		updateNeighbor(front.offset(upward));
-		updateNeighbor(back .offset(downward));
-		updateNeighbor(right.offset(downward));
-		updateNeighbor(left .offset(upward));
-		updateNeighbor(right.offset(upward));
-		updateNeighbor(left .offset(downward));
+		updateNeighbor(front.offset(rightward), wire.pos);
+		updateNeighbor(back .offset(leftward), wire.pos);
+		updateNeighbor(front.offset(leftward), wire.pos);
+		updateNeighbor(back .offset(rightward), wire.pos);
+		updateNeighbor(front.offset(downward), wire.pos);
+		updateNeighbor(back .offset(upward), wire.pos);
+		updateNeighbor(front.offset(upward), wire.pos);
+		updateNeighbor(back .offset(downward), wire.pos);
+		updateNeighbor(right.offset(downward), wire.pos);
+		updateNeighbor(left .offset(upward), wire.pos);
+		updateNeighbor(right.offset(upward), wire.pos);
+		updateNeighbor(left .offset(downward), wire.pos);
 		
 		// far neighbors (6)
-		updateNeighbor(front.offset(forward));
-		updateNeighbor(back .offset(backward));
-		updateNeighbor(right.offset(rightward));
-		updateNeighbor(left .offset(leftward));
-		updateNeighbor(below.offset(downward));
-		updateNeighbor(above.offset(upward));
+		updateNeighbor(front.offset(forward), wire.pos);
+		updateNeighbor(back .offset(backward), wire.pos);
+		updateNeighbor(right.offset(rightward), wire.pos);
+		updateNeighbor(left .offset(leftward), wire.pos);
+		updateNeighbor(below.offset(downward), wire.pos);
+		updateNeighbor(above.offset(upward), wire.pos);
 	}
 	
-	private void updateNeighbor(BlockPos pos) {
+	private void updateNeighbor(BlockPos pos, BlockPos fromPos) {
 		BlockState state = world.getBlockState(pos);
 		
 		// While this check makes sure wires in the network are not given
@@ -1028,7 +1051,7 @@ public class WireHandler {
 		// you can add all the positions of the network to a set and filter
 		// out block updates to wires in the network that way.
 		if (state.getBlock() != Blocks.AIR && !wireBlock.isOf(state)) {
-			world.updateNeighborBlock(pos, state, wireBlock.asBlock());
+			world.updateNeighborBlock(pos, state, fromPos, wireBlock.asBlock());
 		}
 	}
 }

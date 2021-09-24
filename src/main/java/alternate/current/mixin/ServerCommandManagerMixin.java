@@ -8,11 +8,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import alternate.current.AlternateCurrentMod;
 import alternate.current.command.AlternateCurrentCommand;
 
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.CommandRegistry;
+import net.minecraft.command.AbstractCommandManager;
+import net.minecraft.server.command.ServerCommandManager;
 
-@Mixin(CommandManager.class)
-public class CommandManagerMixin extends CommandRegistry {
+@Mixin(ServerCommandManager.class)
+public abstract class ServerCommandManagerMixin extends AbstractCommandManager {
 	
 	@Inject(
 			method="<init>",
@@ -22,7 +22,7 @@ public class CommandManagerMixin extends CommandRegistry {
 	)
 	private void registerCommands(CallbackInfo ci) {
 		if (AlternateCurrentMod.DEBUG) {
-			registerCommand(new AlternateCurrentCommand());
+			register(new AlternateCurrentCommand());
 		}
 	}
 }

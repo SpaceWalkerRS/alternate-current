@@ -64,7 +64,7 @@ public class Node {
 		if (this.world.isSolidBlock(this.pos, this.state)) {
 			this.flags |= SOLID_BLOCK;
 		}
-		if (this.state.getBlock().emitsRedstonePower()) {
+		if (this.state.emitsRedstonePower()) {
 			this.flags |= REDSTONE;
 		}
 		

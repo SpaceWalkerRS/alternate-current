@@ -11,8 +11,8 @@ import alternate.current.redstone.WorldAccess;
 
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.profiler.Profiler;
-import net.minecraft.world.SaveHandler;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldSaveHandler;
 import net.minecraft.world.dimension.Dimension;
 import net.minecraft.world.level.LevelProperties;
 
@@ -21,8 +21,8 @@ public abstract class ServerWorldMixin extends World implements IServerWorld {
 	
 	private final Map<WireBlock, WorldAccess> access = new HashMap<>();
 	
-	protected ServerWorldMixin(SaveHandler handler, LevelProperties properties, Dimension dim, Profiler profiler, boolean isClient) {
-		super(handler, properties, dim, profiler, isClient);
+	protected ServerWorldMixin(WorldSaveHandler saveHandler, LevelProperties properties, Dimension dimension, Profiler profiler, boolean client) {
+		super(saveHandler, properties, dimension, profiler, client);
 	}
 	
 	@Override

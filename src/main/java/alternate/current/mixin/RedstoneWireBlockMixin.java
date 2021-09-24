@@ -26,7 +26,7 @@ import net.minecraft.world.World;
 public abstract class RedstoneWireBlockMixin implements WireBlock {
 	
 	@Inject(
-			method = "update",
+			method = "method_26769",
 			cancellable = true,
 			at = @At(
 					value = "HEAD"
@@ -39,11 +39,11 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Inject(
-			method = "onCreation",
+			method = "onBlockAdded",
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
+					target = "Lnet/minecraft/block/RedstoneWireBlock;method_26769(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
 			)
 	)
 	private void onOnCreationInjectBeforeUpdate(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
@@ -51,11 +51,11 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Inject(
-			method = "onBreaking",
+			method = "onBlockRemoved",
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
+					target = "Lnet/minecraft/block/RedstoneWireBlock;method_26769(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
 			)
 	)
 	private void onOnBreakingInjectBeforeUpdate(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
@@ -69,7 +69,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					value = "HEAD"
 			)
 	)
-	private void onNeighborUpdateInjectAtHead(World world, BlockPos pos, BlockState state, Block block, CallbackInfo ci) {
+	private void onNeighborUpdateInjectAtHead(BlockState state, World world, BlockPos pos, Block fromBlock, BlockPos fromPos, CallbackInfo ci) {
 		if (!world.isClient) {
 			((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(pos);
 		}

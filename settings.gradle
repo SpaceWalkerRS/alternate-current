@@ -1,5 +1,6 @@
 pluginManagement {
 	repositories {
+		jcenter()
 		maven {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
@@ -12,9 +13,7 @@ pluginManagement {
 	}
 	resolutionStrategy {
 		eachPlugin {
-			if (
-				false && // To use chocoloom, remove this line
-				requested.id.id == "fabric-loom" && requested.version?.endsWith("-SNAPSHOT") != true) {
+			if (requested.id.id == "fabric-loom" && requested.version?.endsWith("-SNAPSHOT") != true) {
 				useModule("com.github.Chocohead.Fabric-Loom:fabric-loom:${requested.version}")
 			}
 		}

@@ -20,6 +20,6 @@ public abstract class LeverBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsStrongPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return state.get(LeverBlock.FACING).getDirection() == dir;
+		return state.get(LeverBlock.FACING).method_26676() == dir;
 	}
 }

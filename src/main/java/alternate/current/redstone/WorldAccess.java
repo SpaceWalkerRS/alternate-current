@@ -1,15 +1,15 @@
 package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IBlock;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.ObserverBlock;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.chunk.BlockStorage;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkSection;
 
 public class WorldAccess {
 	
@@ -43,14 +43,14 @@ public class WorldAccess {
 		int x = pos.getX();
 		int z = pos.getZ();
 		
-		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
+		Chunk chunk = world.loadChunk(x >> 4, z >> 4);
+		ChunkSection section = chunk.getSections()[y >> 4];
 		
-		if (storage == null) {
+		if (section == null) {
 			return Blocks.AIR.getDefaultState();
 		}
 		
-		return storage.getBlockState(x & 15, y & 15, z & 15);
+		return section.method_27435(x & 15, y & 15, z & 15);
 	}
 	
 	/**
@@ -68,10 +68,10 @@ public class WorldAccess {
 		int x = pos.getX();
 		int z = pos.getZ();
 		
-		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
+		Chunk chunk = world.loadChunk(x >> 4, z >> 4);
+		ChunkSection section = chunk.getSections()[y >> 4];
 		
-		if (storage == null) {
+		if (section == null) {
 			return false;
 		}
 		
@@ -79,41 +79,45 @@ public class WorldAccess {
 		y &= 15;
 		z &= 15;
 		
-		BlockState prevState = storage.getBlockState(x, y, z);
+		BlockState prevState = section.method_27435(x, y, z);
 		
 		if (state == prevState) {
 			return false;
 		}
 		
-		storage.method_1424(x, y, z, state);
+		section.method_27437(x, y, z, state);
 		
 		// notify clients of the BlockState change
-		world.onBlockUpdate(pos);
+		world.getRaidManager().onBlockChange(pos);
 		// mark the chunk for saving
-		chunk.setModified(true);
+		chunk.setDirty(true);
 		
 		return true;
 	}
 	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
-		state.getBlock().dropAsItem(world, pos, state, 0);
-		return world.setAir(pos);
+		state.getBlock().method_26417(world, pos, state, 0);
+		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
 	}
 	
-	public void updateNeighborBlock(BlockPos pos, Block fromBlock) {
-		updateNeighborBlock(pos, getBlockState(pos), fromBlock);
+	public void updateObserver(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
+		((ObserverBlock)state.getBlock()).method_26711(state, world, pos, fromBlock, fromPos);
 	}
 	
-	public void updateNeighborBlock(BlockPos pos, BlockState state, Block fromBlock) {
-		state.getBlock().neighborUpdate(world, pos, state, fromBlock);
+	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
+		getBlockState(pos).neighbourUpdate(world, pos, fromBlock, fromPos);
+	}
+	
+	public void updateNeighborBlock(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
+		state.neighbourUpdate(world, pos, fromBlock, fromPos);
 	}
 	
 	public boolean isSolidBlock(BlockPos pos) {
-		return getBlockState(pos).getBlock().isFullCube();
+		return getBlockState(pos).isSolidBlock();
 	}
 	
 	public boolean isSolidBlock(BlockPos pos, BlockState state) {
-		return state.getBlock().isFullCube();
+		return state.isSolidBlock();
 	}
 	
 	public boolean emitsWeakPowerTo(BlockPos pos, BlockState state, Direction dir) {
@@ -125,14 +129,14 @@ public class WorldAccess {
 	}
 	
 	public int getWeakPowerFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getBlock().getWeakRedstonePower(world, pos, state, dir);
+		return state.getWeakRedstonePower(world, pos, dir);
 	}
 	
 	public int getStrongPowerFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getBlock().getStrongRedstonePower(world, pos, state, dir);
+		return state.getStrongRedstonePower(world, pos, dir);
 	}
 	
 	public boolean shouldBreak(BlockPos pos, BlockState state) {
-		return !state.getBlock().canBePlacedAtPos(world, pos);
+		return !state.getBlock().canReplace(world, pos);
 	}
 }
