@@ -7,13 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
+import alternate.current.util.Direction;
+
 //import alternate.current.AlternateCurrentMod;
 //import alternate.current.util.profiler.Profiler;
-
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 
 /**
  * This class handles power changes for redstone wire. The algorithm
@@ -315,7 +314,7 @@ public class WireHandler {
 	private Node getNextNode(BlockPos pos) {
 		BlockState state = world.getBlockState(pos);
 		
-		if (wireBlock.isOf(state)) {
+		if (state.isOf(wireBlock)) {
 			return new WireNode(wireBlock, world, pos, state);
 		}
 		
@@ -356,7 +355,7 @@ public class WireHandler {
 	 * update.
 	 */
 	public void onWireUpdated(BlockPos pos) {
-		findRoots(pos, true);
+		tryAddRoot(pos);
 		tryUpdatePower();
 	}
 	
@@ -364,7 +363,7 @@ public class WireHandler {
 	 * This method is called whenever a redstone wire is placed.
 	 */
 	public void onWireAdded(BlockPos pos) {
-		findRoots(pos, false);
+		tryAddRoot(pos);
 		tryUpdatePower();
 	}
 	
@@ -376,7 +375,7 @@ public class WireHandler {
 		WireNode wire;
 		
 		if (node == null || !node.isWire()) {
-			wire = new WireNode(wireBlock, world, pos, wireBlock.asBlock().getDefaultState());
+			wire = new WireNode(wireBlock, world, pos, wireBlock.getDefaultState());
 		} else {
 			wire = node.asWire();
 			
@@ -395,137 +394,16 @@ public class WireHandler {
 	}
 	
 	/**
-	 * Look for wires at and around the given position that are
-	 * in an invalid state and require power changes. These wires
-	 * are called 'roots' because it is only when these wires
-	 * change power level that neighboring wires must adjust as
-	 * well.
-	 * 
-	 * <p>
-	 * While it is strictly only necessary to check the wire at
-	 * the given position, if that wire is part of a network, it
-	 * is beneficial to check its surroundings for other wires
-	 * that require power changes. This is because a network can
-	 * receive power at multiple points. Consider the following
-	 * setup:
-	 * 
-	 * <p>
-	 * (top-down view, W = wire, L = lever, _ = air/other)
-	 * <br> _ _ W _ _
-	 * <br> _ W W W _
-	 * <br> W W L W W
-	 * <br> _ W W W _
-	 * <br> _ _ W _ _
-	 * 
-	 * <p>
-	 * The lever powers four wires in the network at once. If we
-	 * identify this correctly, we can (un)power the entire network
-	 * at once. While it is not practical to cover every possible
-	 * situation where a network is (un)powered from multiple
-	 * points at once, checking for common cases like the one
-	 * described above is relatively straight-forward.
+	 * Look for a wire at the given position that is in an
+	 * invalid state and requires power changes. This wire is
+	 * called a 'root' because it is only when this wire changes
+	 * power level that neighboring wires must adjust as well.
 	 */
-	private void findRoots(BlockPos pos, boolean checkNeighbors) {
+	private void tryAddRoot(BlockPos pos) {
 		Node node = getOrAddNode(pos);
 		
-		if (!node.isWire()) {
-			return; // we should never get here
-		}
-		
-		WireNode wire = node.asWire();
-		tryAddRoot(wire);
-		
-		// If the wire at the given position is not in an invalid
-		// state or is not part of a larger network, we can abort
-		// early.
-		if (!checkNeighbors || !wire.inNetwork || wire.connections.all.length == 0) {
-			return;
-		}
-		
-		for (int iDir = 0; iDir < Directions.ALL.length; iDir++) {
-			Node neighbor = getNeighbor(wire, iDir);
-			
-			if (neighbor.isSolidBlock()) {
-				// Redstone components can power multiple wires through
-				// solid blocks.
-				findRedstoneAround(neighbor, Directions.iOpposite(iDir));
-			} else if (world.emitsWeakPowerTo(neighbor.pos, neighbor.state, Directions.ALL[iDir])) {
-				// Redstone components can also power multiple wires
-				// directly.
-				findRootsAroundRedstone(neighbor, Directions.iOpposite(iDir));
-			}
-		}
-	}
-	
-	/**
-	 * Find redstone components around the given node that can
-	 * strongly power that node, and then search for wires that
-	 * require power changes around those redstone components.
-	 */
-	private void findRedstoneAround(Node node, int ignore) {
-		for (int iDir = 0; iDir < Directions.ALL.length; iDir++) {
-			if (iDir == ignore) {
-				continue;
-			}
-			
-			Node neighbor = getNeighbor(node, iDir);
-			
-			if (world.emitsStrongPowerTo(neighbor.pos, neighbor.state, Directions.ALL[iDir])) {
-				findRootsAroundRedstone(neighbor, -1);
-			}
-		}
-	}
-	
-	/**
-	 * Find wires around the given redstone component that require
-	 * power changes.
-	 */
-	private void findRootsAroundRedstone(Node node, int ignore) {
-		for (int iDir = 0; iDir < Directions.ALL.length; iDir++) {
-			if (iDir == ignore) {
-				continue;
-			}
-			
-			// Directions are backwards in Minecraft, so we must check
-			// for power emitted in the opposite direction that we are
-			// interested in.
-			int iOpp = Directions.iOpposite(iDir);
-			Direction opp = Directions.ALL[iOpp];
-			
-			boolean weak = world.emitsWeakPowerTo(node.pos, node.state, opp);
-			boolean strong = world.emitsStrongPowerTo(node.pos, node.state, opp);
-			
-			// If the redstone component does not emit any power in
-			// this direction, move on to the next direction.
-			if (!weak && !strong) {
-				continue;
-			}
-			
-			Node neighbor = getNeighbor(node, iDir);
-			
-			if (weak && neighbor.isWire()) {
-				tryAddRoot(neighbor.asWire());
-			} else if (strong && neighbor.isSolidBlock()) {
-				findRootsAround(neighbor, iOpp);
-			}
-		}
-	}
-	
-	/**
-	 * Look for wires around the given node that require power
-	 * changes.
-	 */
-	private void findRootsAround(Node node, int ignore) {
-		for (int iDir = 0; iDir < Directions.ALL.length; iDir++) {
-			if (iDir == ignore) {
-				continue;
-			}
-			
-			Node neighbor = getNeighbor(node, iDir);
-			
-			if (neighbor.isWire()) {
-				tryAddRoot(neighbor.asWire());
-			}
+		if (node.isWire()) {
+			tryAddRoot(node.asWire());
 		}
 	}
 	
@@ -1027,7 +905,7 @@ public class WireHandler {
 		// significant performance gains in certain setups, if you are not,
 		// you can add all the positions of the network to a set and filter
 		// out block updates to wires in the network that way.
-		if (state.getBlock() != Blocks.AIR && !wireBlock.isOf(state)) {
+		if (!state.isAir() && !state.isOf(wireBlock)) {
 			world.updateNeighborBlock(pos, state, wireBlock.asBlock());
 		}
 	}

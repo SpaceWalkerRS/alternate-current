@@ -2,9 +2,10 @@ package alternate.current.redstone;
 
 import java.util.function.BiFunction;
 
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
+
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
 /**
@@ -23,8 +24,8 @@ public interface WireBlock {
 		return (Block)this;
 	}
 	
-	public default boolean isOf(BlockState state) {
-		return asBlock() == state.getBlock();
+	public default BlockState getDefaultState() {
+		return new BlockState(asBlock(), 0);
 	}
 	
 	/**
@@ -53,7 +54,7 @@ public interface WireBlock {
 	public int getPower(WorldAccess world, BlockPos pos, BlockState state);
 	
 	/**
-	 * Return a block state that holds the given new power level.
+	 * Return the block state that holds the given new power level.
 	 */
 	public BlockState updatePowerState(WorldAccess world, BlockPos pos, BlockState state, int power);
 	

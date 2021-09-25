@@ -2,8 +2,8 @@ package alternate.current.redstone;
 
 import java.util.Arrays;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
 
 /**
  * A Node represents a block in the world. It is tied to a
@@ -51,7 +51,7 @@ public class Node {
 	}
 	
 	public Node update(BlockPos pos, BlockState state) {
-		if (wireBlock.isOf(state)) {
+		if (state.isOf(wireBlock)) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 		
@@ -61,10 +61,10 @@ public class Node {
 		
 		Arrays.fill(neighbors, null);
 		
-		if (this.world.isSolidBlock(this.pos, this.state)) {
+		if (this.state.isSolid()) {
 			this.flags |= SOLID_BLOCK;
 		}
-		if (this.state.getBlock().emitsRedstonePower()) {
+		if (this.state.emitsRedstonePower()) {
 			this.flags |= REDSTONE;
 		}
 		

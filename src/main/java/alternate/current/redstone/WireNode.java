@@ -1,7 +1,7 @@
 package alternate.current.redstone;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
 
 /**
  * A WireNode is a Node that represents a redstone wire in the world.
@@ -95,6 +95,6 @@ public class WireNode extends Node {
 		currentPower = wireBlock.clampPower(virtualPower);
 		state = wireBlock.updatePowerState(world, pos, state, currentPower);
 		
-		return world.setWireState(pos, state);
+		return world.setBlockState(pos, state);
 	}
 }

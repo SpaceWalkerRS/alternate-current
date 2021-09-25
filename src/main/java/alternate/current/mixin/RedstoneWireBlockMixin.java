@@ -7,7 +7,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.redstone.Node;
@@ -15,51 +14,51 @@ import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireHandler;
 import alternate.current.redstone.WireNode;
 import alternate.current.redstone.WorldAccess;
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.RedstoneWireBlock;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 @Mixin(RedstoneWireBlock.class)
 public abstract class RedstoneWireBlockMixin implements WireBlock {
 	
 	@Inject(
-			method = "update",
+			method = "method_8781",
 			cancellable = true,
 			at = @At(
 					value = "HEAD"
 			)
 	)
-	private void onUpdate(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
+	private void onUpdate(World world, int x, int y, int z, CallbackInfo ci) {
 		// Using redirects for calls to this method makes conflicts with
 		// other mods more likely, so we inject-cancel instead.
-		cir.setReturnValue(state);
+		ci.cancel();
 	}
 	
 	@Inject(
-			method = "onCreation",
+			method = "method_8622",
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
+					target = "Lnet/minecraft/block/RedstoneWireBlock;method_8781(Lnet/minecraft/world/World;III)V"
 			)
 	)
-	private void onOnCreationInjectBeforeUpdate(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
-		((IServerWorld)world).getAccess(this).getWireHandler().onWireAdded(pos);
+	private void onOnCreationInjectBeforeUpdate(World world, int x, int y, int z, CallbackInfo ci) {
+		((IServerWorld)world).getAccess(this).getWireHandler().onWireAdded(new BlockPos(x, y, z));
 	}
 	
 	@Inject(
-			method = "onBreaking",
+			method = "method_8613",
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
+					target = "Lnet/minecraft/block/RedstoneWireBlock;method_8781(Lnet/minecraft/world/World;III)V"
 			)
 	)
-	private void onOnBreakingInjectBeforeUpdate(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
-		((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(pos);
+	private void onOnBreakingInjectBeforeUpdate(World world, int x, int y, int z, Block block, int blockData, CallbackInfo ci) {
+		((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(new BlockPos(x, y, z));
 	}
 	
 	@Inject(
@@ -69,9 +68,9 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					value = "HEAD"
 			)
 	)
-	private void onNeighborUpdateInjectAtHead(World world, BlockPos pos, BlockState state, Block block, CallbackInfo ci) {
+	private void onNeighborUpdateInjectAtHead(World world, int x, int y, int z, Block fromBlock, CallbackInfo ci) {
 		if (!world.isClient) {
-			((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(pos);
+			((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(new BlockPos(x, y, z));
 		}
 		
 		ci.cancel();
@@ -94,12 +93,12 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	
 	@Override
 	public int getPower(WorldAccess world, BlockPos pos, BlockState state) {
-		return state.get(RedstoneWireBlock.POWER);
+		return state.getBlockData();
 	}
 	
 	@Override
 	public BlockState updatePowerState(WorldAccess world, BlockPos pos, BlockState state, int power) {
-		return state.with(RedstoneWireBlock.POWER, clampPower(power));
+		return state.with(clampPower(power));
 	}
 	
 	@Override

@@ -14,15 +14,15 @@ import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.SaveHandler;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.Dimension;
-import net.minecraft.world.level.LevelProperties;
+import net.minecraft.world.level.LevelInfo;
 
 @Mixin(ServerWorld.class)
 public abstract class ServerWorldMixin extends World implements IServerWorld {
 	
 	private final Map<WireBlock, WorldAccess> access = new HashMap<>();
 	
-	protected ServerWorldMixin(SaveHandler handler, LevelProperties properties, Dimension dim, Profiler profiler, boolean isClient) {
-		super(handler, properties, dim, profiler, isClient);
+	public ServerWorldMixin(SaveHandler saveHandler, String string, Dimension dimension, LevelInfo levelInfo, Profiler profiler) {
+		super(saveHandler, string, dimension, levelInfo, profiler);
 	}
 	
 	@Override
