@@ -17,7 +17,6 @@ import alternate.current.redstone.WorldAccess;
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.world.World;
 
@@ -50,14 +49,14 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Inject(
-			method = "method_8613",
+			method = "onBlockReplaced",
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
 					target = "Lnet/minecraft/block/RedstoneWireBlock;method_8781(Lnet/minecraft/world/World;III)V"
 			)
 	)
-	private void onOnBreakingInjectBeforeUpdate(World world, int x, int y, int z, Block block, int blockData, CallbackInfo ci) {
+	private void onOnBreakingInjectBeforeUpdate(World world, int x, int y, int z, int blockId, int blockData, CallbackInfo ci) {
 		((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(new BlockPos(x, y, z));
 	}
 	
@@ -68,7 +67,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					value = "HEAD"
 			)
 	)
-	private void onNeighborUpdateInjectAtHead(World world, int x, int y, int z, Block fromBlock, CallbackInfo ci) {
+	private void onNeighborUpdateInjectAtHead(World world, int x, int y, int z, int fromBlockId, CallbackInfo ci) {
 		if (!world.isClient) {
 			((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(new BlockPos(x, y, z));
 		}

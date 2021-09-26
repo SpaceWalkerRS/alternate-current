@@ -4,10 +4,9 @@ import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 import alternate.current.util.Direction;
 
+import net.minecraft.class_401;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.chunk.BlockStorage;
 import net.minecraft.world.chunk.Chunk;
 
 public class WorldAccess {
@@ -47,7 +46,7 @@ public class WorldAccess {
 		}
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
+		class_401 storage = chunk.method_1398()[y >> 4];
 		
 		if (storage == null) {
 			return BlockState.AIR;
@@ -56,9 +55,9 @@ public class WorldAccess {
 		return getBlockState(storage, x & 15, y & 15, z & 15);
 	}
 	
-	private BlockState getBlockState(BlockStorage storage, int x, int y, int z) {
-		Block block = storage.method_8935(x, y, z);
-		return block == Blocks.AIR ? BlockState.AIR : new BlockState(block, storage.method_8940(x, y, z));
+	private BlockState getBlockState(class_401 storage, int x, int y, int z) {
+		int blockId = storage.method_10960(x, y, z);
+		return blockId == 0 ? BlockState.AIR : new BlockState(Block.BLOCKS[blockId], storage.method_8940(x, y, z));
 	}
 	
 	/**
@@ -76,7 +75,7 @@ public class WorldAccess {
 		}
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
+		class_401 storage = chunk.method_1398()[y >> 4];
 		
 		if (storage == null) {
 			return false;
@@ -92,20 +91,20 @@ public class WorldAccess {
 			return false;
 		}
 		
-		storage.method_8937(x, y, z, state.getBlock());
+		storage.method_8937(x, y, z, state.getBlock().id);
 		storage.method_8936(x, y, z, state.getBlockData());
 		
 		// notify clients of the BlockState change
-		world.method_8518(pos.getX(), pos.getY(), pos.getZ());
+		world.updateListeners(pos.getX(), pos.getY(), pos.getZ());
 		// mark the chunk for saving
-		chunk.method_1385();
+		chunk.markDirty();
 		
 		return true;
 	}
 	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
 		state.getBlock().method_8624(world, pos.getX(), pos.getY(), pos.getZ(), 0, 0);
-		return world.method_8515(pos.getX(), pos.getY(), pos.getZ());
+		return world.removeBlock(pos.getX(), pos.getY(), pos.getZ());
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, Block fromBlock) {
@@ -113,11 +112,11 @@ public class WorldAccess {
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, BlockState state, Block fromBlock) {
-		state.getBlock().neighborUpdate(world, pos.getX(), pos.getY(), pos.getZ(), fromBlock);
+		state.getBlock().neighborUpdate(world, pos.getX(), pos.getY(), pos.getZ(), fromBlock.id);
 	}
 	
 	public boolean isSolidBlock(BlockPos pos) {
-		return getBlockState(pos).isSolid();
+		return world.method_10941(pos.getX(), pos.getY(), pos.getZ());
 	}
 	
 	public int getWeakPowerFrom(BlockPos pos, BlockState state, Direction dir) {

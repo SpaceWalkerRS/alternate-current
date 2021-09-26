@@ -13,7 +13,7 @@ group = project.maven_group
 repositories {
 	maven {
 		name = 'legacy-fabric'
-		url = 'https://maven.legacyfabric.net/'
+		url = 'https://maven.legacyfabric.net'
 	}
 }
 
@@ -31,22 +31,18 @@ dependencies {
 		exclude module: "guava"
 	}
 
-	if (System.getProperty("os.name").toLowerCase().contains("mac")) {
-		implementation 'org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209'
-		implementation 'org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209'
-		implementation 'org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209'
-	}
+	implementation 'org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209'
+	implementation 'org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209'
+	implementation 'org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209'
 }
 
-if (System.getProperty("os.name").toLowerCase().contains("mac")) {
-	configurations.all {
-		resolutionStrategy {
-			dependencySubstitution {
-				substitute module('org.lwjgl.lwjgl:lwjgl_util:2.9.2-nightly-201408222') with module('org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209')
-				substitute module('org.lwjgl.lwjgl:lwjgl:2.9.2-nightly-201408222') with module('org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209')
-			}
-			force 'org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209'
+configurations.all {
+	resolutionStrategy {
+		dependencySubstitution {
+			substitute module('org.lwjgl.lwjgl:lwjgl_util:2.9.1-nightly-20130708-debug3') with module('org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209')
+			substitute module('org.lwjgl.lwjgl:lwjgl:2.9.1-nightly-20130708-debug3') with module('org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209')
 		}
+		force 'org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209'
 	}
 }
 

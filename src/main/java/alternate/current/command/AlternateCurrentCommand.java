@@ -15,7 +15,7 @@ public class AlternateCurrentCommand extends class_2662 {
 	}
 	
 	@Override
-	public int getPermissionLevel() {
+	public int method_5657() {
 		return 2;
 	}
 	
@@ -27,7 +27,7 @@ public class AlternateCurrentCommand extends class_2662 {
 	@Override
 	public void execute(CommandSource source, String[] args) throws CommandException {
 		if (args.length == 1 && args[0].equals("resetProfiler")) {
-			method_10772(source, this, "profiler results have been cleared!");
+			method_10772(source, "profiler results have been cleared!");
 			
 			ProfilerResults.log();
 			ProfilerResults.clear();

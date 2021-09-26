@@ -3,12 +3,11 @@ package alternate.current.util;
 import alternate.current.redstone.WireBlock;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.world.World;
 
 public class BlockState {
 	
-	public static final BlockState AIR = new BlockState(Blocks.AIR, 0);
+	public static final BlockState AIR = new BlockState(null, 0);
 	
 	private final Block block;
 	private final int blockData;
@@ -52,23 +51,19 @@ public class BlockState {
 		return this == AIR;
 	}
 	
-	public boolean isSolid() {
-		return block.isFullCube();
-	}
-	
 	public boolean emitsRedstonePower() {
 		return block.emitsRedstonePower();
 	}
 	
 	public int getWeakPowerFrom(World world, BlockPos pos, Direction dir) {
-		return block.method_8626(world, pos.getX(), pos.getY(), pos.getZ(), dir.getIndex());
+		return block.getWeakRedstonePower(world, pos.getX(), pos.getY(), pos.getZ(), dir.getIndex());
 	}
 	
 	public int getStrongPowerFrom(World world, BlockPos pos, Direction dir) {
-		return block.method_8630(world, pos.getX(), pos.getY(), pos.getZ(), dir.getIndex());
+		return block.getStrongRedstonePower(world, pos.getX(), pos.getY(), pos.getZ(), dir.getIndex());
 	}
 	
 	public boolean canBePlacedAt(World world, BlockPos pos) {
-		return block.method_8628(world, pos.getX(), pos.getY(), pos.getZ());
+		return block.canReplace(world, pos.getX(), pos.getY(), pos.getZ());
 	}
 }
