@@ -41,9 +41,10 @@ public class WorldAccess {
 		
 		int x = pos.getX();
 		int z = pos.getZ();
+		int index = world.getSectionIndex(y);
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
-		ChunkSection section = chunk.getSectionArray()[y >> 4];
+		ChunkSection section = chunk.getSectionArray()[index];
 		
 		if (section == null) {
 			return Blocks.AIR.getDefaultState();
@@ -66,9 +67,10 @@ public class WorldAccess {
 		
 		int x = pos.getX();
 		int z = pos.getZ();
+		int index = world.getSectionIndex(y);
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
-		ChunkSection section = chunk.getSectionArray()[y >> 4];
+		ChunkSection section = chunk.getSectionArray()[index];
 		
 		if (section == null) {
 			return false;
