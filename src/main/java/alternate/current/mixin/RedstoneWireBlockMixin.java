@@ -1,7 +1,5 @@
 package alternate.current.mixin;
 
-import java.util.function.BiFunction;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -116,12 +114,12 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Override
-	public void findWireConnections(WireNode wire, BiFunction<Node, Integer, Node> nodeProvider) {
-		boolean belowIsSolid = nodeProvider.apply(wire, WireHandler.Directions.DOWN).isSolidBlock();
-		boolean aboveIsSolid = nodeProvider.apply(wire, WireHandler.Directions.UP).isSolidBlock();
+	public void findWireConnections(WireNode wire, WireHandler.NodeProvider nodeProvider) {
+		boolean belowIsSolid = nodeProvider.getNeighbor(wire, WireHandler.Directions.DOWN).isSolidBlock();
+		boolean aboveIsSolid = nodeProvider.getNeighbor(wire, WireHandler.Directions.UP).isSolidBlock();
 		
 		for (int iDir = 0; iDir < WireHandler.Directions.HORIZONTAL.length; iDir++) {
-			Node neighbor = nodeProvider.apply(wire, iDir);
+			Node neighbor = nodeProvider.getNeighbor(wire, iDir);
 			
 			if (neighbor.isWire()) {
 				wire.connections.add(neighbor.asWire(), iDir, true, true);
@@ -131,14 +129,14 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			boolean sideIsSolid = neighbor.isSolidBlock();
 			
 			if (!sideIsSolid) {
-				Node node = nodeProvider.apply(neighbor, WireHandler.Directions.DOWN);
+				Node node = nodeProvider.getNeighbor(neighbor, WireHandler.Directions.DOWN);
 				
 				if (node.isWire()) {
 					wire.connections.add(node.asWire(), iDir, true, belowIsSolid);
 				}
 			}
 			if (!aboveIsSolid) {
-				Node node = nodeProvider.apply(neighbor, WireHandler.Directions.UP);
+				Node node = nodeProvider.getNeighbor(neighbor, WireHandler.Directions.UP);
 				
 				if (node.isWire()) {
 					wire.connections.add(node.asWire(), iDir, sideIsSolid, true);
