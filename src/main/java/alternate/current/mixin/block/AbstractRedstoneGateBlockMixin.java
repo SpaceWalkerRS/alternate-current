@@ -4,8 +4,8 @@ import org.spongepowered.asm.mixin.Mixin;
 
 import alternate.current.interfaces.mixin.IBlock;
 
+import net.minecraft.BlockState;
 import net.minecraft.block.AbstractRedstoneGateBlock;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;

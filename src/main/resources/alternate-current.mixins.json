@@ -4,20 +4,21 @@
   "package": "alternate.current.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+  	"CommandManagerMixin",
   	"RedstoneWireBlockMixin",
-  	"ServerCommandManagerMixin",
   	"ServerWorldMixin",
   	"block.AbstractButtonBlockMixin",
   	"block.AbstractPressurePlateBlockMixin",
   	"block.AbstractRedstoneGateBlockMixin",
   	"block.BlockMixin",
-  	"block.ChestBlockMixin",
   	"block.DaylightDetectorBlockMixin",
   	"block.LeverBlockMixin",
   	"block.ObserverBlockMixin",
   	"block.RedstoneBlockMixin",
   	"block.RedstoneTorchBlockMixin",
-  	"block.TripwireHookBlockMixin"
+  	"block.TrappedChestBlockMixin",
+  	"block.TripwireHookBlockMixin",
+  	"block.WallRedstoneTorchBlockMixin"
   ],
   "injectors": {
     "defaultRequire": 1

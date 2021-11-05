@@ -1,15 +1,15 @@
 package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IBlock;
+
+import net.minecraft.BlockState;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.ObserverBlock;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
+import net.minecraft.world.chunk.WorldChunk;
 
 public class WorldAccess {
 	
@@ -43,14 +43,14 @@ public class WorldAccess {
 		int x = pos.getX();
 		int z = pos.getZ();
 		
-		Chunk chunk = world.loadChunk(x >> 4, z >> 4);
-		ChunkSection section = chunk.getSections()[y >> 4];
+		WorldChunk chunk = world.method_8392(x >> 4, z >> 4);
+		ChunkSection section = chunk.getSectionArray()[y >> 4];
 		
 		if (section == null) {
 			return Blocks.AIR.getDefaultState();
 		}
 		
-		return section.method_27435(x & 15, y & 15, z & 15);
+		return section.method_12254(x & 15, y & 15, z & 15);
 	}
 	
 	/**
@@ -68,8 +68,8 @@ public class WorldAccess {
 		int x = pos.getX();
 		int z = pos.getZ();
 		
-		Chunk chunk = world.loadChunk(x >> 4, z >> 4);
-		ChunkSection section = chunk.getSections()[y >> 4];
+		WorldChunk chunk = world.method_8392(x >> 4, z >> 4);
+		ChunkSection section = chunk.getSectionArray()[y >> 4];
 		
 		if (section == null) {
 			return false;
@@ -79,45 +79,46 @@ public class WorldAccess {
 		y &= 15;
 		z &= 15;
 		
-		BlockState prevState = section.method_27435(x, y, z);
+		BlockState prevState = section.method_12254(x, y, z);
 		
 		if (state == prevState) {
 			return false;
 		}
 		
-		section.method_27437(x, y, z, state);
+		section.method_12256(x, y, z, state);
 		
 		// notify clients of the BlockState change
-		world.getRaidManager().onBlockChange(pos);
+		world.method_8413(pos, prevState, state, 2);
 		// mark the chunk for saving
-		chunk.setDirty(true);
+		chunk.method_12008(true);
 		
 		return true;
 	}
 	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
-		state.getBlock().method_26417(world, pos, state, 0);
+		state.dropStacks(world, pos, 0);
 		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
 	}
 	
-	public void updateObserver(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
-		((ObserverBlock)state.getBlock()).method_26711(state, world, pos, fromBlock, fromPos);
+	public void updateNeighborShape(BlockPos pos, BlockState state, Direction fromDir, BlockPos fromPos, BlockState fromState) {
+		BlockState newState = state.getStateForNeighborUpdate(fromDir, fromState, world, pos, fromPos);
+		Block.replaceBlock(state, newState, world, pos, 2);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
-		getBlockState(pos).neighbourUpdate(world, pos, fromBlock, fromPos);
+		getBlockState(pos).method_73267(world, pos, fromBlock, fromPos);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
-		state.neighbourUpdate(world, pos, fromBlock, fromPos);
+		state.method_73267(world, pos, fromBlock, fromPos);
 	}
 	
 	public boolean isSolidBlock(BlockPos pos) {
-		return getBlockState(pos).isSolidBlock();
+		return getBlockState(pos).method_73303();
 	}
 	
 	public boolean isSolidBlock(BlockPos pos, BlockState state) {
-		return state.isSolidBlock();
+		return state.method_73303();
 	}
 	
 	public boolean emitsWeakPowerTo(BlockPos pos, BlockState state, Direction dir) {
@@ -129,14 +130,14 @@ public class WorldAccess {
 	}
 	
 	public int getWeakPowerFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getWeakRedstonePower(world, pos, dir);
+		return state.method_73259(world, pos, dir);
 	}
 	
 	public int getStrongPowerFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getStrongRedstonePower(world, pos, dir);
+		return state.method_73281(world, pos, dir);
 	}
 	
 	public boolean shouldBreak(BlockPos pos, BlockState state) {
-		return !state.getBlock().canReplace(world, pos);
+		return !state.method_73272(world, pos);
 	}
 }

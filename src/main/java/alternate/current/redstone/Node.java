@@ -2,7 +2,7 @@ package alternate.current.redstone;
 
 import java.util.Arrays;
 
-import net.minecraft.block.BlockState;
+import net.minecraft.BlockState;
 import net.minecraft.util.math.BlockPos;
 
 /**
@@ -64,7 +64,7 @@ public class Node {
 		if (this.world.isSolidBlock(this.pos, this.state)) {
 			this.flags |= SOLID_BLOCK;
 		}
-		if (this.state.emitsRedstonePower()) {
+		if (this.state.method_73305()) {
 			this.flags |= REDSTONE;
 		}
 		

@@ -1,6 +1,6 @@
 package alternate.current.redstone;
 
-import net.minecraft.block.BlockState;
+import net.minecraft.BlockState;
 import net.minecraft.util.math.BlockPos;
 
 /**

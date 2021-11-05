@@ -5,21 +5,16 @@ import org.spongepowered.asm.mixin.Mixin;
 import alternate.current.interfaces.mixin.IBlock;
 
 import net.minecraft.BlockState;
-import net.minecraft.block.RedstoneTorchBlock;
+import net.minecraft.block.WallRedstoneTorchBlock;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
-@Mixin(RedstoneTorchBlock.class)
-public class RedstoneTorchBlockMixin implements IBlock {
+@Mixin(WallRedstoneTorchBlock.class)
+public class WallRedstoneTorchBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return true;
-	}
-	
-	@Override
-	public boolean emitsStrongPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return dir == Direction.DOWN;
+		return state.get(WallRedstoneTorchBlock.FACING) != dir;
 	}
 }

@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
-import net.minecraft.block.Block;
+import alternate.current.util.BlockUtil;
 
 //import alternate.current.AlternateCurrentMod;
 //import alternate.current.util.profiler.Profiler;
 
-import net.minecraft.block.BlockState;
+import net.minecraft.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -936,7 +936,7 @@ public class WireHandler {
 			
 			if (wire.updateState()) {
 				if (!wire.removed) {
-					updateObservers(wire);
+					updateNeighborShapes(wire);
 				}
 				
 				updateNeighborBlocks(wire);
@@ -948,17 +948,26 @@ public class WireHandler {
 		updatingPower = false;
 	}
 	
-	private void updateObservers(WireNode wire) {
-		BlockPos pos = wire.pos;
-		Block block = wireBlock.asBlock();
+	/**
+	 * Emit shape updates around the given wire.
+	 */
+	private void updateNeighborShapes(WireNode wire) {
+		BlockPos wirePos = wire.pos;
+		BlockState wireState = wire.state;
 		
-		for (Direction dir : Directions.FOR_OBSERVER_UPDATES) {
-			BlockPos side = pos.offset(dir);
-			BlockState neighbor = world.getBlockState(side);
-			
-			if (neighbor.getBlock() == Blocks.OBSERVER) {
-				world.updateObserver(side, neighbor, pos, block);
-			}
+		for (Direction dir : BlockUtil.DIRECTIONS) {
+			updateNeighborShape(wirePos.offset(dir), dir.getOpposite(), wirePos, wireState);
+		}
+	}
+	
+	private void updateNeighborShape(BlockPos pos, Direction fromDir, BlockPos fromPos, BlockState fromState) {
+		BlockState state = world.getBlockState(pos);
+		
+		// Shape updates to redstone wire are very expensive,
+		// and should never happen as a result of power changes
+		// anyway.
+		if (!state.isAir() && !wireBlock.isOf(state)) {
+			world.updateNeighborShape(pos, state, fromDir, fromPos, fromState);
 		}
 	}
 	

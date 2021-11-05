@@ -28,10 +28,9 @@ minecraft {
 }
 
 dependencies {
-    implementation "com.google.guava:guava:23.5-jre"
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modApi "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 }
 
 processResources {

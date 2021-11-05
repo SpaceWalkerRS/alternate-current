@@ -2,8 +2,8 @@ package alternate.current.redstone;
 
 import java.util.function.BiFunction;
 
+import net.minecraft.BlockState;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 

@@ -4,8 +4,8 @@ import java.util.function.BiFunction;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.At.Shift;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -16,8 +16,8 @@ import alternate.current.redstone.WireHandler;
 import alternate.current.redstone.WireNode;
 import alternate.current.redstone.WorldAccess;
 
+import net.minecraft.BlockState;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -26,7 +26,7 @@ import net.minecraft.world.World;
 public abstract class RedstoneWireBlockMixin implements WireBlock {
 	
 	@Inject(
-			method = "method_26769",
+			method = "method_10485",
 			cancellable = true,
 			at = @At(
 					value = "HEAD"
@@ -39,26 +39,39 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	}
 	
 	@Inject(
-			method = "onBlockAdded",
+			method = "method_9615",
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;method_26769(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
+					target = "Lnet/minecraft/block/RedstoneWireBlock;method_10485(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/BlockState;)Lnet/minecraft/BlockState;"
 			)
 	)
-	private void onOnCreationInjectBeforeUpdate(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, CallbackInfo ci) {
 		((IServerWorld)world).getAccess(this).getWireHandler().onWireAdded(pos);
+		
+		// Because of a check in World.setBlockState, shape updates
+		// after placing a block are omitted if the block state
+		// changes while setting it in the chunk. This can happen
+		// due to the above call to the wire handler. To make sure
+		// connections are properly updated after placing a redstone
+		// wire, shape updates are emitted here.
+		BlockState newState = world.getBlockState(pos);
+		
+		if (newState != state) {
+			newState.method_73271(world, pos, 2);
+			newState.method_73283(world, pos, 2);
+		}
 	}
 	
 	@Inject(
-			method = "onBlockRemoved",
+			method = "onBlockAdded", // yes the mapping is wrong
 			at = @At(
 					value = "INVOKE",
 					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;method_26769(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
+					target = "Lnet/minecraft/block/RedstoneWireBlock;method_10485(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/BlockState;)Lnet/minecraft/BlockState;"
 			)
 	)
-	private void onOnBreakingInjectBeforeUpdate(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void onBlockRemoved(BlockState state, World world, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
 		((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(pos);
 	}
 	
