@@ -73,7 +73,7 @@ public class WorldAccess {
 		ChunkSection section = chunk.getSectionArray()[index];
 		
 		if (section == null) {
-			return false;
+			return false; // we should never get here
 		}
 		
 		BlockState prevState = section.setBlockState(x & 15, y & 15, z & 15, state);

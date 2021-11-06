@@ -44,7 +44,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V"
 			)
 	)
-	private void onOnBlockAddedInjectBeforeUpdate(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify, CallbackInfo ci) {
+	private void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify, CallbackInfo ci) {
 		((IServerWorld)world).getAccess(this).getWireHandler().onWireAdded(pos);
 		
 		// Because of a check in World.setBlockState, shape updates
@@ -69,7 +69,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V"
 			)
 	)
-	private void onOnStateReplacedInjectBeforeUpdate(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
+	private void onBlockRemoved(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(pos);
 	}
 	
@@ -80,7 +80,7 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 					value = "HEAD"
 			)
 	)
-	private void onNeighborUpdateInjectAtHead(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
+	private void onNeighborUpdate(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
 		if (!world.isClient()) {
 			((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(pos);
 		}
