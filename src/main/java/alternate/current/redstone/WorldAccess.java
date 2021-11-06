@@ -37,7 +37,7 @@ public class WorldAccess {
 		int y = pos.getY();
 		
 		if (y < Y_MIN || y >= Y_MAX) {
-			return Blocks.AIR.getDefaultState();
+			return Blocks.VOID_AIR.getDefaultState();
 		}
 		
 		int x = pos.getX();
@@ -72,7 +72,7 @@ public class WorldAccess {
 		ChunkSection section = chunk.getSectionArray()[y >> 4];
 		
 		if (section == null) {
-			return false;
+			return false; // we should never get here
 		}
 		
 		x &= 15;
@@ -88,9 +88,9 @@ public class WorldAccess {
 		section.method_12256(x, y, z, state);
 		
 		// notify clients of the BlockState change
-		world.method_8413(pos, prevState, state, 2);
+		world.method_73521().method_73551(pos);
 		// mark the chunk for saving
-		chunk.method_12008(true);
+		chunk.markDirty();
 		
 		return true;
 	}

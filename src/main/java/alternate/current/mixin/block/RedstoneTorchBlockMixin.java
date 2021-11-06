@@ -15,7 +15,7 @@ public class RedstoneTorchBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return true;
+		return dir != Direction.UP;
 	}
 	
 	@Override

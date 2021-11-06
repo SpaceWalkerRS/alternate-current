@@ -6,6 +6,7 @@ import alternate.current.interfaces.mixin.IBlock;
 
 import net.minecraft.BlockState;
 import net.minecraft.block.WallRedstoneTorchBlock;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
@@ -15,6 +16,6 @@ public class WallRedstoneTorchBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return state.get(WallRedstoneTorchBlock.FACING) != dir;
+		return state.get(Properties.HORIZONTAL_FACING) != dir;
 	}
 }

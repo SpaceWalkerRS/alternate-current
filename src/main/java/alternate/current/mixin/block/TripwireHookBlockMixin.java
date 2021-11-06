@@ -6,6 +6,7 @@ import alternate.current.interfaces.mixin.IBlock;
 
 import net.minecraft.BlockState;
 import net.minecraft.block.TripwireHookBlock;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
@@ -20,6 +21,6 @@ public class TripwireHookBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsStrongPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return state.get(TripwireHookBlock.FACING) == dir;
+		return state.get(Properties.HORIZONTAL_FACING) == dir;
 	}
 }

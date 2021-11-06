@@ -55,7 +55,7 @@ public class Node {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 		
-		this.pos = pos;
+		this.pos = pos.toImmutable();
 		this.state = state;
 		this.flags = 0;
 		
