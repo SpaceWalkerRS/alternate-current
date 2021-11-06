@@ -12,7 +12,7 @@ import alternate.current.redstone.WorldAccess;
 import net.minecraft.server.world.ServerWorld;
 
 @Mixin(ServerWorld.class)
-public abstract class ServerWorldMixin implements IServerWorld {
+public class ServerWorldMixin implements IServerWorld {
 	
 	private final Map<WireBlock, WorldAccess> access = new HashMap<>();
 	
