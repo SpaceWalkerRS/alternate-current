@@ -2,6 +2,7 @@ package alternate.current.redstone;
 
 import java.util.Arrays;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 
@@ -61,10 +62,12 @@ public class Node {
 		
 		Arrays.fill(neighbors, null);
 		
-		if (this.world.isSolidBlock(this.pos, this.state)) {
+		Block block = state.getBlock();
+		
+		if (block.isFullCube()) {
 			this.flags |= SOLID_BLOCK;
 		}
-		if (this.state.getBlock().emitsRedstonePower()) {
+		if (block.emitsRedstonePower()) {
 			this.flags |= REDSTONE;
 		}
 		

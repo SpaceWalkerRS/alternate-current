@@ -1,5 +1,4 @@
 package alternate.current.mixin.block;
-
 import org.spongepowered.asm.mixin.Mixin;
 
 import alternate.current.interfaces.mixin.IBlock;
@@ -11,7 +10,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 @Mixin(AbstractButtonBlock.class)
-public abstract class AbstractButtonBlockMixin implements IBlock {
+public class AbstractButtonBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {

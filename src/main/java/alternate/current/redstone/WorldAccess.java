@@ -8,8 +8,8 @@ import net.minecraft.block.Blocks;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.chunk.BlockStorage;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkSection;
 
 public class WorldAccess {
 	
@@ -44,13 +44,13 @@ public class WorldAccess {
 		int z = pos.getZ();
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
+		ChunkSection section = chunk.getBlockStorage()[y >> 4];
 		
-		if (storage == null) {
+		if (section == null) {
 			return Blocks.AIR.getDefaultState();
 		}
 		
-		return storage.getBlockState(x & 15, y & 15, z & 15);
+		return section.getBlockState(x & 15, y & 15, z & 15);
 	}
 	
 	/**
@@ -69,35 +69,35 @@ public class WorldAccess {
 		int z = pos.getZ();
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
+		ChunkSection section = chunk.getBlockStorage()[y >> 4];
 		
-		if (storage == null) {
-			return false;
+		if (section == null) {
+			return false; // we should never get here
 		}
 		
 		x &= 15;
 		y &= 15;
 		z &= 15;
 		
-		BlockState prevState = storage.getBlockState(x, y, z);
+		BlockState prevState = section.getBlockState(x, y, z);
 		
 		if (state == prevState) {
 			return false;
 		}
 		
-		storage.method_1424(x, y, z, state);
+		section.method_1424(x, y, z, state);
 		
 		// notify clients of the BlockState change
-		world.onBlockUpdate(pos);
+		world.getPlayerWorldManager().method_6002(pos);
 		// mark the chunk for saving
-		chunk.setModified(true);
+		chunk.setModified();
 		
 		return true;
 	}
 	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
 		state.getBlock().dropAsItem(world, pos, state, 0);
-		return world.setAir(pos);
+		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, Block fromBlock) {
@@ -106,14 +106,6 @@ public class WorldAccess {
 	
 	public void updateNeighborBlock(BlockPos pos, BlockState state, Block fromBlock) {
 		state.getBlock().neighborUpdate(world, pos, state, fromBlock);
-	}
-	
-	public boolean isSolidBlock(BlockPos pos) {
-		return getBlockState(pos).getBlock().isFullCube();
-	}
-	
-	public boolean isSolidBlock(BlockPos pos, BlockState state) {
-		return state.getBlock().isFullCube();
 	}
 	
 	public boolean emitsWeakPowerTo(BlockPos pos, BlockState state, Direction dir) {

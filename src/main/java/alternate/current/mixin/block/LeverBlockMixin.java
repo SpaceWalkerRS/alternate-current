@@ -11,7 +11,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 @Mixin(LeverBlock.class)
-public abstract class LeverBlockMixin implements IBlock {
+public class LeverBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
