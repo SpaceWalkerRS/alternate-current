@@ -10,20 +10,11 @@ import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WorldAccess;
 
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.profiler.Profiler;
-import net.minecraft.world.SaveHandler;
-import net.minecraft.world.World;
-import net.minecraft.world.dimension.Dimension;
-import net.minecraft.world.level.LevelInfo;
 
 @Mixin(ServerWorld.class)
-public abstract class ServerWorldMixin extends World implements IServerWorld {
+public class ServerWorldMixin implements IServerWorld {
 	
 	private final Map<WireBlock, WorldAccess> access = new HashMap<>();
-	
-	public ServerWorldMixin(SaveHandler saveHandler, String string, Dimension dimension, LevelInfo levelInfo, Profiler profiler) {
-		super(saveHandler, string, dimension, levelInfo, profiler);
-	}
 	
 	@Override
 	public WorldAccess getAccess(WireBlock wireBlock) {

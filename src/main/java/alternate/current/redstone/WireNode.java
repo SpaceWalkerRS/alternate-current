@@ -95,6 +95,6 @@ public class WireNode extends Node {
 		currentPower = wireBlock.clampPower(virtualPower);
 		state = wireBlock.updatePowerState(world, pos, state, currentPower);
 		
-		return world.setBlockState(pos, state);
+		return world.setWireState(pos, state);
 	}
 }

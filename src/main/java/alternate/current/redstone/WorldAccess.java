@@ -33,16 +33,23 @@ public class WorldAccess {
 		return wireHandler;
 	}
 	
-	private boolean isInWorld(int x, int y, int z) {
-		return z >= X_MIN && z < X_MAX && y >= Y_MIN && y < Y_MAX && z >= Z_MIN && z < Z_MAX;
+	public static boolean isOutOfBounds(BlockPos pos) {
+		return isOutOfBounds(pos.getX(), pos.getY(), pos.getZ());
 	}
 	
+	public static boolean isOutOfBounds(int x, int y, int z) {
+		return x < X_MIN || x >= X_MAX || y < Y_MIN || y >= Y_MAX || z < Z_MIN || z >= Z_MAX;
+	}
+	
+	/**
+	 * A slightly optimized version of World.getBlockState.
+	 */
 	public BlockState getBlockState(BlockPos pos) {
 		int x = pos.getX();
 		int y = pos.getY();
 		int z = pos.getZ();
 		
-		if (!isInWorld(x, y, z)) {
+		if (isOutOfBounds(x, y, z)) {
 			return BlockState.AIR;
 		}
 		
@@ -56,22 +63,17 @@ public class WorldAccess {
 		return getBlockState(storage, x & 15, y & 15, z & 15);
 	}
 	
-	private BlockState getBlockState(BlockStorage storage, int x, int y, int z) {
-		Block block = storage.method_8935(x, y, z);
-		return block == Blocks.AIR ? BlockState.AIR : new BlockState(block, storage.method_8940(x, y, z));
-	}
-	
 	/**
 	 * An optimized version of World.setBlockState. Since this method is
 	 * only used to update redstone wire block states, lighting checks,
 	 * height map updates, and block entity updates are omitted.
 	 */
-	public boolean setBlockState(BlockPos pos, BlockState state) {
+	public boolean setWireState(BlockPos pos, BlockState state) {
 		int x = pos.getX();
 		int y = pos.getY();
 		int z = pos.getZ();
 		
-		if (!isInWorld(x, y, z)) {
+		if (isOutOfBounds(x, y, z)) {
 			return false;
 		}
 		
@@ -79,45 +81,55 @@ public class WorldAccess {
 		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
 		
 		if (storage == null) {
-			return false;
+			return false; // we should never get here
 		}
 		
-		x &= 15;
-		y &= 15;
-		z &= 15;
+		int sectionX = x & 15;
+		int sectionY = y & 15;
+		int sectionZ = z & 15;
 		
-		BlockState prevState = getBlockState(storage, x, y, z);
+		BlockState prevState = getBlockState(storage, sectionX, sectionY, sectionZ);
 		
 		if (state.equals(prevState)) {
 			return false;
 		}
 		
-		storage.method_8937(x, y, z, state.getBlock());
-		storage.method_8936(x, y, z, state.getBlockData());
+		setBlockState(storage, sectionX, sectionY, sectionZ, state, prevState);
 		
 		// notify clients of the BlockState change
-		world.method_8518(pos.getX(), pos.getY(), pos.getZ());
+		world.getPlayerWorldManager().method_10362(x, y, z);
 		// mark the chunk for saving
 		chunk.method_1385();
 		
 		return true;
 	}
 	
+	private BlockState getBlockState(BlockStorage storage, int chunkX, int chunkY, int chunkZ) {
+		Block block = storage.method_8935(chunkX, chunkY, chunkZ);
+		return block == Blocks.AIR ? BlockState.AIR : new BlockState(block, storage.method_8940(chunkX, chunkY, chunkZ));
+	}
+	
+	private void setBlockState(BlockStorage storage, int sectionX, int sectionY, int sectionZ, BlockState state, BlockState prevState) {
+		Block block = state.getBlock();
+		
+		if (!prevState.isOf(block)) {
+			storage.method_8937(sectionX, sectionY, sectionZ, block);
+		}
+		
+		storage.method_8936(sectionX, sectionY, sectionZ, state.getBlockData());
+	}
+	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
-		state.getBlock().method_8624(world, pos.getX(), pos.getY(), pos.getZ(), 0, 0);
-		return world.method_8515(pos.getX(), pos.getY(), pos.getZ());
+		state.dropAsItem(world, pos);
+		return state.breakBlock(world, pos, 2);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, Block fromBlock) {
-		updateNeighborBlock(pos, getBlockState(pos), fromBlock);
+		getBlockState(pos).neighborUpdate(world, pos, fromBlock);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, BlockState state, Block fromBlock) {
-		state.getBlock().neighborUpdate(world, pos.getX(), pos.getY(), pos.getZ(), fromBlock);
-	}
-	
-	public boolean isSolidBlock(BlockPos pos) {
-		return getBlockState(pos).isSolid();
+		state.neighborUpdate(world, pos, fromBlock);
 	}
 	
 	public int getWeakPowerFrom(BlockPos pos, BlockState state, Direction dir) {
@@ -125,7 +137,7 @@ public class WorldAccess {
 	}
 	
 	public int getStrongPowerFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getWeakPowerFrom(world, pos, dir);
+		return state.getStrongPowerFrom(world, pos, dir);
 	}
 	
 	public boolean shouldBreak(BlockPos pos, BlockState state) {

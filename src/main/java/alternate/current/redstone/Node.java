@@ -61,7 +61,7 @@ public class Node {
 		
 		Arrays.fill(neighbors, null);
 		
-		if (this.state.isSolid()) {
+		if (this.state.isSolidBlock()) {
 			this.flags |= SOLID_BLOCK;
 		}
 		if (this.state.emitsRedstonePower()) {

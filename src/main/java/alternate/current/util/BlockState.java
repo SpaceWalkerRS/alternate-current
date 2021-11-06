@@ -44,7 +44,7 @@ public class BlockState {
 		return blockData;
 	}
 	
-	public BlockState with(int blockData) {
+	public BlockState withBlockData(int blockData) {
 		return new BlockState(block, blockData);
 	}
 	
@@ -52,7 +52,7 @@ public class BlockState {
 		return this == AIR;
 	}
 	
-	public boolean isSolid() {
+	public boolean isSolidBlock() {
 		return block.isFullCube();
 	}
 	
@@ -70,5 +70,17 @@ public class BlockState {
 	
 	public boolean canBePlacedAt(World world, BlockPos pos) {
 		return block.method_8628(world, pos.getX(), pos.getY(), pos.getZ());
+	}
+	
+	public void dropAsItem(World world, BlockPos pos) {
+		block.method_8624(world, pos.getX(), pos.getY(), pos.getZ(), 0, 0);
+	}
+	
+	public boolean breakBlock(World world, BlockPos pos, int flags) {
+		return world.method_8510(pos.getX(), pos.getY(), pos.getZ(), Blocks.AIR, 0, flags);
+	}
+	
+	public void neighborUpdate(World world, BlockPos pos, Block fromBlock) {
+		block.neighborUpdate(world, pos.getX(), pos.getY(), pos.getZ(), fromBlock);
 	}
 }
