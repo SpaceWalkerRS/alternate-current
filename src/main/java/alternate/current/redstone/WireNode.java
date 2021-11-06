@@ -39,7 +39,7 @@ public class WireNode extends Node {
 	public WireNode(WireBlock wireBlock, WorldAccess world, BlockPos pos, BlockState state) {
 		super(wireBlock, world);
 		
-		this.pos = pos;
+		this.pos = pos.toImmutable();
 		this.state = state;
 		
 		this.connections = new WireConnectionManager(this);

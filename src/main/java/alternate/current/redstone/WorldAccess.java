@@ -1,6 +1,7 @@
 package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IBlock;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -72,7 +73,7 @@ public class WorldAccess {
 		ChunkSection section = chunk.getSections()[y >> 4];
 		
 		if (section == null) {
-			return false;
+			return false; // we should never get here
 		}
 		
 		x &= 15;
@@ -90,7 +91,7 @@ public class WorldAccess {
 		// notify clients of the BlockState change
 		world.getRaidManager().onBlockChange(pos);
 		// mark the chunk for saving
-		chunk.setDirty(true);
+		chunk.markDirty();
 		
 		return true;
 	}
@@ -100,8 +101,13 @@ public class WorldAccess {
 		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
 	}
 	
-	public void updateObserver(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
-		((ObserverBlock)state.getBlock()).method_26711(state, world, pos, fromBlock, fromPos);
+	public void updateObserver(BlockPos pos, Block fromBlock, BlockPos fromPos) {
+		BlockState state = getBlockState(pos);
+		Block block = state.getBlock();
+		
+		if (block == Blocks.OBSERVER) {
+			((ObserverBlock)block).method_26711(state, world, pos, fromBlock, fromPos);
+		}
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
