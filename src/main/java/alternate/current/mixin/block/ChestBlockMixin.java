@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 @Mixin(ChestBlock.class)
 public class ChestBlockMixin implements IBlock {
 	
-	@Shadow @Final public ChestBlock.Type field_24266;
+	@Shadow @Final private ChestBlock.Type field_24266;
 	
 	@Override
 	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
