@@ -14,7 +14,7 @@ public class WireNode extends Node {
 	
 	public final WireConnectionManager connections;
 	
-	/** The power level this wire currently holds in the world */
+	/** The power level this wire currently holds in the world. */
 	public int currentPower;
 	/**
 	 * While calculating power changes for a network, this field
@@ -22,17 +22,16 @@ public class WireNode extends Node {
 	 * have.
 	 */
 	public int virtualPower;
-	/** The power level received from non-wire components */
+	/** The power level received from non-wire components. */
 	public int externalPower;
 	/**
 	 * A 4-bit number that keeps track of the power flow of the
 	 * wires that give this wire its power level.
 	 */
 	public int flowIn;
-	/** The direction of power flow, based on the incoming flow */
+	/** The direction of power flow, based on the incoming flow. */
 	public int flowOut;
 	public boolean shouldBreak;
-	public boolean removed;
 	public boolean prepared;
 	public boolean inNetwork;
 	
@@ -67,6 +66,9 @@ public class WireNode extends Node {
 	}
 	
 	public boolean offerPower(int power, int iDir) {
+		if (removed || shouldBreak) {
+			return false;
+		}
 		if (power == virtualPower) {
 			flowIn |= (1 << iDir);
 			return false;

@@ -108,11 +108,11 @@ public class WorldAccess {
 		state.neighborUpdate(world, pos, fromBlock, fromPos, false);
 	}
 	
-	public boolean isSolidBlock(BlockPos pos) {
+	public boolean isConductor(BlockPos pos) {
 		return getBlockState(pos).isSolidBlock(world, pos);
 	}
 	
-	public boolean isSolidBlock(BlockPos pos, BlockState state) {
+	public boolean isConductor(BlockPos pos, BlockState state) {
 		return state.isSolidBlock(world, pos);
 	}
 	

@@ -10,6 +10,7 @@ import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.redstone.Node;
 import alternate.current.redstone.WireBlock;
 import alternate.current.redstone.WireHandler;
+import alternate.current.redstone.WireHandler.NodeProvider;
 import alternate.current.redstone.WireNode;
 import alternate.current.redstone.WorldAccess;
 
@@ -110,38 +111,38 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 	
 	@Override
 	public BlockState updatePowerState(WorldAccess world, BlockPos pos, BlockState state, int power) {
-		return state.with(Properties.POWER, clampPower(power));
+		return state.with(Properties.POWER, power);
 	}
 	
 	@Override
-	public void findWireConnections(WireNode wire, WireHandler.NodeProvider nodeProvider) {
-		boolean belowIsSolid = nodeProvider.getNeighbor(wire, WireHandler.Directions.DOWN).isSolidBlock();
-		boolean aboveIsSolid = nodeProvider.getNeighbor(wire, WireHandler.Directions.UP).isSolidBlock();
+	public void findWireConnections(WireNode wire, NodeProvider nodes) {
+		boolean belowIsConductor = nodes.getNeighbor(wire, WireHandler.Directions.DOWN).isConductor();
+		boolean aboveIsConductor = nodes.getNeighbor(wire, WireHandler.Directions.UP).isConductor();
 		
-		for (int iDir = 0; iDir < WireHandler.Directions.HORIZONTAL.length; iDir++) {
-			Node neighbor = nodeProvider.getNeighbor(wire, iDir);
+		wire.connections.set((connections, iDir) -> {
+			Node neighbor = nodes.getNeighbor(wire, iDir);
 			
 			if (neighbor.isWire()) {
-				wire.connections.add(neighbor.asWire(), iDir, true, true);
-				continue;
+				connections.add(neighbor.asWire(), iDir, true, true);
+				return;
 			}
 			
-			boolean sideIsSolid = neighbor.isSolidBlock();
+			boolean sideIsConductor = neighbor.isConductor();
 			
-			if (!sideIsSolid) {
-				Node node = nodeProvider.getNeighbor(neighbor, WireHandler.Directions.DOWN);
+			if (!sideIsConductor) {
+				Node node = nodes.getNeighbor(neighbor, WireHandler.Directions.DOWN);
 				
 				if (node.isWire()) {
-					wire.connections.add(node.asWire(), iDir, true, belowIsSolid);
+					connections.add(node.asWire(), iDir, true, belowIsConductor);
 				}
 			}
-			if (!aboveIsSolid) {
-				Node node = nodeProvider.getNeighbor(neighbor, WireHandler.Directions.UP);
+			if (!aboveIsConductor) {
+				Node node = nodes.getNeighbor(neighbor, WireHandler.Directions.UP);
 				
 				if (node.isWire()) {
-					wire.connections.add(node.asWire(), iDir, sideIsSolid, true);
+					connections.add(node.asWire(), iDir, sideIsConductor, true);
 				}
 			}
-		}
+		});
 	}
 }
