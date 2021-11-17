@@ -31,6 +31,7 @@ public class WireNode extends Node {
 	public int flowIn;
 	/** The direction of power flow, based on the incoming flow. */
 	public int flowOut;
+	public boolean removed;
 	public boolean shouldBreak;
 	public boolean prepared;
 	public boolean inNetwork;
@@ -47,7 +48,7 @@ public class WireNode extends Node {
 	}
 	
 	@Override
-	public Node update(BlockPos pos, BlockState state) {
+	public Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		throw new UnsupportedOperationException("Cannot update a WireNode!");
 	}
 	

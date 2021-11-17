@@ -28,7 +28,7 @@ public class Node {
 	
 	public BlockPos pos;
 	public BlockState state;
-	public boolean removed;
+	public boolean invalid;
 	
 	private int flags;
 	
@@ -53,17 +53,20 @@ public class Node {
 		return pos.hashCode();
 	}
 	
-	public Node update(BlockPos pos, BlockState state) {
+	public Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		if (wireBlock.isOf(state)) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 		
+		if (clearNeighbors) {
+			Arrays.fill(neighbors, null);
+		}
+		
 		this.pos = pos.toImmutable();
 		this.state = state;
-		this.removed = false;
-		this.flags = 0;
+		this.invalid = false;
 		
-		Arrays.fill(neighbors, null);
+		this.flags = 0;
 		
 		if (this.world.isConductor(this.pos, this.state)) {
 			this.flags |= CONDUCTOR;
