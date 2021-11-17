@@ -1,7 +1,7 @@
 package alternate.current.redstone;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 
@@ -10,6 +10,7 @@ import alternate.current.util.BlockUtil;
 //import alternate.current.util.profiler.Profiler;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import net.minecraft.block.BlockState;
@@ -119,7 +120,7 @@ import net.minecraft.util.math.Direction;
  * locationality entirely, it even removes directionality in a large
  * number of cases. Unlike in 'RedstoneWireTurbo', however, I have decided
  * to keep a directional element in ambiguous cases, rather than to 
- * introduce randomness.
+ * introduce randomness, though this is trivial to change.
  * 
  * <p>
  * While this change fixes the block update order of individual wires,
@@ -262,18 +263,18 @@ public class WireHandler {
 	private final int maxPower;
 	private final int powerStep;
 	
-	/** All the wires in the network */
+	/** All the wires in the network. */
 	private final List<WireNode> network;
-	/** Map of wires and neighboring blocks */
+	/** Map of wires and neighboring blocks. */
 	private final Long2ObjectMap<Node> nodes;
-	/** All the power changes that need to happen */
+	/** All the power changes that need to happen. */
 	private final Queue<WireNode> powerChanges;
 	
 	private int rootCount;
 	// Rather than creating new nodes every time a network is updated
 	// we keep a cache of nodes that can be re-used.
 	private Node[] nodeCache;
-	private int usedNodes;
+	private int nodeCount;
 	
 	private boolean updatingPower;
 	
@@ -293,18 +294,34 @@ public class WireHandler {
 	}
 	
 	private Node getOrAddNode(BlockPos pos) {
-		return nodes.computeIfAbsent(pos.asLong(), key -> getNextNode(pos));
+		return nodes.compute(pos.asLong(), (key, node) -> {
+			if (node == null) {
+				return getNextNode(pos);
+			}
+			if (node.invalid) {
+				return revalidateNode(node);
+			}
+			
+			return node;
+		});
 	}
 	
 	private Node getNeighbor(Node node, int iDir) {
 		Node neighbor = node.neighbors[iDir];
 		
-		if (neighbor == null) {
+		if (neighbor == null || neighbor.invalid) {
 			Direction dir = Directions.ALL[iDir];
-			neighbor = getOrAddNode(node.pos.offset(dir));
+			BlockPos pos = node.pos.offset(dir);
 			
-			node.neighbors[iDir] = neighbor;
-			neighbor.neighbors[Directions.iOpposite(iDir)] = node;
+			Node oldNeighbor = neighbor;
+			neighbor = getOrAddNode(pos);
+			
+			if (neighbor != oldNeighbor) {
+				int iOpp = Directions.iOpposite(iDir);
+				
+				node.neighbors[iDir] = neighbor;
+				neighbor.neighbors[iOpp] = node;
+			}
 		}
 		
 		return neighbor;
@@ -314,20 +331,22 @@ public class WireHandler {
 		return nodes.remove(pos.asLong());
 	}
 	
-	private void filterNodes() {
-		nodes.values().removeIf(node -> {
-			if (node.isWire()) {
-				WireNode wire = node.asWire();
-				
-				wire.prepared = false;
-				wire.inNetwork = false;
-				Arrays.fill(wire.neighbors, null);
-				
-				return false;
-			}
+	private Node revalidateNode(Node node) {
+		node.invalid = false;
+		
+		if (node.isWire()) {
+			WireNode wire = node.asWire();
 			
-			return true;
-		});
+			wire.prepared = false;
+			wire.inNetwork = false;
+		} else {
+			BlockPos pos = node.pos;
+			BlockState state = world.getBlockState(pos);
+			
+			node.update(pos, state, false);
+		}
+		
+		return node;
 	}
 	
 	/**
@@ -342,7 +361,7 @@ public class WireHandler {
 			return new WireNode(wireBlock, world, pos, state);
 		}
 		
-		return getNextNode().update(pos, state);
+		return getNextNode().update(pos, state, true);
 	}
 	
 	/**
@@ -350,11 +369,11 @@ public class WireHandler {
 	 * is already in use, increase it in size first.
 	 */
 	private Node getNextNode() {
-		if (usedNodes == nodeCache.length) {
+		if (nodeCount == nodeCache.length) {
 			increaseNodeCache();
 		}
 		
-		return nodeCache[usedNodes++];
+		return nodeCache[nodeCount++];
 	}
 	
 	private void increaseNodeCache() {
@@ -379,6 +398,7 @@ public class WireHandler {
 	 * update.
 	 */
 	public void onWireUpdated(BlockPos pos) {
+		invalidateNodes();
 		findRoots(pos, true);
 		tryUpdatePower();
 	}
@@ -387,6 +407,7 @@ public class WireHandler {
 	 * This method is called whenever a redstone wire is placed.
 	 */
 	public void onWireAdded(BlockPos pos) {
+		invalidateNodes();
 		findRoots(pos, false);
 		tryUpdatePower();
 	}
@@ -406,15 +427,39 @@ public class WireHandler {
 			// If this field is set to 'true', the removal of this
 			// wire was part of already ongoing power changes, so
 			// we can exit early here.
-			if (wire.shouldBreak) {
+			if (updatingPower && wire.shouldBreak) {
 				return;
 			}
 		}
 		
+		wire.invalid = true;
 		wire.removed = true;
 		
+		invalidateNodes();
 		tryAddRoot(wire);
 		tryUpdatePower();
+	}
+	
+	/**
+	 * The nodes map is a snapshot of the state of the world. It
+	 * becomes invalid when power changes are carried out, since
+	 * the block and shape updates can lead to block changes. If
+	 * these block changes cause the network to be updated again
+	 * every node must be invalided, and revalidated before it is
+	 * used again. This ensures the power calculations are of the
+	 * network are accurate.
+	 */
+	private void invalidateNodes() {
+		if (updatingPower && !nodes.isEmpty()) {
+			Iterator<Entry<Node>> it = nodes.long2ObjectEntrySet().iterator();
+			
+			while (it.hasNext()) {
+				Entry<Node> entry = it.next();
+				Node node = entry.getValue();
+				
+				node.invalid = true;
+			}
+		}
 	}
 	
 	/**
@@ -470,14 +515,14 @@ public class WireHandler {
 		// If the wire at the given position is not in an invalid
 		// state or is not part of a larger network, we can exit
 		// early.
-		if (!checkNeighbors || !wire.inNetwork || wire.connections.all.length == 0) {
+		if (!checkNeighbors || !wire.inNetwork || wire.connections.count == 0) {
 			return;
 		}
 		
 		for (int iDir : DEFAULT_FULL_UPDATE_ORDER) {
 			Node neighbor = getNeighbor(wire, iDir);
 			
-			if (neighbor.isSolidBlock()) {
+			if (neighbor.isConductor()) {
 				// Redstone components can power multiple wires through
 				// solid blocks.
 				findRedstoneAround(neighbor, Directions.iOpposite(iDir));
@@ -529,7 +574,7 @@ public class WireHandler {
 			
 			if (weak && neighbor.isWire()) {
 				tryAddRoot(neighbor.asWire());
-			} else if (strong && neighbor.isSolidBlock()) {
+			} else if (strong && neighbor.isConductor()) {
 				findRootsAround(neighbor, iOpp);
 			}
 		}
@@ -566,7 +611,6 @@ public class WireHandler {
 			network.add(wire);
 			rootCount++;
 			
-
 			if (wire.connections.flow >= 0) {
 				wire.flowOut = wire.connections.flow;
 			}
@@ -595,13 +639,14 @@ public class WireHandler {
 		}
 		
 		wire.prepared = true;
+		wire.inNetwork = false;
 		
 		if (!wire.removed && !wire.shouldBreak && world.shouldBreak(wire.pos, wire.state)) {
 			wire.shouldBreak = true;
 		}
 		
 		wire.virtualPower = wire.externalPower = (wire.removed || wire.shouldBreak) ? minPower : getExternalPower(wire);
-		findConnections(wire);
+		wireBlock.findWireConnections(wire, this::getNeighbor);
 	}
 	
 	private int getExternalPower(WireNode wire) {
@@ -614,7 +659,7 @@ public class WireHandler {
 				continue;
 			}
 			
-			if (neighbor.isSolidBlock()) {
+			if (neighbor.isConductor()) {
 				power = Math.max(power, getStrongPowerTo(neighbor, Directions.iOpposite(iDir)));
 			}
 			if (neighbor.isRedstoneComponent()) {
@@ -652,14 +697,6 @@ public class WireHandler {
 	}
 	
 	/**
-	 * Find the connections this wire has to neighboring wires.
-	 */
-	private void findConnections(WireNode wire) {
-		wire.connections.clear();
-		wireBlock.findWireConnections(wire, this::getNeighbor);
-	}
-	
-	/**
 	 * Determine the power level the given wire receives from the
 	 * blocks around it. Power from non-wire components has
 	 * already been determined, so only power received from other
@@ -693,7 +730,9 @@ public class WireHandler {
 	 * neighboring wires.
 	 */
 	private void findWirePower(WireNode wire, boolean ignoreNetwork) {
-		for (WireConnection connection : wire.connections.all) {
+		for (int c = 0; c < wire.connections.count; c++) {
+			WireConnection connection = wire.connections.all[c];
+			
 			if (!connection.in) {
 				continue;
 			}
@@ -717,9 +756,10 @@ public class WireHandler {
 		if (rootCount > 0 ) {
 			updatePower();
 		}
-		
-		usedNodes = 0;
-		nodes.clear();
+		if (!updatingPower) {
+			nodeCount = 0;
+			nodes.clear();
+		}
 	}
 	
 	/**
@@ -781,10 +821,6 @@ public class WireHandler {
 		rootCount = 0;
 		network.clear();
 		
-		// Clear out the Nodes map such that only the WireNodes remain.
-//		profiler.swap("filter nodes");		
-		filterNodes();
-		
 		// Carry out the power changes and emit observer and block updates.
 //		profiler.swap("let power flow");
 		try {
@@ -814,7 +850,12 @@ public class WireHandler {
 			WireNode wire = network.get(index);
 			
 			for (int iDir : CARDINAL_UPDATE_ORDERS[wire.flowOut]) {
-				for (WireConnection connection : wire.connections.byDir[iDir]) {
+				int start = wire.connections.start(iDir);
+				int end = wire.connections.end(iDir);
+				
+				for (int c = start; c < end; c++) {
+					WireConnection connection = wire.connections.all[c];
+					
 					if (!connection.out) {
 						continue;
 					}
@@ -917,7 +958,12 @@ public class WireHandler {
 		int nextPower = Math.max(minPower, wire.virtualPower - powerStep);
 		
 		for (int iDir : CARDINAL_UPDATE_ORDERS[wire.flowOut]) {
-			for (WireConnection connection : wire.connections.byDir[iDir]) {
+			int start = wire.connections.start(iDir);
+			int end = wire.connections.end(iDir);
+			
+			for (int c = start; c < end; c++) {
+				WireConnection connection = wire.connections.all[c];
+				
 				if (!connection.out) {
 					continue;
 				}
@@ -1075,6 +1121,7 @@ public class WireHandler {
 		}
 	}
 	
+	@FunctionalInterface
 	public interface NodeProvider {
 		
 		public Node getNeighbor(Node node, int iDir);
