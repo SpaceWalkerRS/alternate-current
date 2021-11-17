@@ -6,8 +6,6 @@ import alternate.current.redstone.WireHandler.Directions;
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 
-import net.minecraft.block.Block;
-
 /**
  * A Node represents a block in the world. It is tied to a
  * specific wire block type so it can be identified as part of
