@@ -1,6 +1,7 @@
 package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IBlock;
+import alternate.current.util.BlockUtil;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -97,7 +98,7 @@ public class WorldAccess {
 	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
 		state.getBlock().dropAsItem(world, pos, state, 0);
-		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
+		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), BlockUtil.FLAG_NOTIFY_CLIENTS);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, Block fromBlock) {
