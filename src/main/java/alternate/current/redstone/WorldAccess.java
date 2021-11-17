@@ -1,6 +1,7 @@
 package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IBlock;
+import alternate.current.util.BlockUtil;
 
 import net.minecraft.BlockState;
 import net.minecraft.block.Block;
@@ -97,12 +98,12 @@ public class WorldAccess {
 	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
 		state.dropStacks(world, pos, 0);
-		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
+		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), BlockUtil.FLAG_NOTIFY_CLIENTS);
 	}
 	
 	public void updateNeighborShape(BlockPos pos, BlockState state, Direction fromDir, BlockPos fromPos, BlockState fromState) {
 		BlockState newState = state.getStateForNeighborUpdate(fromDir, fromState, world, pos, fromPos);
-		Block.replaceBlock(state, newState, world, pos, 2);
+		Block.replaceBlock(state, newState, world, pos, BlockUtil.FLAG_NOTIFY_CLIENTS);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
@@ -113,11 +114,11 @@ public class WorldAccess {
 		state.method_73267(world, pos, fromBlock, fromPos);
 	}
 	
-	public boolean isSolidBlock(BlockPos pos) {
+	public boolean isConductor(BlockPos pos) {
 		return getBlockState(pos).method_73303();
 	}
 	
-	public boolean isSolidBlock(BlockPos pos, BlockState state) {
+	public boolean isConductor(BlockPos pos, BlockState state) {
 		return state.method_73303();
 	}
 	

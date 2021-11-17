@@ -1,4 +1,5 @@
 package alternate.current.mixin.block;
+
 import org.spongepowered.asm.mixin.Mixin;
 
 import alternate.current.interfaces.mixin.IBlock;
