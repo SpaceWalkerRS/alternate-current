@@ -52,7 +52,7 @@ public class BlockState {
 		return this == AIR;
 	}
 	
-	public boolean isSolidBlock() {
+	public boolean isConductor() {
 		return block.isFullCube();
 	}
 	

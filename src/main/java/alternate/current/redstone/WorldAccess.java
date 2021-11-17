@@ -2,6 +2,7 @@ package alternate.current.redstone;
 
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
+import alternate.current.util.BlockUtil;
 import alternate.current.util.Direction;
 
 import net.minecraft.block.Block;
@@ -54,13 +55,13 @@ public class WorldAccess {
 		}
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
+		BlockStorage section = chunk.getBlockStorage()[y >> 4];
 		
-		if (storage == null) {
+		if (section == null) {
 			return BlockState.AIR;
 		}
 		
-		return getBlockState(storage, x & 15, y & 15, z & 15);
+		return getBlockState(section, x & 15, y & 15, z & 15);
 	}
 	
 	/**
@@ -78,9 +79,9 @@ public class WorldAccess {
 		}
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		BlockStorage storage = chunk.getBlockStorage()[y >> 4];
+		BlockStorage section = chunk.getBlockStorage()[y >> 4];
 		
-		if (storage == null) {
+		if (section == null) {
 			return false; // we should never get here
 		}
 		
@@ -88,13 +89,13 @@ public class WorldAccess {
 		int sectionY = y & 15;
 		int sectionZ = z & 15;
 		
-		BlockState prevState = getBlockState(storage, sectionX, sectionY, sectionZ);
+		BlockState prevState = getBlockState(section, sectionX, sectionY, sectionZ);
 		
 		if (state.equals(prevState)) {
 			return false;
 		}
 		
-		setBlockState(storage, sectionX, sectionY, sectionZ, state, prevState);
+		setBlockState(section, sectionX, sectionY, sectionZ, state, prevState);
 		
 		// notify clients of the BlockState change
 		world.getPlayerWorldManager().method_10362(x, y, z);
@@ -104,24 +105,24 @@ public class WorldAccess {
 		return true;
 	}
 	
-	private BlockState getBlockState(BlockStorage storage, int chunkX, int chunkY, int chunkZ) {
-		Block block = storage.method_8935(chunkX, chunkY, chunkZ);
-		return block == Blocks.AIR ? BlockState.AIR : new BlockState(block, storage.method_8940(chunkX, chunkY, chunkZ));
+	private BlockState getBlockState(BlockStorage section, int sectionX, int sectionY, int sectionZ) {
+		Block block = section.method_8935(sectionX, sectionY, sectionZ);
+		return block == Blocks.AIR ? BlockState.AIR : new BlockState(block, section.method_8940(sectionX, sectionY, sectionZ));
 	}
 	
-	private void setBlockState(BlockStorage storage, int sectionX, int sectionY, int sectionZ, BlockState state, BlockState prevState) {
+	private void setBlockState(BlockStorage section, int sectionX, int sectionY, int sectionZ, BlockState state, BlockState prevState) {
 		Block block = state.getBlock();
 		
 		if (!prevState.isOf(block)) {
-			storage.method_8937(sectionX, sectionY, sectionZ, block);
+			section.method_8937(sectionX, sectionY, sectionZ, block);
 		}
 		
-		storage.method_8936(sectionX, sectionY, sectionZ, state.getBlockData());
+		section.method_8936(sectionX, sectionY, sectionZ, state.getBlockData());
 	}
 	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
 		state.dropAsItem(world, pos);
-		return state.breakBlock(world, pos, 2);
+		return state.breakBlock(world, pos, BlockUtil.FLAG_NOTIFY_CLIENTS);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, Block fromBlock) {
