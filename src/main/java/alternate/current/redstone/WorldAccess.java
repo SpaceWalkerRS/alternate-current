@@ -2,6 +2,7 @@ package alternate.current.redstone;
 
 import alternate.current.interfaces.mixin.IBlock;
 import alternate.current.util.BlockUtil;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
