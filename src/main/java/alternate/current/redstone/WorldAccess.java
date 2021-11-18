@@ -11,7 +11,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.ChunkStatus;
-import net.minecraft.world.chunk.WorldChunk;
 
 public class WorldAccess {
 	
@@ -85,7 +84,7 @@ public class WorldAccess {
 		// notify clients of the BlockState change
 		world.getChunkManager().markForUpdate(pos);
 		// mark the chunk for saving
-		((WorldChunk)chunk).markDirty();
+		chunk.setShouldSave(true);
 		
 		return true;
 	}
