@@ -58,6 +58,10 @@ public class WorldAccess {
 	 * height map updates, and block entity updates are omitted.
 	 */
 	public boolean setWireState(BlockPos pos, BlockState state) {
+		if (!wireBlock.isOf(state)) {
+			return false;
+		}
+		
 		int y = pos.getY();
 		
 		if (y < world.getBottomY() || y >= world.getTopY()) {
