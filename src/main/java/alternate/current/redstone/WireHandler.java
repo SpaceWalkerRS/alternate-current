@@ -294,6 +294,8 @@ public class WireHandler {
 	private Node getOrAddNode(BlockPos pos) {
 		return nodes.compute(pos, (key, node) -> {
 			if (node == null) {
+				// If there is not yet a node at this position,
+ 				// retrieve and update one from the cache.
 				return getNextNode(pos);
 			}
 			if (node.invalid) {
@@ -304,6 +306,10 @@ public class WireHandler {
 		});
 	}
 	
+	/**
+ 	 * Retrieve the neighbor of a node in the given direction and
+ 	 * create a link between the two nodes.
+ 	 */
 	private Node getNeighbor(Node node, int iDir) {
 		Node neighbor = node.neighbors[iDir];
 		
@@ -443,9 +449,9 @@ public class WireHandler {
 	 * becomes invalid when power changes are carried out, since
 	 * the block and shape updates can lead to block changes. If
 	 * these block changes cause the network to be updated again
-	 * every node must be invalided, and revalidated before it is
-	 * used again. This ensures the power calculations are of the
-	 * network are accurate.
+	 * every node must be invalidated, and revalidated before it
+	 * is used again. This ensures the power calculations are of
+	 * the network are accurate.
 	 */
 	private void invalidateNodes() {
 		if (updatingPower && !nodes.isEmpty()) {
@@ -725,7 +731,7 @@ public class WireHandler {
 	
 	/**
 	 * Determine the power level the given wire receives from
-	 * neighboring wires.
+	 * connected wires.
 	 */
 	private void findWirePower(WireNode wire, boolean ignoreNetwork) {
 		for (int c = 0; c < wire.connections.count; c++) {
@@ -847,6 +853,9 @@ public class WireHandler {
 		for (int index = 0; index < network.size(); index++) {
 			WireNode wire = network.get(index);
 			
+			// The order in which wires are added to the network
+ 			// can influence the order in which they update their
+ 			// power levels.
 			for (int iDir : CARDINAL_UPDATE_ORDERS[wire.flowOut]) {
 				int start = wire.connections.start(iDir);
 				int end = wire.connections.end(iDir);
@@ -968,7 +977,7 @@ public class WireHandler {
 				
 				WireNode connectedWire = connection.wire;
 				
-				if (!connectedWire.removed && !connectedWire.shouldBreak && connectedWire.offerPower(nextPower, iDir)) {
+				if (connectedWire.offerPower(nextPower, iDir)) {
 					queuePowerChange(connectedWire);
 				}
 			}
@@ -1047,12 +1056,13 @@ public class WireHandler {
 		Direction downward  = Direction.DOWN;
 		Direction upward    = Direction.UP;
 		
-		BlockPos front = wire.pos.offset(forward);
-		BlockPos right = wire.pos.offset(rightward);
-		BlockPos back  = wire.pos.offset(backward);
-		BlockPos left  = wire.pos.offset(leftward);
-		BlockPos below = wire.pos.offset(downward);
-		BlockPos above = wire.pos.offset(upward);
+		BlockPos self  = wire.pos;
+		BlockPos front = self.offset(forward);
+		BlockPos right = self.offset(rightward);
+		BlockPos back  = self.offset(backward);
+		BlockPos left  = self.offset(leftward);
+		BlockPos below = self.offset(downward);
+		BlockPos above = self.offset(upward);
 		
 		// direct neighbors (6)
 		updateNeighbor(front);
