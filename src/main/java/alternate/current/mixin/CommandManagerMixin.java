@@ -23,7 +23,7 @@ public class CommandManagerMixin {
 	@Inject(
 			method="<init>",
 			at = @At(
-					value = "RETURN",
+					value = "INVOKE",
 					shift = Shift.BEFORE,
 					target = "Lcom/mojang/brigadier/CommandDispatcher;findAmbiguities(Lcom/mojang/brigadier/AmbiguityConsumer;)V"
 			)
