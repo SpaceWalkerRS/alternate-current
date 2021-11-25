@@ -4,12 +4,12 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.brigadier.CommandDispatcher;
 
-import alternate.current.AlternateCurrentMod;
 import alternate.current.command.AlternateCurrentCommand;
 
 import net.minecraft.server.command.CommandManager;
@@ -23,12 +23,12 @@ public class CommandManagerMixin {
 	@Inject(
 			method="<init>",
 			at = @At(
-					value = "RETURN"
+					value = "INVOKE",
+					shift = Shift.BEFORE,
+					target = "Lcom/mojang/brigadier/CommandDispatcher;findAmbiguities(Lcom/mojang/brigadier/AmbiguityConsumer;)V"
 			)
 	)
 	private void registerCommands(CommandManager.RegistrationEnvironment environment, CallbackInfo ci) {
-		if (AlternateCurrentMod.DEBUG) {
-			AlternateCurrentCommand.registerCommand(dispatcher);
-		}
+		AlternateCurrentCommand.register(dispatcher);
 	}
 }
