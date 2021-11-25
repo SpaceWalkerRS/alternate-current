@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import alternate.current.AlternateCurrentMod;
 import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.redstone.Node;
 import alternate.current.redstone.WireBlock;
@@ -32,9 +33,11 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onUpdate(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
-		// Using redirects for calls to this method makes conflicts with
-		// other mods more likely, so we inject-cancel instead.
-		cir.setReturnValue(state);
+		if (AlternateCurrentMod.on) {
+			// Using redirects for calls to this method makes conflicts with
+			// other mods more likely, so we inject-cancel instead.
+			cir.setReturnValue(state);
+		}
 	}
 	
 	@Inject(
@@ -46,7 +49,9 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onBlockAdded(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
-		((IServerWorld)world).getAccess(this).getWireHandler().onWireAdded(pos);
+		if (AlternateCurrentMod.on) {
+			((IServerWorld)world).getAccess(this).getWireHandler().onWireAdded(pos);
+		}
 	}
 	
 	@Inject(
@@ -58,7 +63,9 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onBlockRemoved(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
-		((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(pos);
+		if (!AlternateCurrentMod.on) {
+			((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(pos);
+		}
 	}
 	
 	@Inject(
@@ -69,11 +76,13 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			)
 	)
 	private void onNeighborUpdate(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, CallbackInfo ci) {
-		if (!world.isClient) {
-			((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(pos);
+		if (AlternateCurrentMod.on) {
+			if (!world.isClient) {
+				((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(pos);
+			}
+			
+			ci.cancel();
 		}
-		
-		ci.cancel();
 	}
 	
 	@Override

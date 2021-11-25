@@ -5,7 +5,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import alternate.current.AlternateCurrentMod;
 import alternate.current.command.AlternateCurrentCommand;
 
 import net.minecraft.command.AbstractCommandManager;
@@ -21,8 +20,6 @@ public abstract class ServerCommandManagerMixin extends AbstractCommandManager {
 			)
 	)
 	private void registerCommands(CallbackInfo ci) {
-		if (AlternateCurrentMod.DEBUG) {
-			register(new AlternateCurrentCommand());
-		}
+		register(new AlternateCurrentCommand());
 	}
 }
