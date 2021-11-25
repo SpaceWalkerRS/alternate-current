@@ -34,11 +34,11 @@ Alternate Current fixes each of these problems as follows.
 
 (1)
 To make sure a wire calculates its power level as little as possible, we remove the recursive nature in which redstone wire updates in Vanilla. Instead, we build a network of connected wires, find those wires that receive redstone power from "outside" the network, and spread the power from there. This has a few advantages:
-  - Each wire checks for power from non-wire components just once, and
+  - Each wire checks for power from non-wire components just once, and from nearby wires just twice.
   - Each wire only sets its power level in the world once. This is important, because calls to World.setBlockState are even more expensive than calls to World.getBlockState.
 
 (2) There are 2 obvious ways in which we can reduce the number of block and shape updates.
-    - Get rid of the 18 redundant block updates and 16 redundant shape
+    - Get rid of the 18 redundant block updates and 16 redundant shape updates, so each wire only emits 24 block updates and 6 shape updates whenever it changes its power level.
     - Only emit block updates and shape updates once a wire reaches its final power level, rather than at each intermediary stage. 
 
 For an individual wire, these two optimizations are the best you can do, but for an entire grid, you can do better!
