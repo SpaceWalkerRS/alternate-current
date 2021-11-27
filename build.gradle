@@ -17,21 +17,22 @@ repositories {
 	}
 }
 
+// Comment out this block if you're using Chocoloom
+// Comment when using loom 0.10
 minecraft {
-	// Comment out this block if you're using Chocoloom
 	intermediaryUrl = {
 		return "https://maven.legacyfabric.net/net/fabricmc/intermediary/" + it + "/intermediary-" + it + "-v2.jar";
 	}
 }
+loom {
+// Uncomment when using loom 0.10
+//	setIntermediaryUrl('https://maven.legacyfabric.net/net/fabricmc/intermediary/%1$s/intermediary-%1$s-v2.jar');
+}
 
 dependencies {
-	// We use this version of Guava as 1.8.9's is outdated
-	implementation "com.google.guava:guava:23.5-jre"
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation ("net.fabricmc:fabric-loader-1.8.9:${project.loader_version}") {
-		exclude module: "guava"
-	}
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// Hacks that make mac os work
 	if (System.getProperty("os.name").toLowerCase().contains("mac")) {
@@ -65,33 +66,29 @@ processResources {
 // ensure that the encoding is set to UTF-8, no matter what the system default is
 // this fixes some edge cases with special characters not displaying correctly
 // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
-tasks.withType(JavaCompile) {
-	options.encoding = "UTF-8"
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+	if (JavaVersion.current().isJava9Compatible()) it.options.release = 8
 }
 
-// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-// if it is present.
-// If you remove this task, sources will not be generated.
-task sourcesJar(type: Jar, dependsOn: classes) {
-	classifier = "sources"
-	from sourceSets.main.allSource
+java {
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
 }
 
 jar {
-	from "LICENSE"
+	from("LICENSE") {
+		rename { "${it}_${project.archivesBaseName}"}
+	}
 }
 
 // configure the maven publication
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
-			// add all the jars that should be included when publishing to maven
-			artifact(remapJar) {
-				builtBy remapJar
-			}
-			artifact(sourcesJar) {
-				builtBy remapSourcesJar
-			}
+			from components.java
 		}
 	}
 
