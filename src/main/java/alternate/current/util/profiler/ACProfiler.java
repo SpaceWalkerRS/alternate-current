@@ -3,7 +3,8 @@ package alternate.current.util.profiler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-import java.util.logging.Logger;
+
+import org.apache.logging.log4j.Logger;
 
 import alternate.current.AlternateCurrentMod;
 
@@ -26,7 +27,7 @@ public class ACProfiler implements Profiler {
 	@Override
 	public void start() {
 		if (started) {
-			LOGGER.info("profiling already started!");
+			LOGGER.warn("profiling already started!");
 		} else {
 			indexStack.clear();
 			locations.clear();
@@ -44,12 +45,12 @@ public class ACProfiler implements Profiler {
 			started = false;
 			
 			if (!indexStack.isEmpty()) {
-				LOGGER.info("profiling ended before stack was fully popped, did something go wrong?");
+				LOGGER.warn("profiling ended before stack was fully popped, did something go wrong?");
 			}
 			
 			ProfilerResults.add(locations, times);
 		} else {
-			LOGGER.info("profiling already ended!");
+			LOGGER.warn("profiling already ended!");
 		}
 	}
 	
@@ -60,7 +61,7 @@ public class ACProfiler implements Profiler {
 			locations.add(location);
 			times.add(System.nanoTime());
 		} else {
-			LOGGER.info("cannot push " + location + " as profiling hasn't started!");
+			LOGGER.error("cannot push " + location + " as profiling hasn't started!");
 		}
 	}
 	
@@ -70,14 +71,14 @@ public class ACProfiler implements Profiler {
 			Integer index = indexStack.pop();
 			
 			if (index == null) {
-				LOGGER.info("no element to pop!");
+				LOGGER.error("no element to pop!");
 			} else {
 				long startTime = times.get(index);
 				long endTime = System.nanoTime();
 				times.set(index, endTime - startTime);
 			}
 		} else {
-			LOGGER.info("cannot pop as profiling hasn't started!");
+			LOGGER.error("cannot pop as profiling hasn't started!");
 		}
 	}
 	

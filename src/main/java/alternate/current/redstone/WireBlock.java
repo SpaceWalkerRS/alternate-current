@@ -1,7 +1,5 @@
 package alternate.current.redstone;
 
-import java.util.function.BiFunction;
-
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 
@@ -54,7 +52,7 @@ public interface WireBlock {
 	public int getPower(WorldAccess world, BlockPos pos, BlockState state);
 	
 	/**
-	 * Return the block state that holds the given new power level.
+	 * Return a block state that holds the given new power level.
 	 */
 	public BlockState updatePowerState(WorldAccess world, BlockPos pos, BlockState state, int power);
 	
@@ -62,6 +60,6 @@ public interface WireBlock {
 	 * Find the connections between the given WireNode and
 	 * neighboring WireNodes.
 	 */
-	public void findWireConnections(WireNode wire, BiFunction<Node, Integer, Node> nodeProvider);
+	public void findWireConnections(WireNode wire, WireHandler.NodeProvider nodeProvider);
 	
 }

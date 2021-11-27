@@ -2,6 +2,7 @@ package alternate.current.redstone;
 
 import java.util.Arrays;
 
+import alternate.current.redstone.WireHandler.Directions;
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 
@@ -17,8 +18,8 @@ import alternate.current.util.BlockState;
 public class Node {
 	
 	// flags that encode the Node type
-	private static final int SOLID_BLOCK = 1;
-	private static final int REDSTONE = 2;
+	private static final int CONDUCTOR = 0b01;
+	private static final int REDSTONE  = 0b10;
 	
 	public final WireBlock wireBlock;
 	public final WorldAccess world;
@@ -26,20 +27,21 @@ public class Node {
 	
 	public BlockPos pos;
 	public BlockState state;
+	public boolean invalid;
 	
 	private int flags;
 	
 	public Node(WireBlock wireBlock, WorldAccess world) {
 		this.wireBlock = wireBlock;
 		this.world = world;
-		this.neighbors = new Node[WireHandler.Directions.ALL.length];
+		this.neighbors = new Node[Directions.ALL.length];
 	}
 	
 	@Override
 	public boolean equals(Object o) {
 		if (o instanceof Node) {
 			Node node = (Node)o;
-			return world == node.world && wireBlock == node.wireBlock && pos.equals(node.pos);
+			return world == node.world && pos.equals(node.pos);
 		}
 		
 		return false;
@@ -50,19 +52,23 @@ public class Node {
 		return pos.hashCode();
 	}
 	
-	public Node update(BlockPos pos, BlockState state) {
+	public Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		if (state.isOf(wireBlock)) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 		
+		if (clearNeighbors) {
+			Arrays.fill(neighbors, null);
+		}
+		
 		this.pos = pos;
 		this.state = state;
+		this.invalid = false;
+		
 		this.flags = 0;
 		
-		Arrays.fill(neighbors, null);
-		
-		if (this.world.isSolidBlock(this.pos)) {
-			this.flags |= SOLID_BLOCK;
+		if (this.world.isConductor(this.pos)) {
+			this.flags |= CONDUCTOR;
 		}
 		if (this.state.emitsRedstonePower()) {
 			this.flags |= REDSTONE;
@@ -79,8 +85,8 @@ public class Node {
 		return false;
 	}
 	
-	public boolean isSolidBlock() {
-		return (flags & SOLID_BLOCK) != 0;
+	public boolean isConductor() {
+		return (flags & CONDUCTOR) != 0;
 	}
 	
 	public boolean isRedstoneComponent() {

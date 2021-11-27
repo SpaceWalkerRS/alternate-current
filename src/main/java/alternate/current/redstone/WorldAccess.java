@@ -2,6 +2,7 @@ package alternate.current.redstone;
 
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
+import alternate.current.util.BlockUtil;
 import alternate.current.util.Direction;
 
 import net.minecraft.class_401;
@@ -32,32 +33,34 @@ public class WorldAccess {
 		return wireHandler;
 	}
 	
-	private boolean isInWorld(int x, int y, int z) {
-		return z >= X_MIN && z < X_MAX && y >= Y_MIN && y < Y_MAX && z >= Z_MIN && z < Z_MAX;
+	public static boolean isOutOfBounds(BlockPos pos) {
+		return isOutOfBounds(pos.getX(), pos.getY(), pos.getZ());
 	}
 	
+	public static boolean isOutOfBounds(int x, int y, int z) {
+		return x < X_MIN || x >= X_MAX || y < Y_MIN || y >= Y_MAX || z < Z_MIN || z >= Z_MAX;
+	}
+	
+	/**
+	 * A slightly optimized version of World.getBlockState.
+	 */
 	public BlockState getBlockState(BlockPos pos) {
 		int x = pos.getX();
 		int y = pos.getY();
 		int z = pos.getZ();
 		
-		if (!isInWorld(x, y, z)) {
+		if (isOutOfBounds(x, y, z)) {
 			return BlockState.AIR;
 		}
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		class_401 storage = chunk.method_1398()[y >> 4];
+		class_401 section = chunk.method_1398()[y >> 4];
 		
-		if (storage == null) {
+		if (section == null) {
 			return BlockState.AIR;
 		}
 		
-		return getBlockState(storage, x & 15, y & 15, z & 15);
-	}
-	
-	private BlockState getBlockState(class_401 storage, int x, int y, int z) {
-		int blockId = storage.method_10960(x, y, z);
-		return blockId == 0 ? BlockState.AIR : new BlockState(Block.BLOCKS[blockId], storage.method_8940(x, y, z));
+		return getBlockState(section, x & 15, y & 15, z & 15);
 	}
 	
 	/**
@@ -65,57 +68,75 @@ public class WorldAccess {
 	 * only used to update redstone wire block states, lighting checks,
 	 * height map updates, and block entity updates are omitted.
 	 */
-	public boolean setBlockState(BlockPos pos, BlockState state) {
+	public boolean setWireState(BlockPos pos, BlockState state) {
+		if (!state.isOf(wireBlock)) {
+			return false;
+		}
+		
 		int x = pos.getX();
 		int y = pos.getY();
 		int z = pos.getZ();
 		
-		if (!isInWorld(x, y, z)) {
+		if (isOutOfBounds(x, y, z)) {
 			return false;
 		}
 		
 		Chunk chunk = world.getChunk(x >> 4, z >> 4);
-		class_401 storage = chunk.method_1398()[y >> 4];
+		class_401 section = chunk.method_1398()[y >> 4];
 		
-		if (storage == null) {
-			return false;
+		if (section == null) {
+			return false; // we should never get here
 		}
 		
-		x &= 15;
-		y &= 15;
-		z &= 15;
+		int sectionX = x & 15;
+		int sectionY = y & 15;
+		int sectionZ = z & 15;
 		
-		BlockState prevState = getBlockState(storage, x, y, z);
+		BlockState prevState = getBlockState(section, sectionX, sectionY, sectionZ);
 		
 		if (state.equals(prevState)) {
 			return false;
 		}
 		
-		storage.method_8937(x, y, z, state.getBlock().id);
-		storage.method_8936(x, y, z, state.getBlockData());
+		setBlockState(section, sectionX, sectionY, sectionZ, state, prevState);
 		
 		// notify clients of the BlockState change
-		world.updateListeners(pos.getX(), pos.getY(), pos.getZ());
+		world.method_10381().method_11877(x, y, z);
 		// mark the chunk for saving
 		chunk.markDirty();
 		
 		return true;
 	}
 	
+	private BlockState getBlockState(class_401 section, int sectionX, int sectionY, int sectionZ) {
+		int blockId = section.method_10960(sectionX, sectionY, sectionZ);
+		return blockId == 0 ? BlockState.AIR : new BlockState(Block.BLOCKS[blockId], section.method_8940(sectionX, sectionY, sectionZ));
+	}
+	
+	private void setBlockState(class_401 section, int sectionX, int sectionY, int sectionZ, BlockState state, BlockState prevState) {
+		Block block = state.getBlock();
+		
+		if (!prevState.isOf(block)) {
+			section.method_8937(sectionX, sectionY, sectionZ, block.id);
+		}
+		
+		section.method_8936(sectionX, sectionY, sectionZ, state.getBlockData());
+	}
+	
 	public boolean breakBlock(BlockPos pos, BlockState state) {
-		state.getBlock().method_8624(world, pos.getX(), pos.getY(), pos.getZ(), 0, 0);
-		return world.removeBlock(pos.getX(), pos.getY(), pos.getZ());
+		state.dropAsItem(world, pos);
+		return state.breakBlock(world, pos, BlockUtil.FLAG_NOTIFY_CLIENTS);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, Block fromBlock) {
-		updateNeighborBlock(pos, getBlockState(pos), fromBlock);
+		getBlockState(pos).neighborUpdate(world, pos, fromBlock);
 	}
 	
 	public void updateNeighborBlock(BlockPos pos, BlockState state, Block fromBlock) {
-		state.getBlock().neighborUpdate(world, pos.getX(), pos.getY(), pos.getZ(), fromBlock.id);
+		state.neighborUpdate(world, pos, fromBlock);
 	}
 	
-	public boolean isSolidBlock(BlockPos pos) {
+	public boolean isConductor(BlockPos pos) {
 		return world.method_10941(pos.getX(), pos.getY(), pos.getZ());
 	}
 	
@@ -124,7 +145,7 @@ public class WorldAccess {
 	}
 	
 	public int getStrongPowerFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getWeakPowerFrom(world, pos, dir);
+		return state.getStrongPowerFrom(world, pos, dir);
 	}
 	
 	public boolean shouldBreak(BlockPos pos, BlockState state) {

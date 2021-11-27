@@ -10,13 +10,13 @@ package alternate.current.redstone;
  */
 public class WireConnection {
 	
-	/** Position of the connected wire */
+	/** Position of the connected wire. */
 	public final WireNode wire;
-	/** Cardinal direction to the connected wire */
+	/** Cardinal direction to the connected wire. */
 	public final int iDir;
-	/** True if the connected wire can provide power to the owner of the connection */
+	/** True if the connected wire can provide power to the owner of the connection. */
 	public final boolean in;
-	/** True if the connected wire can accept power from the owner of the connection */
+	/** True if the connected wire can accept power from the owner of the connection. */
 	public final boolean out;
 	
 	public WireConnection(WireNode wire, int iDir, boolean in, boolean out) {
