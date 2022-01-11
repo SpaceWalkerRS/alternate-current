@@ -1,9 +1,9 @@
 package alternate.current.redstone;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * This interface should be implemented by each wire block type.
@@ -17,13 +17,9 @@ import net.minecraft.util.math.MathHelper;
  */
 public interface WireBlock {
 	
-	public default Block asBlock() {
-		return (Block)this;
-	}
+	public Block asBlock();
 	
-	public default boolean isOf(BlockState state) {
-		return asBlock() == state.getBlock();
-	}
+	public boolean isOf(BlockState state);
 	
 	/**
 	 * The lowest possible power level a wire can have.
@@ -41,19 +37,19 @@ public interface WireBlock {
 	public int getPowerStep();
 	
 	default int clampPower(int power) {
-		return MathHelper.clamp(power, getMinPower(), getMaxPower());
+		return Mth.clamp(power, getMinPower(), getMaxPower());
 	}
 	
 	/**
 	 * Return the power level of the given wire based on its
 	 * location and block state.
 	 */
-	public int getPower(WorldAccess world, BlockPos pos, BlockState state);
+	public int getPower(LevelAccess level, BlockPos pos, BlockState state);
 	
 	/**
 	 * Return a block state that holds the given new power level.
 	 */
-	public BlockState updatePowerState(WorldAccess world, BlockPos pos, BlockState state, int power);
+	public BlockState updatePowerState(LevelAccess level, BlockPos pos, BlockState state, int power);
 	
 	/**
 	 * Find the connections between the given WireNode and

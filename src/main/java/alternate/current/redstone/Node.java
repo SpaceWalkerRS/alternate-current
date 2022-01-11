@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 import alternate.current.redstone.WireHandler.Directions;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * A Node represents a block in the world. It is tied to a
@@ -23,7 +23,7 @@ public class Node {
 	private static final int REDSTONE  = 0b10;
 	
 	public final WireBlock wireBlock;
-	public final WorldAccess world;
+	public final LevelAccess level;
 	public final Node[] neighbors;
 	
 	public BlockPos pos;
@@ -32,9 +32,9 @@ public class Node {
 	
 	private int flags;
 	
-	public Node(WireBlock wireBlock, WorldAccess world) {
+	public Node(WireBlock wireBlock, LevelAccess level) {
 		this.wireBlock = wireBlock;
-		this.world = world;
+		this.level = level;
 		this.neighbors = new Node[Directions.ALL.length];
 	}
 	
@@ -42,7 +42,7 @@ public class Node {
 	public boolean equals(Object o) {
 		if (o instanceof Node) {
 			Node node = (Node)o;
-			return world == node.world && pos.equals(node.pos);
+			return level == node.level && pos.equals(node.pos);
 		}
 		
 		return false;
@@ -62,16 +62,16 @@ public class Node {
 			Arrays.fill(neighbors, null);
 		}
 		
-		this.pos = pos.toImmutable();
+		this.pos = pos.immutable();
 		this.state = state;
 		this.invalid = false;
 		
 		this.flags = 0;
 		
-		if (this.world.isConductor(this.pos, this.state)) {
+		if (this.level.isConductor(this.pos, this.state)) {
 			this.flags |= CONDUCTOR;
 		}
-		if (this.state.emitsRedstonePower()) {
+		if (this.state.isSignalSource()) {
 			this.flags |= REDSTONE;
 		}
 		

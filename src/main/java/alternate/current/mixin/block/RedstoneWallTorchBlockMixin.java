@@ -7,19 +7,15 @@ import alternate.current.interfaces.mixin.IBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.RedstoneTorchBlock;
+import net.minecraft.world.level.block.RedstoneWallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
-@Mixin(RedstoneTorchBlock.class)
-public class RedstoneTorchBlockMixin implements IBlock {
+@Mixin(RedstoneWallTorchBlock.class)
+public class RedstoneWallTorchBlockMixin implements IBlock {
 	
 	@Override
 	public boolean emitsSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
-		return dir != Direction.UP;
-	}
-	
-	@Override
-	public boolean emitsDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
-		return dir == Direction.DOWN;
+		return state.getValue(BlockStateProperties.HORIZONTAL_FACING) != dir;
 	}
 }

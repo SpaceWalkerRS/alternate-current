@@ -1,7 +1,7 @@
 package alternate.current.redstone;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * A WireNode is a Node that represents a redstone wire in the world.
@@ -36,15 +36,15 @@ public class WireNode extends Node {
 	public boolean prepared;
 	public boolean inNetwork;
 	
-	public WireNode(WireBlock wireBlock, WorldAccess world, BlockPos pos, BlockState state) {
-		super(wireBlock, world);
+	public WireNode(WireBlock wireBlock, LevelAccess level, BlockPos pos, BlockState state) {
+		super(wireBlock, level);
 		
-		this.pos = pos.toImmutable();
+		this.pos = pos.immutable();
 		this.state = state;
 		
 		this.connections = new WireConnectionManager(this);
 		
-		this.virtualPower = this.currentPower = this.wireBlock.getPower(this.world, this.pos, this.state);
+		this.virtualPower = this.currentPower = this.wireBlock.getPower(this.level, this.pos, this.state);
 	}
 	
 	@Override
@@ -89,15 +89,15 @@ public class WireNode extends Node {
 			return true;
 		}
 		
-		state = world.getBlockState(pos);
+		state = level.getBlockState(pos);
 		
 		if (shouldBreak) {
-			return world.breakBlock(pos, state);
+			return level.breakBlock(pos, state);
 		}
 		
 		currentPower = wireBlock.clampPower(virtualPower);
-		state = wireBlock.updatePowerState(world, pos, state, currentPower);
+		state = wireBlock.updatePowerState(level, pos, state, currentPower);
 		
-		return world.setWireState(pos, state);
+		return level.setWireState(pos, state);
 	}
 }
