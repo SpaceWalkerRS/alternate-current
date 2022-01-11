@@ -52,7 +52,7 @@ public class RedStoneWireBlockMixin implements WireBlock {
 		if (AlternateCurrentMod.on) {
 			((IServerLevel)level).getAccess(this).getWireHandler().onWireAdded(pos);
 			
-			// Because of a check in World.setBlock, shape updates
+			// Because of a check in Level.setBlock, shape updates
 			// after placing a block are omitted if the block state
 			// changes while setting it in the chunk. This can happen
 			// due to the above call to the wire handler. To make sure
