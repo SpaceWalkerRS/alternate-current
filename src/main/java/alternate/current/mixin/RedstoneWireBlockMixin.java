@@ -23,7 +23,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 @Mixin(RedstoneWireBlock.class)
-public abstract class RedstoneWireBlockMixin implements WireBlock {
+public class RedstoneWireBlockMixin implements WireBlock {
 	
 	@Inject(
 			method = "update",

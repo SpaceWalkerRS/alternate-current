@@ -10,7 +10,7 @@ package alternate.current.redstone;
  */
 public class WireConnection {
 	
-	/** Position of the connected wire. */
+	/** The connected wire. */
 	public final WireNode wire;
 	/** Cardinal direction to the connected wire. */
 	public final int iDir;

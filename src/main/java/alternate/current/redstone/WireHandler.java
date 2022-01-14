@@ -165,6 +165,10 @@ public class WireHandler {
 			return iDir ^ (0b10 >>> (iDir >>> 2));
 		}
 		
+		/**
+		 * Each array is placed at the index that encodes the direction
+		 * that is missing from the array.
+		 */
 		public static final int[][] EXCEPT = {
 			{ NORTH, EAST , SOUTH, DOWN , UP   },
 			{ WEST , EAST , SOUTH, DOWN , UP   },
@@ -528,7 +532,7 @@ public class WireHandler {
 		// If the wire at the given position is not in an invalid
 		// state or is not part of a larger network, we can exit
 		// early.
-		if (!checkNeighbors || !wire.inNetwork || wire.connections.count == 0) {
+		if (!checkNeighbors || !wire.inNetwork || wire.connections.total == 0) {
 			return;
 		}
 		
@@ -612,7 +616,7 @@ public class WireHandler {
 	 * power changes.
 	 */
 	private void tryAddRoot(WireNode wire) {
-		// We only want need to check each wire once
+		// Each wire needs to be prepared only once.
 		if (wire.prepared) {
 			return;
 		}
@@ -743,7 +747,7 @@ public class WireHandler {
 	 * connected wires.
 	 */
 	private void findWirePower(WireNode wire, boolean ignoreNetwork) {
-		for (int c = 0; c < wire.connections.count; c++) {
+		for (int c = 0; c < wire.connections.total; c++) {
 			WireConnection connection = wire.connections.all[c];
 			
 			if (!connection.in) {

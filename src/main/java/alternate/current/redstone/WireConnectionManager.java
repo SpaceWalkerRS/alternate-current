@@ -21,8 +21,8 @@ public class WireConnectionManager {
 	public WireConnection[] all;
 	
 	/** The total number of connections. */
-	public int count;
-	/** The number of connections per cardinal direction. */
+	public int total;
+	/** Indices of the first connection in each cardinal direction. */
 	private int indices;
 	
 	/**
@@ -37,7 +37,7 @@ public class WireConnectionManager {
 		this.wire = wire;
 		this.all = new WireConnection[Directions.HORIZONTAL.length];
 		
-		this.count = 0;
+		this.total = 0;
 		this.indices = 0;
 		
 		this.flowTotal = 0;
@@ -45,22 +45,22 @@ public class WireConnectionManager {
 	}
 	
 	public void set(BiConsumer<ConnectionConsumer, Integer> setter) {
-		if (count > 0) {
+		if (total > 0) {
 			clear();
 		}
 		
 		for (int iDir = 0; iDir < Directions.HORIZONTAL.length; iDir++) {
-			setIndex(iDir, count);
+			setIndex(iDir, total);
 			setter.accept(this::add, iDir);
 		}
 		
-		setIndex(Directions.HORIZONTAL.length, count);
+		setIndex(Directions.HORIZONTAL.length, total);
 	}
 	
 	private void clear() {
 		Arrays.fill(all, null);
 		
-		count = 0;
+		total = 0;
 		indices = 0;
 		
 		flowTotal = 0;
@@ -72,11 +72,11 @@ public class WireConnectionManager {
 	}
 	
 	private void addConnection(WireConnection connection) {
-		if (count == all.length) {
+		if (total == all.length) {
 			all = doubleSize(all);
 		}
 		
-		all[count++] = connection;
+		all[total++] = connection;
 		
 		flowTotal |= (1 << connection.iDir);
 		flow = WireHandler.FLOW_IN_TO_FLOW_OUT[flowTotal];
