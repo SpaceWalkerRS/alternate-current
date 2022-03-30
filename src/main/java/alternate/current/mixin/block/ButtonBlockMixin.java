@@ -7,19 +7,22 @@ import alternate.current.interfaces.mixin.IBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.TrappedChestBlock;
+import net.minecraft.world.level.block.ButtonBlock;
+import net.minecraft.world.level.block.FaceAttachedHorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
-@Mixin(TrappedChestBlock.class)
-public class TrappedChestBlockMixin implements IBlock {
+@Mixin(ButtonBlock.class)
+public abstract class ButtonBlockMixin extends FaceAttachedHorizontalDirectionalBlock implements IBlock {
 
-	@Override
+	private ButtonBlockMixin(Properties properties) {
+		super(properties);
+	}
+
 	public boolean hasSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
 
-	@Override
 	public boolean hasDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
-		return dir == Direction.UP;
+		return getConnectedDirection(state) == dir;
 	}
 }
