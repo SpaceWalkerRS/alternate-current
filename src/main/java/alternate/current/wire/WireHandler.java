@@ -39,7 +39,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * Redstone wire updates recursively and each wire calculates its power level in
  * isolation rather than in the context of the network it is a part of. This
  * means a wire in a grid can change its power level over half a dozen times
- * before settling on its final value. This problem used to be worse in 1.14 and
+ * before settling on its final value. This problem used to be worse in 1.13 and
  * below, where a wire would only decrease its power level by 1 at a time.
  * 
  * <p>
@@ -91,7 +91,8 @@ import net.minecraft.world.level.block.state.BlockState;
  * changes its power level.
  * <br>
  * - Only emit block updates and shape updates once a wire reaches its final
- * power level, rather than at each intermediary stage. <br>
+ * power level, rather than at each intermediary stage.
+ * <br>
  * For an individual wire, these two optimizations are the best you can do, but
  * for an entire grid, you can do better!
  * 
@@ -604,11 +605,14 @@ public class WireHandler {
 
 	/**
 	 * Before a wire can be added to the network, it must be properly prepared. This
-	 * method <br>
+	 * method
+	 * <br>
 	 * - checks if this wire should break. Rather than break the wire right away,
-	 * its effects are integrated into the power calculations. <br>
+	 * its effects are integrated into the power calculations.
+	 * <br>
 	 * - determines the 'external power' this wire receives (power from non-wire
-	 * components). <br>
+	 * components).
+	 * <br>
 	 * - finds connections this wire has to neighboring wires.
 	 */
 	private void prepareWire(WireNode wire) {
@@ -686,7 +690,8 @@ public class WireHandler {
 	 * <br>
 	 * - If the wire is removed or going to break, its power level should always be
 	 * the minimum value. This is because it (effectively) no longer exists, so
-	 * cannot provide any power to neighboring wires. <br>
+	 * cannot provide any power to neighboring wires.
+	 * <br>
 	 * - Power received from neighboring wires will never exceed
 	 * {@code maxPower - powerStep}, so if the external power is already larger than
 	 * or equal to that, there is no need to check for power from neighboring wires.
@@ -747,20 +752,26 @@ public class WireHandler {
 	 * Power changes are done in the following 3 steps.
 	 * 
 	 * <p>
-	 * <b>1. Build up the network</b> <br>
+	 * <b>1. Build up the network</b>
+	 * <br>
 	 * Collect all the wires around the roots that need to change their power
 	 * levels.
 	 * 
 	 * <p>
-	 * <b>2. Find powered wires</b> <br>
+	 * <b>2. Find powered wires</b>
+	 * <br>
 	 * Find those wires in the network that receive redstone power from outside the
-	 * network. This can come in 2 forms: <br>
-	 * - Power from non-wire components (repeaters, torches, etc.). <br>
-	 * - Power from wires that are not in the network. <br>
+	 * network. This can come in 2 forms:
+	 * <br>
+	 * - Power from non-wire components (repeaters, torches, etc.).
+	 * <br>
+	 * - Power from wires that are not in the network.
+	 * <br>
 	 * These powered wires will then queue their power changes.
 	 * 
 	 * <p>
-	 * <b>3. Let power flow</b> <br>
+	 * <b>3. Let power flow</b>
+	 * <br>
 	 * Work through the queue of power changes. After each wire's power change, emit
 	 * shape and block updates to neighboring blocks, then queue power changes for
 	 * connected wires.

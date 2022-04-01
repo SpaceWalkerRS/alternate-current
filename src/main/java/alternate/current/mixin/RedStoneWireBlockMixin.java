@@ -73,7 +73,7 @@ public class RedStoneWireBlockMixin implements WireBlock {
 			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V"
 		)
 	)
-	private void onBlockRemoved(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
+	private void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerLevel)level).getWireHandler().onWireRemoved(pos, TYPE);
 		}

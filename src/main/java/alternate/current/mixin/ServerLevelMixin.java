@@ -4,6 +4,7 @@ import org.spongepowered.asm.mixin.Mixin;
 
 import alternate.current.interfaces.mixin.IServerLevel;
 import alternate.current.wire.WireHandler;
+
 import net.minecraft.server.level.ServerLevel;
 
 @Mixin(ServerLevel.class)
