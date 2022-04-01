@@ -12,7 +12,7 @@ public class AlternateCurrentMod implements ModInitializer {
 
 	public static final String MOD_ID = "alternatecurrent";
 	public static final String MOD_NAME = "Alternate Current";
-	public static final String MOD_VERSION = "1.1.0";
+	public static final String MOD_VERSION = "1.2.0";
 	public static final Logger LOGGER = LogManager.getLogger(MOD_NAME);
 	public static final boolean DEBUG = false;
 
