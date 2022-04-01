@@ -22,8 +22,8 @@ public abstract class WireType {
 	public final boolean accept;
 
 	protected WireType(String name, int minPower, int maxPower, int powerStep, boolean offer, boolean accept) {
-		if (powerStep <= 0) {
-			throw new IllegalArgumentException("powerStep must be greater than 0!"); // TODO: allow power step 0
+		if (powerStep < 0) {
+			throw new IllegalArgumentException("powerStep must be at least 0!");
 		}
 
 		this.name = name;

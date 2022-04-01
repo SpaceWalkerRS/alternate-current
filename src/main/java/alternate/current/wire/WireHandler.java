@@ -583,23 +583,36 @@ public class WireHandler {
 	 * Check if the given wire is in an illegal state and needs power changes.
 	 */
 	private void tryAddRoot(WireNode wire) {
-		// Each wire needs to be prepared only once.
+		// Each potential root needs to be checked only once.
 		if (wire.prepared) {
 			return;
 		}
 
-		prepareWire(wire);
-		findPower(wire, false);
+		prepare(wire);
+
+		// To stop wires with power step 0 from perpetually powering themselves,
+		// those wirese initially ignore power from neighboring wires. Only if
+		// power from non-wires matches its current power, is power from
+		// neighboring wires considered. This makes sure the wire still updates
+		// its power correctly if it is in an invalid state within its network,
+		// e.g. when it is placed in an already powered network.
+		if (wire.type.powerStep != 0 || !needsPowerChange(wire)) {
+			findPower(wire, false);
+		}
 
 		if (needsPowerChange(wire)) {
-			network.add(wire);
-			rootCount++;
+			addRoot(wire);
+		}
+	}
 
-			if (wire.connections.iFlowDir >= 0) {
-				wire.iFlowDir = wire.connections.iFlowDir;
-			}
+	private void addRoot(WireNode wire) {
+		network.add(wire);
+		rootCount++;
 
-			wire.inNetwork = true;
+		wire.inNetwork = true;
+
+		if (wire.connections.iFlowDir >= 0) {
+			wire.iFlowDir = wire.connections.iFlowDir;
 		}
 	}
 
@@ -615,7 +628,7 @@ public class WireHandler {
 	 * <br>
 	 * - finds connections this wire has to neighboring wires.
 	 */
-	private void prepareWire(WireNode wire) {
+	private void prepare(WireNode wire) {
 		// Each wire only needs to be prepared once.
 		if (wire.prepared) {
 			return;
@@ -649,7 +662,7 @@ public class WireHandler {
 			if (neighbor.isConductor()) {
 				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
 			}
-			if (neighbor.isRedstoneComponent()) {
+			if (neighbor.isSignalSource()) {
 				power = Math.max(power, level.getSignalFrom(neighbor.pos, neighbor.state, Directions.ALL[iDir]));
 			}
 
@@ -662,8 +675,8 @@ public class WireHandler {
 	}
 
 	/**
-	 * Determine the strong power the given node receives from neighboring redstone
-	 * components.
+	 * Determine the strong power the given wire receives from neighboring redstone
+	 * components through the given conductor node.
 	 */
 	private int getDirectSignalTo(WireNode wire, Node node, int except) {
 		int power = wire.type.minPower;
@@ -671,7 +684,7 @@ public class WireHandler {
 		for (int iDir : Directions.I_EXCEPT[except]) {
 			Node neighbor = getNeighbor(node, iDir);
 
-			if (neighbor.isRedstoneComponent()) {
+			if (neighbor.isSignalSource()) {
 				power = Math.max(power, level.getDirectSignalFrom(neighbor.pos, neighbor.state, Directions.ALL[iDir]));
 
 				if (power >= wire.type.maxPower) {
@@ -701,8 +714,8 @@ public class WireHandler {
 			return;
 		}
 
-		// The virtual power is reset to the external power, so
-		// the flow information must be reset as well.
+		// The virtual power is reset to the external power, so the flow information
+		// must be reset as well.
 		wire.virtualPower = wire.externalPower;
 		wire.flowIn = 0;
 
@@ -739,8 +752,8 @@ public class WireHandler {
 			updatePower();
 		}
 		if (!updatingPower) {
-			nodeCount = 0;
 			nodes.clear();
+			nodeCount = 0;
 		}
 	}
 
@@ -796,8 +809,8 @@ public class WireHandler {
 		// fact, it should be cleared before block and shape updates are emitted, in
 		// case a different network is updated that needs power changes.
 //		profiler.swap("clear " + rootCount + " roots and network of " + network.size());
-		rootCount = 0;
 		network.clear();
+		rootCount = 0;
 
 		// Carry out the power changes and emit shape and block updates.
 //		profiler.swap("let power flow");
@@ -838,8 +851,11 @@ public class WireHandler {
 					return;
 				}
 
-				prepareWire(neighbor);
-				findPower(neighbor, false);
+				prepare(neighbor);
+
+				if (neighbor.type.powerStep != 0 || !needsPowerChange(neighbor)) {
+					findPower(neighbor, false);
+				}
 
 				if (needsPowerChange(neighbor)) {
 					addToNetwork(neighbor, connection.iDir);

@@ -19,7 +19,7 @@ public class Node {
 
 	// flags that encode the Node type
 	private static final int CONDUCTOR = 0b01;
-	private static final int REDSTONE  = 0b10;
+	private static final int SOURCE    = 0b10;
 
 	final LevelAccess level;
 	final Node[] neighbors;
@@ -73,7 +73,7 @@ public class Node {
 			this.flags |= CONDUCTOR;
 		}
 		if (this.state.isSignalSource()) {
-			this.flags |= REDSTONE;
+			this.flags |= SOURCE;
 		}
 
 		return this;
@@ -91,8 +91,8 @@ public class Node {
 		return (flags & CONDUCTOR) != 0;
 	}
 
-	public boolean isRedstoneComponent() {
-		return (flags & REDSTONE) != 0;
+	public boolean isSignalSource() {
+		return (flags & SOURCE) != 0;
 	}
 
 	public WireNode asWire() {

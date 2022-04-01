@@ -11,7 +11,8 @@ public class WireConnectionManager {
 	/** The owner of these connections. */
 	final WireNode owner;
 
-	private final WireConnection[] headsByDir;
+	/** The first connection for each cardinal direction. */
+	private final WireConnection[] heads;
 
 	private WireConnection head;
 	private WireConnection tail;
@@ -30,7 +31,7 @@ public class WireConnectionManager {
 	WireConnectionManager(WireNode owner) {
 		this.owner = owner;
 
-		this.headsByDir = new WireConnection[Directions.HORIZONTAL.length];
+		this.heads = new WireConnection[Directions.HORIZONTAL.length];
 
 		this.total = 0;
 
@@ -79,7 +80,7 @@ public class WireConnectionManager {
 	}
 
 	private void clear() {
-		Arrays.fill(headsByDir, null);
+		Arrays.fill(heads, null);
 
 		head = null;
 		tail = null;
@@ -114,13 +115,13 @@ public class WireConnectionManager {
 			tail = connection;
 		}
 
-		if (headsByDir[connection.iDir] == null) {
-			headsByDir[connection.iDir] = connection;
+		if (heads[connection.iDir] == null) {
+			heads[connection.iDir] = connection;
+
+			flowTotal |= (1 << connection.iDir);
 		}
 
 		total++;
-
-		flowTotal |= (1 << connection.iDir);
 	}
 
 	/** 
@@ -141,7 +142,7 @@ public class WireConnectionManager {
 	 */
 	void forEach(Consumer<WireConnection> consumer, int iFlowDir) {
 		for (int iDir : WireHandler.CARDINAL_UPDATE_ORDERS[iFlowDir]) {
-			for (WireConnection c = headsByDir[iDir]; c != null && c.iDir == iDir; c = c.next) {
+			for (WireConnection c = heads[iDir]; c != null && c.iDir == iDir; c = c.next) {
 				consumer.accept(c);
 			}
 		}
