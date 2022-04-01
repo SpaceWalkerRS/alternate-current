@@ -14,12 +14,12 @@ import net.minecraft.world.level.block.state.BlockState;
 public class LecternBlockMixin implements IBlock {
 
 	@Override
-	public boolean hasSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
 
 	@Override
-	public boolean hasDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return dir == Direction.UP;
 	}
 }

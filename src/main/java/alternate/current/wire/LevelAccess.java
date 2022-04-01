@@ -1,4 +1,4 @@
-package alternate.current.redstone;
+package alternate.current.wire;
 
 import alternate.current.interfaces.mixin.IBlock;
 
@@ -7,6 +7,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
@@ -16,14 +17,14 @@ public class LevelAccess {
 
 	private final ServerLevel level;
 
-	public LevelAccess(ServerLevel level) {
+	LevelAccess(ServerLevel level) {
 		this.level = level;
 	}
 
 	/**
 	 * A slightly optimized version of Level.getBlockState.
 	 */
-	public BlockState getBlockState(BlockPos pos) {
+	BlockState getBlockState(BlockPos pos) {
 		int y = pos.getY();
 
 		if (y < level.getMinBuildHeight() || y >= level.getMaxBuildHeight()) {
@@ -49,7 +50,7 @@ public class LevelAccess {
 	 * update redstone wire block states, lighting checks, height map updates, and
 	 * block entity updates are omitted.
 	 */
-	public boolean setWireState(BlockPos pos, BlockState state) {
+	boolean setWireState(BlockPos pos, BlockState state) {
 		if (!(state.getBlock() instanceof WireBlock)) {
 			return false;
 		}
@@ -85,21 +86,22 @@ public class LevelAccess {
 		return true;
 	}
 
-	public boolean breakBlock(BlockPos pos, BlockState state) {
-		Block.dropResources(state, level, pos);
+	boolean breakWire(BlockPos pos, BlockState state) {
+		BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
+		Block.dropResources(state, level, pos, blockEntity);
 		return level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
 	}
 
-	public void updateNeighborShape(BlockPos pos, BlockState state, Direction fromDir, BlockPos fromPos, BlockState fromState) {
+	void updateNeighborShape(BlockPos pos, BlockState state, Direction fromDir, BlockPos fromPos, BlockState fromState) {
 		BlockState newState = state.updateShape(fromDir, fromState, level, pos, fromPos);
 		Block.updateOrDestroy(state, newState, level, pos, Block.UPDATE_CLIENTS);
 	}
 
-	public void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
+	void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
 		getBlockState(pos).neighborChanged(level, pos, fromBlock, fromPos, false);
 	}
 
-	public void updateNeighborBlock(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
+	void updateNeighborBlock(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
 		state.neighborChanged(level, pos, fromBlock, fromPos, false);
 	}
 
@@ -111,19 +113,19 @@ public class LevelAccess {
 		return state.isRedstoneConductor(level, pos);
 	}
 
-	public boolean emitsWeakPowerTo(BlockPos pos, BlockState state, Direction dir) {
-		return ((IBlock)state.getBlock()).hasSignalTo(level, pos, state, dir);
+	public boolean isSignalSourceTo(BlockPos pos, BlockState state, Direction dir) {
+		return ((IBlock)state.getBlock()).isSignalSourceTo(level, pos, state, dir);
 	}
 
-	public boolean emitsStrongPowerTo(BlockPos pos, BlockState state, Direction dir) {
-		return ((IBlock)state.getBlock()).hasDirectSignalTo(level, pos, state, dir);
+	public boolean isDirectSignalSourceTo(BlockPos pos, BlockState state, Direction dir) {
+		return ((IBlock)state.getBlock()).isDirectSignalSourceTo(level, pos, state, dir);
 	}
 
-	public int getWeakPowerFrom(BlockPos pos, BlockState state, Direction dir) {
+	public int getSignalFrom(BlockPos pos, BlockState state, Direction dir) {
 		return state.getSignal(level, pos, dir);
 	}
 
-	public int getStrongPowerFrom(BlockPos pos, BlockState state, Direction dir) {
+	public int getDirectSignalFrom(BlockPos pos, BlockState state, Direction dir) {
 		return state.getDirectSignal(level, pos, dir);
 	}
 

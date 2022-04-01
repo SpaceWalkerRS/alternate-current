@@ -15,12 +15,12 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 public class TripWireHookBlockMixin implements IBlock {
 
 	@Override
-	public boolean hasSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
 
 	@Override
-	public boolean hasDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return state.getValue(BlockStateProperties.HORIZONTAL_FACING) == dir;
 	}
 }

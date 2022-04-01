@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public class DaylightDetectorBlockMixin implements IBlock {
 
 	@Override
-	public boolean hasSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
 }

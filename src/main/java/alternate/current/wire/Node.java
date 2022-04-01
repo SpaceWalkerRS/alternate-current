@@ -1,8 +1,8 @@
-package alternate.current.redstone;
+package alternate.current.wire;
 
 import java.util.Arrays;
 
-import alternate.current.redstone.WireHandler.Directions;
+import alternate.current.wire.WireHandler.Directions;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,18 +19,18 @@ public class Node {
 
 	// flags that encode the Node type
 	private static final int CONDUCTOR = 0b01;
-	private static final int REDSTONE = 0b10;
+	private static final int REDSTONE  = 0b10;
 
-	public final LevelAccess level;
-	public final Node[] neighbors;
+	final LevelAccess level;
+	final Node[] neighbors;
 
-	public BlockPos pos;
-	public BlockState state;
-	public boolean invalid;
+	BlockPos pos;
+	BlockState state;
+	boolean invalid;
 
 	private int flags;
 
-	public Node(LevelAccess level) {
+	Node(LevelAccess level) {
 		this.level = level;
 		this.neighbors = new Node[Directions.ALL.length];
 	}
@@ -54,7 +54,7 @@ public class Node {
 		return pos.hashCode();
 	}
 
-	public Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
+	Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		if (state.getBlock() instanceof WireBlock) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
@@ -80,6 +80,10 @@ public class Node {
 	}
 
 	public boolean isWire() {
+		return false;
+	}
+
+	public boolean isWire(WireType type) {
 		return false;
 	}
 

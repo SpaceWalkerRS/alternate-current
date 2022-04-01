@@ -1,4 +1,4 @@
-package alternate.current.redstone;
+package alternate.current.wire;
 
 /**
  * This class represents a connection between some WireNode (the 'owner') and a
@@ -10,18 +10,21 @@ package alternate.current.redstone;
 public class WireConnection {
 
 	/** The connected wire. */
-	public final WireNode wire;
+	final WireNode wire;
 	/** Cardinal direction to the connected wire. */
-	public final int iDir;
+	final int iDir;
+	/** True if the owner of the connection can provide power to the connected wire. */
+	final boolean offer;
 	/** True if the connected wire can provide power to the owner of the connection. */
-	public final boolean in;
-	/** True if the connected wire can accept power from the owner of the connection. */
-	public final boolean out;
+	final boolean accept;
 
-	public WireConnection(WireNode wire, int iDir, boolean in, boolean out) {
+	/** The next connection in the sequence. */
+	WireConnection next;
+
+	WireConnection(WireNode wire, int iDir, boolean offer, boolean accept) {
 		this.wire = wire;
 		this.iDir = iDir;
-		this.in = in;
-		this.out = out;
+		this.offer = offer;
+		this.accept = accept;
 	}
 }

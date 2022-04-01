@@ -7,11 +7,11 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public interface IBlock {
 
-	default boolean hasSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	default boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return false;
 	}
 
-	default boolean hasDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	default boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return false;
 	}
 }
