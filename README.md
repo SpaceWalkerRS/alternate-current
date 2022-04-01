@@ -6,11 +6,6 @@ Alternate Current is an efficient and non-locational redstone dust implementatio
 
 MSPT contributions of redstone dust are up to 20 times lower with Alternate Current, all the while maintaining a high level of Vanilla parity. Its low number of code modifications make it minimally invasive, so it is an easy drop-in replacement for Vanilla redstone dust.
 
-When compared to other popular redstone optimizations, Alternate Current comes out on top:
-
-- [Lithium](https://modrinth.com/mod/lithium) is up to 10 times slower.
-- [RedstoneWireTurbo](https://www.curseforge.com/minecraft/mc-mods/carpet) is up to 4 times slower.
-
 ## How does it work?
 
 The algorithm Alternate Current uses was designed with the following goals in mind:
@@ -20,7 +15,7 @@ The algorithm Alternate Current uses was designed with the following goals in mi
 
 In Vanilla redstone wire is laggy because it fails on points 1 and 2.
 
-Redstone wire updates recursively and each wire calculates its power level in isolation rather than in the context of the network it is a part of. This means a wire in a grid can change its power level over half a dozen times before settling on its final value. This problem used to be worse in 1.14 and below, where a wire would only decrease its power level by 1 at a time.
+Redstone wire updates recursively and each wire calculates its power level in isolation rather than in the context of the network it is a part of. This means a wire in a grid can change its power level over half a dozen times before settling on its final value. This problem used to be worse in 1.13 and below, where a wire would only decrease its power level by 1 at a time.
 
 In addition to this, a wire emits 42 block updates and up to 22 shape updates each time it changes its power level.
 
@@ -34,20 +29,24 @@ Alternate Current fixes each of these problems as follows.
 
 (1)
 To make sure a wire calculates its power level as little as possible, we remove the recursive nature in which redstone wire updates in Vanilla. Instead, we build a network of connected wires, find those wires that receive redstone power from "outside" the network, and spread the power from there. This has a few advantages:
-  - Each wire checks for power from non-wire components just once, and from nearby wires just twice.
-  - Each wire only sets its power level in the world once. This is important, because calls to World.setBlockState are even more expensive than calls to World.getBlockState.
 
-(2) There are 2 obvious ways in which we can reduce the number of block and shape updates.
-    - Get rid of the 18 redundant block updates and 16 redundant shape updates, so each wire only emits 24 block updates and 6 shape updates whenever it changes its power level.
-    - Only emit block updates and shape updates once a wire reaches its final power level, rather than at each intermediary stage. 
+- Each wire checks for power from non-wire components just once, and from nearby wires just twice.
+- Each wire only sets its power level in the world once. This is important, because calls to Level.setBlock are even more expensive than calls to Level.getBlockState.
+
+(2)
+There are 2 obvious ways in which we can reduce the number of block and shape updates.
+
+- Get rid of the 18 redundant block updates and 16 redundant shape updates, so each wire only emits 24 block updates and 6 shape updates whenever it changes its power level.
+- Only emit block updates and shape updates once a wire reaches its final power level, rather than at each intermediary stage.
 
 For an individual wire, these two optimizations are the best you can do, but for an entire grid, you can do better!
 
 Since we calculate the power of the entire network, sending block and shape updates to the wires in it is redundant. Removing those updates can reduce the number of block and shape updates by up to 20%.
 
-(3) To make the order of block updates to neighbors of a network deterministic, the first thing we must do is to replace the location-dependent order in which a wire updates its neighbors. Instead, we base it on the direction of power flow. This part of the algorithm was heavily inspired by theosib's 'RedstoneWireTurbo', which you can read more about in theosib's comment on Mojira [here](https://bugs.mojang.com/browse/MC-81098?focusedCommentId=420777&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-420777) or by checking out its implementation in carpet mod [here](https://github.com/gnembon/fabric-carpet/blob/master/src/main/java/carpet/helpers/RedstoneWireTurbo.java).
+(3)
+To make the order of block updates to neighbors of a network deterministic, the first thing we must do is to replace the location- dependent order in which a wire updates its neighbors. Instead, we base it on the direction of power flow. This part of the algorithm was heavily inspired by theosib's 'RedstoneWireTurbo', which you can read more about in theosib's comment on Mojira [here](https://bugs.mojang.com/browse/MC-81098?focusedCommentId=420777&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-420777) or by checking out its implementation in carpet mod [here](https://github.com/gnembon/fabric-carpet/blob/master/src/main/java/carpet/helpers/RedstoneWireTurbo.java).
 
-The idea is to determine the direction of power flow through a wire based on the power it receives from neighboring wires. For example, if the only power a wire receives is from a neighboring wire to its west, it can be said that the direction of power flow through the wire is east. 
+The idea is to determine the direction of power flow through a wire based on the power it receives from neighboring wires. For example, if the only power a wire receives is from a neighboring wire to its west, it can be said that the direction of power flow through the wire is east.
 
 We make the order of block updates to neighbors of a wire depend on what is determined to be the direction of power flow. This not only removes locationality entirely, it even removes directionality in a large number of cases. Unlike in 'RedstoneWireTurbo', however, I have decided to keep a directional element in ambiguous cases, rather than to introduce randomness, though this is trivial to change.
 
