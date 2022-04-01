@@ -417,7 +417,7 @@ public class WireHandler {
 		WireNode wire;
 
 		if (node == null || !node.isWire(type)) {
-			wire = new WireNode(type, level, pos, null);
+			wire = new WireNode(type, level, pos);
 		} else {
 			wire = node.asWire();
 

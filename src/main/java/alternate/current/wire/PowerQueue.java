@@ -181,14 +181,7 @@ public class PowerQueue extends AbstractQueue<WireNode> {
 		} else if (wire.power <= tail.power) {
 			linkTail(wire);
 		} else {
-			int index = wire.power + offset;
-			WireNode prev = tails[index];
-
-			if (prev == null) {
-				prev = findPrevWire(index);
-			}
-
-			linkAfter(prev, wire);
+			linkAfter(findPrev(wire), wire);
 		}
 	}
 
@@ -208,27 +201,27 @@ public class PowerQueue extends AbstractQueue<WireNode> {
 		tail = wire;
 	}
 
-	private WireNode findPrevWire(int index) {
-		for (int i = index + 1; i < tails.length; i++) {
-			WireNode wire = tails[i];
-
-			if (wire != null) {
-				return wire;
-			}
-		}
-
-		return head;
-	}
-
 	private void linkAfter(WireNode prev, WireNode wire) {
 		prev.next = wire;
 		wire.prev = prev;
 
-		WireNode next = prev.next;
-
-		if (next != null) {
-			wire.next = next;
-			next.prev = wire;
+		if (prev != tail) {
+			wire.next = prev.next;
+			prev.next.prev = wire;
 		}
+	}
+
+	private WireNode findPrev(WireNode wire) {
+		WireNode prev = null;
+
+		for (int i = wire.power + offset; i < tails.length; i++) {
+			prev = tails[i];
+
+			if (prev != null) {
+				break;
+			}
+		}
+
+		return prev;
 	}
 }
