@@ -12,21 +12,21 @@ import com.mojang.brigadier.CommandDispatcher;
 
 import alternate.current.command.AlternateCurrentCommand;
 
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 
-@Mixin(CommandManager.class)
-public class CommandManagerMixin {
-	
-	@Shadow @Final private CommandDispatcher<ServerCommandSource> dispatcher;
-	
+@Mixin(Commands.class)
+public class CommandsMixin {
+
+	@Shadow @Final private CommandDispatcher<CommandSourceStack> dispatcher;
+
 	@Inject(
-			method="<init>",
-			at = @At(
-					value = "INVOKE",
-					shift = Shift.BEFORE,
-					target = "Lcom/mojang/brigadier/CommandDispatcher;findAmbiguities(Lcom/mojang/brigadier/AmbiguityConsumer;)V"
-			)
+		method="<init>",
+		at = @At(
+			value = "INVOKE",
+			shift = Shift.BEFORE,
+			target = "Lcom/mojang/brigadier/CommandDispatcher;findAmbiguities(Lcom/mojang/brigadier/AmbiguityConsumer;)V"
+		)
 	)
 	private void registerCommands(boolean isDedicatedServer, CallbackInfo ci) {
 		AlternateCurrentCommand.register(dispatcher);
