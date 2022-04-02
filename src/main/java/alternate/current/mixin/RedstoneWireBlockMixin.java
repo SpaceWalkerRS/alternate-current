@@ -32,11 +32,11 @@ public class RedStoneWireBlockMixin implements WireBlock {
 			value = "HEAD"
 		)
 	)
-	private void onUpdate(Level level, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> ci) {
+	private void onUpdate(Level level, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
 		if (AlternateCurrentMod.on) {
 			// Using redirects for calls to this method makes conflicts with
 			// other mods more likely, so we inject-cancel instead.
-			ci.setReturnValue(state);
+			cir.setReturnValue(state);
 		}
 	}
 
