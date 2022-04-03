@@ -202,13 +202,15 @@ public class PowerQueue extends AbstractQueue<WireNode> {
 	}
 
 	private void linkAfter(WireNode prev, WireNode wire) {
-		prev.next = wire;
-		wire.prev = prev;
+		linkBetween(prev, wire, prev.next);
+	}
 
-		if (prev != tail) {
-			wire.next = prev.next;
-			prev.next.prev = wire;
-		}
+	private void linkBetween(WireNode prev, WireNode wire, WireNode next) {
+		prev.next = wire;
+		wire.next = next;
+
+		wire.prev = prev;
+		next.prev = wire;
 	}
 
 	private WireNode findPrev(WireNode wire) {
