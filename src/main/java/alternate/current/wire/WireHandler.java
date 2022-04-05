@@ -421,12 +421,12 @@ public class WireHandler {
 	/**
 	 * This method should be called whenever a wire is removed.
 	 */
-	public void onWireRemoved(BlockPos pos, WireType type) {
+	public void onWireRemoved(BlockPos pos, BlockState state, WireType type) {
 		Node node = removeNode(pos);
 		WireNode wire;
 
 		if (node == null || !node.isWire(type)) {
-			wire = new WireNode(type, level, pos);
+			wire = new WireNode(type, level, pos, state);
 		} else {
 			wire = node.asWire();
 		}
