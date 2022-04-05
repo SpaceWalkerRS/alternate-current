@@ -31,6 +31,7 @@ public class WireNode extends Node {
 	int flowIn;
 	/** The direction of power flow, based on the incoming flow. */
 	int iFlowDir;
+	boolean added;
 	boolean removed;
 	boolean shouldBreak;
 	boolean prepared;
@@ -120,6 +121,6 @@ public class WireNode extends Node {
 		currentPower = power;
 		state = type.setPower(level, pos, state, currentPower);
 
-		return level.setWireState(pos, state);
+		return level.setWireState(pos, state, added);
 	}
 }
