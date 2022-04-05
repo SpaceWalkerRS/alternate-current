@@ -9,7 +9,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.AlternateCurrentMod;
 import alternate.current.interfaces.mixin.IServerLevel;
-import alternate.current.util.BlockUtil;
 import alternate.current.wire.WireBlock;
 import alternate.current.wire.WireType;
 import alternate.current.wire.WireTypes;
@@ -51,19 +50,6 @@ public class RedStoneWireBlockMixin implements WireBlock {
 	private void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerLevel)level).getWireHandler().onWireAdded(pos, TYPE);
-
-			// Because of a check in Level.setBlockState, shape updates
-			// after placing a block are omitted if the block state
-			// changes while setting it in the chunk. This can happen
-			// due to the above call to the wire handler. To make sure
-			// connections are properly updated after placing a redstone
-			// wire, shape updates are emitted here.
-			BlockState newState = level.getBlockState(pos);
-
-			if (newState != state) {
-				newState.updateNeighbourShapes(level, pos, BlockUtil.FLAG_UPDATE_CLIENTS);
-				newState.updateIndirectNeighbourShapes(level, pos, BlockUtil.FLAG_UPDATE_CLIENTS);
-			}
 		}
 	}
 
