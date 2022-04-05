@@ -1070,38 +1070,40 @@ public class WireHandler {
 		BlockPos below = self.relative(downward);
 		BlockPos above = self.relative(upward);
 
+		Block block = wire.state.getBlock();
+
 		// direct neighbors (6)
-		updateNeighbor(front, self);
-		updateNeighbor(back, self);
-		updateNeighbor(right, self);
-		updateNeighbor(left, self);
-		updateNeighbor(below, self);
-		updateNeighbor(above, self);
+		updateNeighbor(front, self, block);
+		updateNeighbor(back, self, block);
+		updateNeighbor(right, self, block);
+		updateNeighbor(left, self, block);
+		updateNeighbor(below, self, block);
+		updateNeighbor(above, self, block);
 
 		// diagonal neighbors (12)
-		updateNeighbor(front.relative(rightward), self);
-		updateNeighbor(back.relative(leftward), self);
-		updateNeighbor(front.relative(leftward), self);
-		updateNeighbor(back.relative(rightward), self);
-		updateNeighbor(front.relative(downward), self);
-		updateNeighbor(back.relative(upward), self);
-		updateNeighbor(front.relative(upward), self);
-		updateNeighbor(back.relative(downward), self);
-		updateNeighbor(right.relative(downward), self);
-		updateNeighbor(left.relative(upward), self);
-		updateNeighbor(right.relative(upward), self);
-		updateNeighbor(left.relative(downward), self);
+		updateNeighbor(front.relative(rightward), self, block);
+		updateNeighbor(back.relative(leftward), self, block);
+		updateNeighbor(front.relative(leftward), self, block);
+		updateNeighbor(back.relative(rightward), self, block);
+		updateNeighbor(front.relative(downward), self, block);
+		updateNeighbor(back.relative(upward), self, block);
+		updateNeighbor(front.relative(upward), self, block);
+		updateNeighbor(back.relative(downward), self, block);
+		updateNeighbor(right.relative(downward), self, block);
+		updateNeighbor(left.relative(upward), self, block);
+		updateNeighbor(right.relative(upward), self, block);
+		updateNeighbor(left.relative(downward), self, block);
 
 		// far neighbors (6)
-		updateNeighbor(front.relative(forward), self);
-		updateNeighbor(back.relative(backward), self);
-		updateNeighbor(right.relative(rightward), self);
-		updateNeighbor(left.relative(leftward), self);
-		updateNeighbor(below.relative(downward), self);
-		updateNeighbor(above.relative(upward), self);
+		updateNeighbor(front.relative(forward), self, block);
+		updateNeighbor(back.relative(backward), self, block);
+		updateNeighbor(right.relative(rightward), self, block);
+		updateNeighbor(left.relative(leftward), self, block);
+		updateNeighbor(below.relative(downward), self, block);
+		updateNeighbor(above.relative(upward), self, block);
 	}
 
-	private void updateNeighbor(BlockPos pos, BlockPos fromPos) {
+	private void updateNeighbor(BlockPos pos, BlockPos fromPos, Block fromBlock) {
 		BlockState state = level.getBlockState(pos);
 		Block block = state.getBlock();
 
@@ -1115,7 +1117,7 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (!state.isAir() && !(block instanceof WireBlock)) {
-			level.updateNeighborBlock(pos, state, fromPos, block);
+			level.updateNeighborBlock(pos, state, fromPos, fromBlock);
 		}
 	}
 
