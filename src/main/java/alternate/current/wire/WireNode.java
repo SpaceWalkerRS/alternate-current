@@ -49,20 +49,15 @@ public class WireNode extends Node {
 	}
 
 	WireNode(WireType type, LevelAccess level, BlockPos pos, BlockState state) {
-		this(type, level, pos);
-
-		this.state = state;
-
-		this.virtualPower = this.currentPower = this.type.getPower(this.level, this.pos, this.state);
-	}
-
-	WireNode(WireType type, LevelAccess level, BlockPos pos) {
 		super(level);
 
 		this.pos = pos.immutable();
+		this.state = state;
 
 		this.type = type;
 		this.connections = new WireConnectionManager(this);
+
+		this.virtualPower = this.currentPower = this.type.getPower(this.level, this.pos, this.state);
 	}
 
 	@Override
