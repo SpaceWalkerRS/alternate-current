@@ -999,8 +999,9 @@ public class WireHandler {
 			findPowerFlow(wire);
 
 			if (wire.setPower()) {
-				// If the wire was removed, shape updates have already been emitted.
-				if (!wire.shouldBreak) {
+				// If the wire was newly placed or removed, shape updates have
+				// already been emitted.
+				if (!wire.added && !wire.shouldBreak) {
 					updateNeighborShapes(wire);
 				}
 
