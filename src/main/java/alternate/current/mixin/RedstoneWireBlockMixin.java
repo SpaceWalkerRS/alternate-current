@@ -63,7 +63,7 @@ public class RedStoneWireBlockMixin implements WireBlock {
 	)
 	private void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerLevel)level).getWireHandler().onWireRemoved(pos, TYPE);
+			((IServerLevel)level).getWireHandler().onWireRemoved(pos, state, TYPE);
 		}
 	}
 
