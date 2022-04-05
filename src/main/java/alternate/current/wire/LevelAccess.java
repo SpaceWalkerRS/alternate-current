@@ -50,7 +50,7 @@ public class LevelAccess {
 	 * update redstone wire block states, lighting checks, height map updates, and
 	 * block entity updates are omitted.
 	 */
-	boolean setWireState(BlockPos pos, BlockState state) {
+	boolean setWireState(BlockPos pos, BlockState state, boolean updateNeighborShapes) {
 		if (!(state.getBlock() instanceof WireBlock)) {
 			return false;
 		}
@@ -82,6 +82,12 @@ public class LevelAccess {
 		level.getChunkSource().blockChanged(pos);
 		// mark the chunk for saving
 		chunk.setUnsaved(true);
+
+		if (updateNeighborShapes) {
+			prevState.updateIndirectNeighbourShapes(level, pos, Block.UPDATE_CLIENTS);
+			state.updateNeighbourShapes(level, pos, Block.UPDATE_CLIENTS);
+			state.updateIndirectNeighbourShapes(level, pos, Block.UPDATE_CLIENTS);
+		}
 
 		return true;
 	}

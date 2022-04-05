@@ -404,6 +404,15 @@ public class WireHandler {
 	 * This method should be called whenever a wire is placed.
 	 */
 	public void onWireAdded(BlockPos pos, WireType type) {
+		Node node = getOrAddNode(pos);
+
+		if (!node.isWire(type)) {
+			return; // we should never get here
+		}
+
+		WireNode wire = node.asWire();
+		wire.added = true;
+
 		invalidateNodes();
 		findRoots(pos, type, false);
 		tryUpdatePower();
