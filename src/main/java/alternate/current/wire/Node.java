@@ -8,10 +8,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * A Node represents a block in the world. It is tied to a specific wire block
- * type so it can be identified as part of a wire network or as a neighbor of a
- * wire network. It also holds a few other pieces of information that speed up
- * the calculations in the WireHandler class.
+ * A Node represents a block in the world. It also holds a few other pieces of
+ * information that speed up the calculations in the WireHandler class.
  * 
  * @author Space Walker
  */
