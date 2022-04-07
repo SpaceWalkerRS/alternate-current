@@ -1,11 +1,10 @@
 package alternate.current.wire;
 
 /**
- * This interface should be implemented by each wire block type. While Vanilla
- * only has one wire block type, they could add more in the future, and any mods
- * that add more wire block types that wish to take advantage of Alternate
- * Current's performance improvements should have those wire blocks implement
- * this interface.
+ * This interface should be implemented by any wire block type. While it is the
+ * WireType class that represents different wire types and how they behave, this
+ * interface is used by the WireHandler to distinguish between wire blocks and
+ * non wire blocks.
  * 
  * @author Space Walker
  */
