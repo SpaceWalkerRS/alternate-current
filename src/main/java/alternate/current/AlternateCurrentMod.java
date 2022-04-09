@@ -10,7 +10,7 @@ import net.fabricmc.api.ModInitializer;
 
 public class AlternateCurrentMod implements ModInitializer {
 
-	public static final String MOD_ID = "alternatecurrent";
+	public static final String MOD_ID = "alternate-current";
 	public static final String MOD_NAME = "Alternate Current";
 	public static final String MOD_VERSION = "1.2.0";
 	public static final Logger LOGGER = LogManager.getLogger(MOD_NAME);
