@@ -27,10 +27,12 @@ public class PowerQueue extends AbstractQueue<WireNode> {
 		int power = wire.nextPower();
 
 		if (contains(wire)) {
-			if (power != wire.power) {
-				move(wire, power);
-			} else {
+			if (wire.power == power) {
+				// already queued for this power; exit
 				return false;
+			} else {
+				// already queued for different power; move it
+				move(wire, power);
 			}
 		} else {
 			insert(wire, power);
@@ -46,16 +48,21 @@ public class PowerQueue extends AbstractQueue<WireNode> {
 		}
 
 		WireNode wire = head;
-		head = head.next;
+		WireNode next = wire.next;
 
-		if (head == null) {
-			clear();
+		if (next == null) {
+			clear(); // reset the tails array and offset
 		} else {
-			head.prev = null;
-
-			if (wire.power != head.power) {
+			if (wire.power != next.power) {
+				// if the head is also a tail, its entry in the array
+				// can be cleared; there is no previous wire with the
+				// same power to take its place.
 				tails[wire.power + offset] = null;
 			}
+
+			wire.next = null;
+			next.prev = null;
+			head = next;
 
 			size--;
 		}
@@ -98,63 +105,86 @@ public class PowerQueue extends AbstractQueue<WireNode> {
 	}
 
 	public boolean contains(WireNode wire) {
-		return wire.next != null || wire == tail;
+		return wire == head || wire.prev != null;
 	}
 
 	private void move(WireNode wire, int power) {
+		remove(wire);
+		insert(wire, power);
+	}
+
+	private void remove(WireNode wire) {
 		if (wire == tail || wire.power != wire.next.power) {
-			if (wire == head || wire.prev.power != wire.power) {
+			// assign a new tail for this wire's power
+			if (wire == head || wire.power != wire.prev.power) {
+				// there is no other wire with the same power; clear
 				tails[wire.power + offset] = null;
 			} else {
+				// the previous wire in the queue becomes the tail
 				tails[wire.power + offset] = wire.prev;
 			}
 		}
 
-		size--;
-
-		unlink(wire);
-		insert(wire, power);
-	}
-
-	private void unlink(WireNode wire) {
 		if (wire == head) {
-			head = head.next;
+			head = wire.next;
 		} else {
 			wire.prev.next = wire.next;
 		}
 		if (wire == tail) {
-			tail = tail.prev;
+			tail = wire.prev;
 		} else {
 			wire.next.prev = wire.prev;
 		}
 
 		wire.prev = null;
 		wire.next = null;
+
+		size--;
 	}
 
 	private void insert(WireNode wire, int power) {
+		// store the power for which this wire is queued
 		wire.power = power;
 
+		// update the tails array and offset if needed
 		index(wire);
-		link(wire);
+
+		// wires are sorted by power (highest to lowest)
+		// wires with the same power are ordered FIFO
+		if (head == null) {
+			// first element in this queue \o/
+			head = tail = wire;
+		} else if (wire.power > head.power) {
+			linkHead(wire);
+		} else if (wire.power <= tail.power) {
+			linkTail(wire);
+		} else {
+			// since the wire is neither the head nor the tail
+			// findPrev is guaranteed to find a non-null element
+			linkAfter(findPrev(wire), wire);
+		}
+
+		tails[power + offset] = wire;
 
 		size++;
-
-		int index = wire.power + offset;
-		tails[index] = wire;
 	}
 
 	private void index(WireNode wire) {
-		int size = wire.power + offset + 1;
+		// required size is at least index + 1
+		int size = (wire.power + offset) + 1;
+		// move is new offset minus current offset
 		int move = -wire.type.minPower - offset;
 
+		// new size cannot be less than current size
 		if (size < tails.length) {
 			size = tails.length;
 		}
+		// since size cannot decrease, move cannot be negative
 		if (move < 0) {
 			move = 0;
 		}
 
+		// size increases by the increase in offset
 		size += move;
 
 		if (size > tails.length) {
@@ -171,22 +201,6 @@ public class PowerQueue extends AbstractQueue<WireNode> {
 		}
 
 		offset += move;
-	}
-
-	private void link(WireNode wire) {
-		if (head == null) {
-			linkFirst(wire);
-		} else if (wire.power > head.power) {
-			linkHead(wire);
-		} else if (wire.power <= tail.power) {
-			linkTail(wire);
-		} else {
-			linkAfter(findPrev(wire), wire);
-		}
-	}
-
-	private void linkFirst(WireNode wire) {
-		head = tail = wire;
 	}
 
 	private void linkHead(WireNode wire) {
@@ -207,9 +221,9 @@ public class PowerQueue extends AbstractQueue<WireNode> {
 
 	private void linkBetween(WireNode prev, WireNode wire, WireNode next) {
 		prev.next = wire;
-		wire.next = next;
-
 		wire.prev = prev;
+
+		wire.next = next;
 		next.prev = wire;
 	}
 
