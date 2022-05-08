@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Queue;
 
 //import alternate.current.AlternateCurrentMod;
-import alternate.current.util.BlockUtil;
 //import alternate.current.util.profiler.Profiler;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -992,11 +991,6 @@ public class WireHandler {
 			findPowerFlow(wire);
 
 			if (wire.setPower()) {
-				// If the wire was removed, observer updates have already been emitted.
-				if (!wire.shouldBreak) {
-					updateObservers(wire);
-				}
-
 				updateNeighborBlocks(wire);
 			}
 
@@ -1004,18 +998,6 @@ public class WireHandler {
 		}
 
 		updatingPower = false;
-	}
-
-	/**
-	 * Emit observer updates around the given wire.
-	 */
-	private void updateObservers(WireNode wire) {
-		BlockPos wirePos = wire.pos;
-		Block wireBlock = wire.state.getBlock();
-
-		for (Direction dir : BlockUtil.SHAPE_UPDATE_ORDER) {
-			level.updateObserver(wirePos.offset(dir), wirePos, wireBlock);
-		}
 	}
 
 	/**
@@ -1065,37 +1047,37 @@ public class WireHandler {
 		Block block = wire.state.getBlock();
 
 		// direct neighbors (6)
-		updateNeighbor(front, self, block);
-		updateNeighbor(back, self, block);
-		updateNeighbor(right, self, block);
-		updateNeighbor(left, self, block);
-		updateNeighbor(below, self, block);
-		updateNeighbor(above, self, block);
+		updateNeighbor(front, block);
+		updateNeighbor(back, block);
+		updateNeighbor(right, block);
+		updateNeighbor(left, block);
+		updateNeighbor(below, block);
+		updateNeighbor(above, block);
 
 		// diagonal neighbors (12)
-		updateNeighbor(front.offset(rightward), self, block);
-		updateNeighbor(back.offset(leftward), self, block);
-		updateNeighbor(front.offset(leftward), self, block);
-		updateNeighbor(back.offset(rightward), self, block);
-		updateNeighbor(front.offset(downward), self, block);
-		updateNeighbor(back.offset(upward), self, block);
-		updateNeighbor(front.offset(upward), self, block);
-		updateNeighbor(back.offset(downward), self, block);
-		updateNeighbor(right.offset(downward), self, block);
-		updateNeighbor(left.offset(upward), self, block);
-		updateNeighbor(right.offset(upward), self, block);
-		updateNeighbor(left.offset(downward), self, block);
+		updateNeighbor(front.offset(rightward), block);
+		updateNeighbor(back.offset(leftward), block);
+		updateNeighbor(front.offset(leftward), block);
+		updateNeighbor(back.offset(rightward), block);
+		updateNeighbor(front.offset(downward), block);
+		updateNeighbor(back.offset(upward), block);
+		updateNeighbor(front.offset(upward), block);
+		updateNeighbor(back.offset(downward), block);
+		updateNeighbor(right.offset(downward), block);
+		updateNeighbor(left.offset(upward), block);
+		updateNeighbor(right.offset(upward), block);
+		updateNeighbor(left.offset(downward), block);
 
 		// far neighbors (6)
-		updateNeighbor(front.offset(forward), self, block);
-		updateNeighbor(back.offset(backward), self, block);
-		updateNeighbor(right.offset(rightward), self, block);
-		updateNeighbor(left.offset(leftward), self, block);
-		updateNeighbor(below.offset(downward), self, block);
-		updateNeighbor(above.offset(upward), self, block);
+		updateNeighbor(front.offset(forward), block);
+		updateNeighbor(back.offset(backward), block);
+		updateNeighbor(right.offset(rightward), block);
+		updateNeighbor(left.offset(leftward), block);
+		updateNeighbor(below.offset(downward), block);
+		updateNeighbor(above.offset(upward), block);
 	}
 
-	private void updateNeighbor(BlockPos pos, BlockPos fromPos, Block fromBlock) {
+	private void updateNeighbor(BlockPos pos, Block fromBlock) {
 		BlockState state = level.getBlockState(pos);
 		Block block = state.getBlock();
 
@@ -1109,7 +1091,7 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (block != Blocks.AIR && !(block instanceof WireBlock)) {
-			level.updateNeighborBlock(pos, state, fromPos, fromBlock);
+			level.updateNeighborBlock(pos, state, fromBlock);
 		}
 	}
 

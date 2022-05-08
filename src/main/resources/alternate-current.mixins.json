@@ -13,7 +13,6 @@
 		"block.ChestBlockMixin",
 		"block.DaylightDetectorBlockMixin",
 		"block.LeverBlockMixin",
-		"block.ObserverBlockMixin",
 		"block.RedstoneBlockMixin",
 		"block.RedstoneComponentBlockMixin",
 		"block.RedstoneTorchBlockMixin",

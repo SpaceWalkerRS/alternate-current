@@ -68,13 +68,13 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	}
 
 	@Inject(
-		method = "onBreak",
+		method = "method_8641",
 		cancellable = true,
 		at = @At(
 			value = "HEAD"
 		)
 	)
-	private void onNeighborChanged(BlockState state, World world, BlockPos pos, Block fromBlock, BlockPos fromPos, CallbackInfo ci) {
+	private void onNeighborChanged(BlockState state, World world, BlockPos pos, Block fromBlock, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			if (!world.isClient) {
 				((IServerWorld)world).getWireHandler().onWireUpdated(pos, TYPE);

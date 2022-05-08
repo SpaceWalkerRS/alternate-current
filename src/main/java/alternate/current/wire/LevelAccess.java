@@ -3,7 +3,6 @@ package alternate.current.wire;
 import alternate.current.interfaces.mixin.IBlock;
 import alternate.current.util.BlockUtil;
 
-import net.minecraft.class_3065;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -98,21 +97,12 @@ public class LevelAccess {
 		return world.setBlockState(pos, Blocks.AIR.getDefaultState(), BlockUtil.FLAG_UPDATE_CLIENTS);
 	}
 
-	void updateObserver(BlockPos pos, BlockPos fromPos, Block fromBlock) {
-		BlockState state = getBlockState(pos);
-		Block block = state.getBlock();
-
-		if (block == Blocks.OBSERVER) {
-			((class_3065)block).method_13711(state, world, pos, fromBlock, fromPos);
-		}
+	void updateNeighborBlock(BlockPos pos, Block fromBlock) {
+		getBlockState(pos).method_11707(world, pos, fromBlock);
 	}
 
-	void updateNeighborBlock(BlockPos pos, BlockPos fromPos, Block fromBlock) {
-		getBlockState(pos).method_11707(world, pos, fromBlock, fromPos);
-	}
-
-	void updateNeighborBlock(BlockPos pos, BlockState state, BlockPos fromPos, Block fromBlock) {
-		state.method_11707(world, pos, fromBlock, fromPos);
+	void updateNeighborBlock(BlockPos pos, BlockState state, Block fromBlock) {
+		state.method_11707(world, pos, fromBlock);
 	}
 
 	public boolean isConductor(BlockPos pos) {
