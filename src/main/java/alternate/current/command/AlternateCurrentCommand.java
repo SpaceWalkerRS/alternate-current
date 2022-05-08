@@ -3,29 +3,29 @@ package alternate.current.command;
 import alternate.current.AlternateCurrentMod;
 import alternate.current.util.profiler.ProfilerResults;
 
-import net.minecraft.class_2662;
+import net.minecraft.command.AbstractCommand;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.IncorrectUsageException;
-import net.minecraft.text.Style;
+import net.minecraft.text.class_1687;
 
-public class AlternateCurrentCommand extends class_2662 {
-	
+public class AlternateCurrentCommand extends AbstractCommand {
+
 	@Override
 	public String getCommandName() {
 		return "alternatecurrent";
 	}
-	
+
 	@Override
-	public int method_5657() {
+	public int getPermissionLevel() {
 		return 2;
 	}
-	
+
 	@Override
 	public String getUsageTranslationKey(CommandSource source) {
-		return "/alternatecurrent [on/off]";
+		return AlternateCurrentMod.DEBUG ? "/alternatecurrent [on/off/resetProfiler]" : "/alternatecurrent [on/off]";
 	}
-	
+
 	@Override
 	public void execute(CommandSource source, String[] args) throws CommandException {
 		switch (args.length) {
@@ -34,45 +34,45 @@ public class AlternateCurrentCommand extends class_2662 {
 			return;
 		case 1:
 			String arg = args[0];
-			
+
 			switch (arg) {
 			case "on":
-				toggle(source, true);
+				set(source, true);
 				return;
 			case "off":
-				toggle(source, false);
+				set(source, false);
 				return;
 			case "resetProfiler":
 				if (AlternateCurrentMod.DEBUG) {
-					method_10772(source, "profiler results have been cleared!");
-					
+					method_2890(source, "profiler results have been cleared!");
+
 					ProfilerResults.log();
 					ProfilerResults.clear();
-					
+
 					return;
 				}
 			}
-			
+
 			break;
 		}
-		
+
 		throw new IncorrectUsageException(getUsageTranslationKey(source));
 	}
-	
+
+	private void query(CommandSource source) {
+		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
+		source.method_5505(class_1687.method_6026(String.format("Alternate Current is currently %s", state)));
+	}
+
+	private void set(CommandSource source, boolean on) {
+		AlternateCurrentMod.on = on;
+
+		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
+		method_2890(source, String.format("Alternate Current has been %s!", state));
+	}
+
 	@Override
 	public int compareTo(Object obj) {
 		return 0;
-	}
-	
-	private void query(CommandSource source) {
-		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
-		source.sendMessage(Style.createStyle(String.format("Alternate Current is currently %s", state)));
-	}
-	
-	private void toggle(CommandSource source, boolean on) {
-		AlternateCurrentMod.on = on;
-		
-		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
-		method_10772(source, String.format("Alternate Current has been %s!", state));
 	}
 }
