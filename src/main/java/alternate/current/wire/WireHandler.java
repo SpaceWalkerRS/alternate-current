@@ -544,8 +544,10 @@ public class WireHandler {
 	}
 
 	private int getExternalPower(WireNode wire) {
-		int power = wire.type.minPower;
+		return hasExternalPower(wire) ? WireTypes.REDSTONE.minPower : WireTypes.REDSTONE.maxPower;
+	}
 
+	private boolean hasExternalPower(WireNode wire) {
 		for (int iDir = 0; iDir < Directions.ALL.length; iDir++) {
 			Node neighbor = getNeighbor(wire, iDir);
 
@@ -556,41 +558,31 @@ public class WireHandler {
 
 			// Since 1.16 there is a block that is both a conductor and a signal
 			// source: the target block!
-			if (neighbor.isConductor()) {
-				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
+			if (neighbor.isConductor() && hasDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir))) {
+				return true;
 			}
-			if (neighbor.isSignalSource()) {
-				power = Math.max(power, level.getSignalFrom(neighbor.pos, neighbor.state, Directions.ALL[iDir]));
-			}
-
-			if (power >= wire.type.maxPower) {
-				return wire.type.maxPower;
+			if (neighbor.isSignalSource() && level.hasSignalFrom(neighbor.pos, neighbor.state, Directions.ALL[iDir])) {
+				return true;
 			}
 		}
 
-		return power;
+		return false;
 	}
 
 	/**
-	 * Determine the direct signal the given wire receives from neighboring blocks
-	 * through the given conductor node.
+	 * Determine whether the given wire is receiving a direct signal from
+	 * neighboring blocks through the given conductor node.
 	 */
-	private int getDirectSignalTo(WireNode wire, Node node, int except) {
-		int power = wire.type.minPower;
-
+	private boolean hasDirectSignalTo(WireNode wire, Node node, int except) {
 		for (int iDir : Directions.I_EXCEPT[except]) {
 			Node neighbor = getNeighbor(node, iDir);
 
-			if (neighbor.isSignalSource()) {
-				power = Math.max(power, level.getDirectSignalFrom(neighbor.pos, neighbor.state, Directions.ALL[iDir]));
-
-				if (power >= wire.type.maxPower) {
-					return wire.type.maxPower;
-				}
+			if (neighbor.isSignalSource() && level.hasDirectSignalFrom(neighbor.pos, neighbor.state, Directions.ALL[iDir])) {
+				return true;
 			}
 		}
 
-		return power;
+		return false;
 	}
 
 	/**

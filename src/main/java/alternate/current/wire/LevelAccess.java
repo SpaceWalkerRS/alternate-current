@@ -2,7 +2,6 @@ package alternate.current.wire;
 
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
-import alternate.current.util.BlockUtil;
 import alternate.current.util.Direction;
 
 import net.minecraft.block.Block;
@@ -110,7 +109,7 @@ public class LevelAccess {
 
 	boolean breakWire(BlockPos pos, BlockState state) {
 		state.dropAsItem(world, pos);
-		return world.method_4721(pos.x, pos.y, pos.z, 0, 0, BlockUtil.FLAG_UPDATE_CLIENTS);
+		return world.method_3652(pos.x, pos.y, pos.z, 0);
 	}
 
 	void updateNeighborBlock(BlockPos pos, Block fromBlock) {
@@ -125,12 +124,12 @@ public class LevelAccess {
 		return world.method_3783(pos.x, pos.y, pos.z);
 	}
 
-	public int getSignalFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getSignalFrom(world, pos, dir);
+	public boolean hasSignalFrom(BlockPos pos, BlockState state, Direction dir) {
+		return state.hasSignalFrom(world, pos, dir);
 	}
 
-	public int getDirectSignalFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.getDirectSignalFrom(world, pos, dir);
+	public boolean hasDirectSignalFrom(BlockPos pos, BlockState state, Direction dir) {
+		return state.hasDirectSignalFrom(world, pos, dir);
 	}
 
 	public boolean shouldBreak(BlockPos pos, BlockState state) {

@@ -14,8 +14,8 @@ public class BlockState {
 		public BlockState with(int metadata) { return this; }
 		public boolean isAir() { return true; }
 		public boolean isPowerSource() { return false; }
-		public int getSignalFrom(World world, BlockPos pos, Direction dir) { return 0; }
-		public int getDirectSignalFrom(World world, BlockPos pos, Direction dir) { return 0; }
+		public boolean hasSignalFrom(World world, BlockPos pos, Direction dir) { return false; }
+		public boolean hasDirectSignalFrom(World world, BlockPos pos, Direction dir) { return false; }
 		public boolean isWire() { return false; }
 		public boolean canSurviveAt(World world, BlockPos pos) { return true; }
 		public void dropAsItem(World world, BlockPos pos) { }
@@ -76,11 +76,11 @@ public class BlockState {
 		return block.emitsRedstonePower();
 	}
 
-	public int getSignalFrom(World world, BlockPos pos, Direction dir) {
+	public boolean hasSignalFrom(World world, BlockPos pos, Direction dir) {
 		return block.method_426(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
-	public int getDirectSignalFrom(World world, BlockPos pos, Direction dir) {
+	public boolean hasDirectSignalFrom(World world, BlockPos pos, Direction dir) {
 		return block.method_444(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
