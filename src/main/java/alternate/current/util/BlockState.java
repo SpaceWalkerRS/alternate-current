@@ -1,86 +1,86 @@
 package alternate.current.util;
 
-import alternate.current.redstone.WireBlock;
+import alternate.current.wire.WireBlock;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.world.World;
 
 public class BlockState {
-	
+
 	public static final BlockState AIR = new BlockState(Blocks.AIR, 0);
-	
+
 	private final Block block;
-	private final int blockData;
-	
-	public BlockState(Block block, int blockData) {
+	private final int metadata;
+
+	public BlockState(Block block, int metadata) {
 		this.block = block;
-		this.blockData = blockData;
+		this.metadata = metadata;
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof BlockState) {
 			BlockState state = (BlockState)obj;
-			return state.block == block && state.blockData == blockData;
+			return state.block == block && state.metadata == metadata;
 		}
-		
+
 		return false;
 	}
-	
+
 	public Block getBlock() {
 		return block;
 	}
-	
+
 	public boolean isOf(Block block) {
-		return block == this.block;
+		return this.block == block;
 	}
-	
+
 	public boolean isOf(WireBlock wireBlock) {
-		return wireBlock.asBlock() == this.block;
+		return this.block == wireBlock;
 	}
-	
-	public int getBlockData() {
-		return blockData;
+
+	public int get() {
+		return metadata;
 	}
-	
-	public BlockState withBlockData(int blockData) {
-		return new BlockState(block, blockData);
+
+	public BlockState with(int metadata) {
+		return new BlockState(block, metadata);
 	}
-	
+
 	public boolean isAir() {
 		return this == AIR;
 	}
-	
+
 	public boolean isConductor() {
 		return block.isFullCube();
 	}
-	
-	public boolean emitsRedstonePower() {
+
+	public boolean isPowerSource() {
 		return block.emitsRedstonePower();
 	}
-	
-	public int getWeakPowerFrom(World world, BlockPos pos, Direction dir) {
-		return block.method_8626(world, pos.getX(), pos.getY(), pos.getZ(), dir.getIndex());
+
+	public int getSignalFrom(World world, BlockPos pos, Direction dir) {
+		return block.method_426(world, pos.x, pos.y, pos.z, dir.index);
 	}
-	
-	public int getStrongPowerFrom(World world, BlockPos pos, Direction dir) {
-		return block.method_8630(world, pos.getX(), pos.getY(), pos.getZ(), dir.getIndex());
+
+	public int getDirectSignalFrom(World world, BlockPos pos, Direction dir) {
+		return block.method_444(world, pos.x, pos.y, pos.z, dir.index);
 	}
-	
-	public boolean canBePlacedAt(World world, BlockPos pos) {
-		return block.method_8628(world, pos.getX(), pos.getY(), pos.getZ());
+
+	public boolean isWire() {
+		return block instanceof WireBlock;
 	}
-	
+
+	public boolean canSurviveAt(World world, BlockPos pos) {
+		return block.method_434(world, pos.x, pos.y, pos.z);
+	}
+
 	public void dropAsItem(World world, BlockPos pos) {
-		block.method_8624(world, pos.getX(), pos.getY(), pos.getZ(), 0, 0);
+		block.method_445(world, pos.x, pos.y, pos.z, 0, 0);
 	}
-	
-	public boolean breakBlock(World world, BlockPos pos, int flags) {
-		return world.method_8510(pos.getX(), pos.getY(), pos.getZ(), Blocks.AIR, 0, flags);
-	}
-	
-	public void neighborUpdate(World world, BlockPos pos, Block fromBlock) {
-		block.neighborUpdate(world, pos.getX(), pos.getY(), pos.getZ(), fromBlock);
+
+	public void neighborChanged(World world, BlockPos pos, Block fromBlock) {
+		block.method_408(world, pos.x, pos.y, pos.z, fromBlock);
 	}
 }

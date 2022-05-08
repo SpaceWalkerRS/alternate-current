@@ -1,6 +1,6 @@
 plugins {
 	id 'maven-publish'
-	id 'fabric-loom' version "0.7-SNAPSHOT"
+	id 'fabric-loom' version "0.12-SNAPSHOT"
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -13,51 +13,19 @@ group = project.maven_group
 repositories {
 	maven {
 		name = 'legacy-fabric'
-		url = 'https://maven.legacyfabric.net/'
-	}
-}
-
-// Comment when using loom 0.10
-minecraft {
-	intermediaryUrl = {
-		return "https://maven.legacyfabric.net/net/fabricmc/intermediary/" + it + "/intermediary-" + it + "-v2.jar";
+		url = 'https://maven.legacyfabric.net'
 	}
 }
 
 loom {
-	// Uncomment when using loom 0.10
-//	setIntermediaryUrl('https://maven.legacyfabric.net/net/fabricmc/intermediary/%1$s/intermediary-%1$s-v2.jar');
-
-
-	runs {
-		client {
-			programArgs "--userProperties", "{}"
-		}
-	}
+	setIntermediaryUrl('https://maven.legacyfabric.net/net/fabricmc/intermediary/%1$s/intermediary-%1$s-v2.jar');
+	customMinecraftManifest.set("https://meta.legacyfabric.net/v2/manifest/${minecraft_version}")
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-	if (System.getProperty("os.name").toLowerCase().contains("mac")) {
-		implementation 'org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209'
-		implementation 'org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209'
-		implementation 'org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209'
-	}
-}
-
-if (System.getProperty("os.name").toLowerCase().contains("mac")) {
-	configurations.all {
-		resolutionStrategy {
-			dependencySubstitution {
-				substitute module('org.lwjgl.lwjgl:lwjgl_util:2.9.2-nightly-201408222') with module('org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209')
-				substitute module('org.lwjgl.lwjgl:lwjgl:2.9.2-nightly-201408222') with module('org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209')
-			}
-			force 'org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209'
-		}
-	}
 }
 
 processResources {
@@ -68,10 +36,11 @@ processResources {
 	}
 }
 
-// ensure that the encoding is set to UTF-8, no matter what the system default is
-// this fixes some edge cases with special characters not displaying correctly
-// see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
 tasks.withType(JavaCompile).configureEach {
+	// ensure that the encoding is set to UTF-8, no matter what the system default is
+	// this fixes some edge cases with special characters not displaying correctly
+	// see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
+	// If Javadoc is generated, this must be specified in that task too.
 	it.options.encoding = "UTF-8"
 	if (JavaVersion.current().isJava9Compatible()) it.options.release = 8
 }
@@ -85,7 +54,7 @@ java {
 
 jar {
 	from("LICENSE") {
-		rename { "${it}_${project.archivesBaseName}" }
+		rename { "${it}_${project.archivesBaseName}"}
 	}
 }
 

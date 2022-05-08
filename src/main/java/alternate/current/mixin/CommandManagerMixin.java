@@ -11,13 +11,13 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.CommandRegistry;
 
 @Mixin(CommandManager.class)
-public class CommandManagerMixin extends CommandRegistry {
-	
+public abstract class CommandManagerMixin extends CommandRegistry {
+
 	@Inject(
-			method="<init>",
-			at = @At(
-					value = "RETURN"
-			)
+		method="<init>",
+		at = @At(
+			value = "RETURN"
+		)
 	)
 	private void registerCommands(CallbackInfo ci) {
 		registerCommand(new AlternateCurrentCommand());
