@@ -16,11 +16,6 @@ public class AlternateCurrentCommand extends AbstractCommand {
 	}
 
 	@Override
-	public int getPermissionLevel() {
-		return 2;
-	}
-
-	@Override
 	public String getUsageTranslationKey(CommandSource source) {
 		return AlternateCurrentMod.DEBUG ? "/alternatecurrent [on/off/resetProfiler]" : "/alternatecurrent [on/off]";
 	}
