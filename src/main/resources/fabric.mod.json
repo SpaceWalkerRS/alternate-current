@@ -28,7 +28,7 @@
 	],
 
 	"depends": {
-		"minecraft": "1.10.x"
+		"minecraft": "1.9.x"
 	},
 	
 	"custom": {
