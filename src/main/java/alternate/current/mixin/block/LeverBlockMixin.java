@@ -12,14 +12,14 @@ import net.minecraft.world.World;
 
 @Mixin(LeverBlock.class)
 public class LeverBlockMixin implements IBlock {
-	
+
 	@Override
-	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(World world, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
-	
+
 	@Override
-	public boolean emitsStrongPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return state.get(LeverBlock.FACING).method_26676() == dir;
+	public boolean isDirectSignalSourceTo(World world, BlockPos pos, BlockState state, Direction dir) {
+		return state.get(LeverBlock.FACING).getDirection() == dir;
 	}
 }

@@ -8,5 +8,5 @@ import net.minecraft.block.Block;
 
 @Mixin(Block.class)
 public class BlockMixin implements IBlock {
-	
+
 }
