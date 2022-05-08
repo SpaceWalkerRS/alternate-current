@@ -9,30 +9,27 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.AlternateCurrentMod;
 import alternate.current.interfaces.mixin.IServerWorld;
-import alternate.current.redstone.Node;
-import alternate.current.redstone.WireBlock;
-import alternate.current.redstone.WireHandler;
-import alternate.current.redstone.WireHandler.NodeProvider;
-import alternate.current.redstone.WireNode;
-import alternate.current.redstone.WorldAccess;
-import alternate.current.util.BlockUtil;
+import alternate.current.wire.WireBlock;
+import alternate.current.wire.WireType;
+import alternate.current.wire.WireTypes;
 
-import net.minecraft.BlockState;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.RedstoneWireBlock;
-import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 @Mixin(RedstoneWireBlock.class)
-public abstract class RedstoneWireBlockMixin implements WireBlock {
-	
+public class RedstoneWireBlockMixin implements WireBlock {
+
+	private static final WireType TYPE = WireTypes.REDSTONE;
+
 	@Inject(
-			method = "method_10485",
-			cancellable = true,
-			at = @At(
-					value = "HEAD"
-			)
+		method = "update",
+		cancellable = true,
+		at = @At(
+			value = "HEAD"
+		)
 	)
 	private void onUpdate(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
 		if (AlternateCurrentMod.on) {
@@ -41,119 +38,54 @@ public abstract class RedstoneWireBlockMixin implements WireBlock {
 			cir.setReturnValue(state);
 		}
 	}
-	
+
 	@Inject(
-			method = "method_9615",
-			at = @At(
-					value = "INVOKE",
-					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;method_10485(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/BlockState;)Lnet/minecraft/BlockState;"
-			)
+		method = "method_8668",
+		at = @At(
+			value = "INVOKE",
+			shift = Shift.BEFORE,
+			target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
+		)
 	)
-	private void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, CallbackInfo ci) {
+	private void onPlace(BlockState state, World world, BlockPos pos, BlockState oldState, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getAccess(this).getWireHandler().onWireAdded(pos);
-			
-			// Because of a check in World.setBlockState, shape updates
-			// after placing a block are omitted if the block state
-			// changes while setting it in the chunk. This can happen
-			// due to the above call to the wire handler. To make sure
-			// connections are properly updated after placing a redstone
-			// wire, shape updates are emitted here.
-			BlockState newState = world.getBlockState(pos);
-			
-			if (newState != state) {
-				newState.method_73271(world, pos, BlockUtil.FLAG_NOTIFY_CLIENTS);
-				newState.method_73283(world, pos, BlockUtil.FLAG_NOTIFY_CLIENTS);
-			}
+			((IServerWorld)world).getWireHandler().onWireAdded(pos, TYPE);
 		}
 	}
-	
+
 	@Inject(
-			method = "onBlockAdded", // the mapping is wrong
-			at = @At(
-					value = "INVOKE",
-					shift = Shift.BEFORE,
-					target = "Lnet/minecraft/block/RedstoneWireBlock;method_10485(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/BlockState;)Lnet/minecraft/BlockState;"
-			)
+		method = "method_8659",
+		at = @At(
+			value = "INVOKE",
+			shift = Shift.BEFORE,
+			target = "Lnet/minecraft/block/RedstoneWireBlock;update(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;"
+		)
 	)
-	private void onBlockRemoved(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
+	private void onRemove(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getAccess(this).getWireHandler().onWireRemoved(pos);
+			((IServerWorld)world).getWireHandler().onWireRemoved(pos, state, TYPE);
 		}
 	}
-	
+
 	@Inject(
-			method = "neighborUpdate",
-			cancellable = true,
-			at = @At(
-					value = "HEAD"
-			)
+		method = "onBreak",
+		cancellable = true,
+		at = @At(
+			value = "HEAD"
+		)
 	)
-	private void onNeighborUpdate(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, CallbackInfo ci) {
+	private void onNeighborChanged(BlockState state, World world, BlockPos pos, Block fromBlock, BlockPos fromPos, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (!world.isClient()) {
-				((IServerWorld)world).getAccess(this).getWireHandler().onWireUpdated(pos);
+			if (!world.method_16390()) {
+				((IServerWorld)world).getWireHandler().onWireUpdated(pos, TYPE);
 			}
-			
+
 			ci.cancel();
 		}
 	}
-	
+
 	@Override
-	public int getMinPower() {
-		return 0;
-	}
-	
-	@Override
-	public int getMaxPower() {
-		return 15;
-	}
-	
-	@Override
-	public int getPowerStep() {
-		return 1;
-	}
-	
-	@Override
-	public int getPower(WorldAccess world, BlockPos pos, BlockState state) {
-		return state.get(Properties.POWER);
-	}
-	
-	@Override
-	public BlockState updatePowerState(WorldAccess world, BlockPos pos, BlockState state, int power) {
-		return state.with(Properties.POWER, power);
-	}
-	
-	@Override
-	public void findWireConnections(WireNode wire, NodeProvider nodes) {
-		boolean belowIsConductor = nodes.getNeighbor(wire, WireHandler.Directions.DOWN).isConductor();
-		boolean aboveIsConductor = nodes.getNeighbor(wire, WireHandler.Directions.UP).isConductor();
-		
-		wire.connections.set((connections, iDir) -> {
-			Node neighbor = nodes.getNeighbor(wire, iDir);
-			
-			if (neighbor.isWire()) {
-				connections.add(neighbor.asWire(), iDir, true, true);
-				return;
-			}
-			
-			boolean sideIsConductor = neighbor.isConductor();
-			
-			if (!sideIsConductor) {
-				Node node = nodes.getNeighbor(neighbor, WireHandler.Directions.DOWN);
-				
-				if (node.isWire()) {
-					connections.add(node.asWire(), iDir, true, belowIsConductor);
-				}
-			}
-			if (!aboveIsConductor) {
-				Node node = nodes.getNeighbor(neighbor, WireHandler.Directions.UP);
-				
-				if (node.isWire()) {
-					connections.add(node.asWire(), iDir, sideIsConductor, true);
-				}
-			}
-		});
+	public WireType getWireType() {
+		return TYPE;
 	}
 }
