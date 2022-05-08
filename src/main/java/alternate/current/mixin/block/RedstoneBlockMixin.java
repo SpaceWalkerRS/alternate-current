@@ -12,9 +12,9 @@ import net.minecraft.world.World;
 
 @Mixin(RedstoneBlock.class)
 public class RedstoneBlockMixin implements IBlock {
-	
+
 	@Override
-	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(World world, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
 }

@@ -1,10 +1,9 @@
 package alternate.current.interfaces.mixin;
 
-import alternate.current.redstone.WireBlock;
-import alternate.current.redstone.WorldAccess;
+import alternate.current.wire.WireHandler;
 
 public interface IServerWorld {
-	
-	public WorldAccess getAccess(WireBlock wireBlock);
-	
+
+	public WireHandler getWireHandler();
+
 }

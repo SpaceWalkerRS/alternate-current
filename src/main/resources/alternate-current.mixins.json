@@ -1,24 +1,24 @@
 {
-  "required": true,
-  "minVersion": "0.8",
-  "package": "alternate.current.mixin",
-  "compatibilityLevel": "JAVA_8",
-  "mixins": [
-  	"CommandManagerMixin",
-  	"RedstoneWireBlockMixin",
-  	"ServerWorldMixin",
-  	"block.AbstractButtonBlockMixin",
-  	"block.AbstractPressurePlateBlockMixin",
-  	"block.BlockMixin",
-  	"block.ChestBlockMixin",
-  	"block.DaylightDetectorBlockMixin",
-  	"block.LeverBlockMixin",
-  	"block.RedstoneBlockMixin",
-  	"block.RedstoneComponentBlockMixin",
-  	"block.RedstoneTorchBlockMixin",
-  	"block.TripwireHookBlockMixin"
-  ],
-  "injectors": {
-    "defaultRequire": 1
-  }
+	"required": true,
+	"minVersion": "0.8",
+	"package": "alternate.current.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"mixins": [
+		"CommandManagerMixin",
+		"RedstoneWireBlockMixin",
+		"ServerWorldMixin",
+		"block.AbstractButtonBlockMixin",
+		"block.AbstractPressurePlateBlockMixin",
+		"block.BlockMixin",
+		"block.ChestBlockMixin",
+		"block.DaylightDetectorBlockMixin",
+		"block.LeverBlockMixin",
+		"block.RedstoneBlockMixin",
+		"block.RedstoneComponentBlockMixin",
+		"block.RedstoneTorchBlockMixin",
+		"block.TripwireHookBlockMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
 }

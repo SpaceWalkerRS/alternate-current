@@ -14,20 +14,20 @@ import net.minecraft.world.World;
 
 @Mixin(ChestBlock.class)
 public class ChestBlockMixin implements IBlock {
-	
-	@Shadow @Final private int field_831; // chest type, 0 = normal, 1 = trapped
-	
+
+	@Shadow @Final private int field_5532; // 0 = normal - 1 = trap
+
 	@Override
-	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return isTrapped();
+	public boolean isSignalSourceTo(World world, BlockPos pos, BlockState state, Direction dir) {
+		return isTrapped_ac();
 	}
-	
+
 	@Override
-	public boolean emitsStrongPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
-		return isTrapped() && dir == Direction.UP;
+	public boolean isDirectSignalSourceTo(World world, BlockPos pos, BlockState state, Direction dir) {
+		return isTrapped_ac() && dir == Direction.UP;
 	}
-	
-	private boolean isTrapped() {
-		return field_831 == 1;
+
+	private boolean isTrapped_ac() {
+		return field_5532 == 1;
 	}
 }

@@ -12,9 +12,9 @@ import net.minecraft.world.World;
 
 @Mixin(DaylightDetectorBlock.class)
 public class DaylightDetectorBlockMixin implements IBlock {
-	
+
 	@Override
-	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(World world, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
 }

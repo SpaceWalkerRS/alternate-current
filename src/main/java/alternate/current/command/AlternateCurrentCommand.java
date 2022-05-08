@@ -10,22 +10,22 @@ import net.minecraft.command.IncorrectUsageException;
 import net.minecraft.text.LiteralText;
 
 public class AlternateCurrentCommand extends AbstractCommand {
-	
+
 	@Override
 	public String getCommandName() {
 		return "alternatecurrent";
 	}
-	
+
 	@Override
 	public int getPermissionLevel() {
 		return 2;
 	}
-	
+
 	@Override
 	public String getUsageTranslationKey(CommandSource source) {
-		return "/alternatecurrent [on/off]";
+		return AlternateCurrentMod.DEBUG ? "/alternatecurrent [on/off/resetProfiler]" : "/alternatecurrent [on/off]";
 	}
-	
+
 	@Override
 	public void execute(CommandSource source, String[] args) throws CommandException {
 		switch (args.length) {
@@ -34,39 +34,39 @@ public class AlternateCurrentCommand extends AbstractCommand {
 			return;
 		case 1:
 			String arg = args[0];
-			
+
 			switch (arg) {
 			case "on":
-				toggle(source, true);
+				set(source, true);
 				return;
 			case "off":
-				toggle(source, false);
+				set(source, false);
 				return;
 			case "resetProfiler":
 				if (AlternateCurrentMod.DEBUG) {
 					run(source, this, "profiler results have been cleared!");
-					
+
 					ProfilerResults.log();
 					ProfilerResults.clear();
-					
+
 					return;
 				}
 			}
-			
+
 			break;
 		}
-		
+
 		throw new IncorrectUsageException(getUsageTranslationKey(source));
 	}
-	
+
 	private void query(CommandSource source) {
 		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
 		source.sendMessage(new LiteralText(String.format("Alternate Current is currently %s", state)));
 	}
-	
-	private void toggle(CommandSource source, boolean on) {
+
+	private void set(CommandSource source, boolean on) {
 		AlternateCurrentMod.on = on;
-		
+
 		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
 		run(source, this, String.format("Alternate Current has been %s!", state));
 	}

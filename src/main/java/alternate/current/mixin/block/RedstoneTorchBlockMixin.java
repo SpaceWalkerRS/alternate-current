@@ -12,14 +12,14 @@ import net.minecraft.world.World;
 
 @Mixin(RedstoneTorchBlock.class)
 public class RedstoneTorchBlockMixin implements IBlock {
-	
+
 	@Override
-	public boolean emitsWeakPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(World world, BlockPos pos, BlockState state, Direction dir) {
 		return state.get(RedstoneTorchBlock.FACING) != dir;
 	}
-	
+
 	@Override
-	public boolean emitsStrongPowerTo(World world, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isDirectSignalSourceTo(World world, BlockPos pos, BlockState state, Direction dir) {
 		return dir == Direction.DOWN;
 	}
 }
