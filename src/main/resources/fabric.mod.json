@@ -28,7 +28,7 @@
 	],
 
 	"depends": {
-		"minecraft": "1.18.x"
+		"minecraft": "1.19-alpha.22.18.a"
 	},
 
 	"custom": {

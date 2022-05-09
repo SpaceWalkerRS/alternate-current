@@ -12,6 +12,7 @@ import com.mojang.brigadier.CommandDispatcher;
 
 import alternate.current.command.AlternateCurrentCommand;
 
+import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.Commands.CommandSelection;
@@ -26,10 +27,10 @@ public class CommandsMixin {
 		at = @At(
 			value = "INVOKE",
 			shift = Shift.BEFORE,
-			target = "Lcom/mojang/brigadier/CommandDispatcher;findAmbiguities(Lcom/mojang/brigadier/AmbiguityConsumer;)V"
+			target = "Lcom/mojang/brigadier/CommandDispatcher;setConsumer(Lcom/mojang/brigadier/ResultConsumer;)V"
 		)
 	)
-	private void registerCommands(CommandSelection selection, CallbackInfo ci) {
+	private void registerCommands(CommandSelection selection, CommandBuildContext context, CallbackInfo ci) {
 		AlternateCurrentCommand.register(dispatcher);
 	}
 }

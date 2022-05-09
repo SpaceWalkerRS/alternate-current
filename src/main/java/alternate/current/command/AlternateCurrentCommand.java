@@ -9,7 +9,7 @@ import alternate.current.util.profiler.ProfilerResults;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 
 public class AlternateCurrentCommand {
 
@@ -34,7 +34,7 @@ public class AlternateCurrentCommand {
 
 	private static int query(CommandSourceStack source) {
 		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
-		source.sendSuccess(new TextComponent(String.format("Alternate Current is currently %s", state)), false);
+		source.sendSuccess(Component.literal(String.format("Alternate Current is currently %s", state)), false);
 
 		return Command.SINGLE_SUCCESS;
 	}
@@ -43,13 +43,13 @@ public class AlternateCurrentCommand {
 		AlternateCurrentMod.on = on;
 
 		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
-		source.sendSuccess(new TextComponent(String.format("Alternate Current has been %s!", state)), true);
+		source.sendSuccess(Component.literal(String.format("Alternate Current has been %s!", state)), true);
 
 		return Command.SINGLE_SUCCESS;
 	}
 
 	private static int resetProfiler(CommandSourceStack source) {
-		source.sendSuccess(new TextComponent("profiler results have been cleared!"), true);
+		source.sendSuccess(Component.literal("profiler results have been cleared!"), true);
 
 		ProfilerResults.log();
 		ProfilerResults.clear();
