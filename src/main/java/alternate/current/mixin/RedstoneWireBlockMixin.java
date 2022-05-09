@@ -44,7 +44,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onPlace(World world, int x, int y, int z, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireAdded(world, x, y, z, TYPE);
+			onWireAdded(world, x, y, z);
 		}
 	}
 
@@ -58,7 +58,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onRemove(World world, int x, int y, int z, int blockId, int metadata, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireRemoved(world, x, y, z, blockId, metadata, TYPE);
+			onWireRemoved(world, x, y, z, blockId, metadata);
 		}
 	}
 
@@ -71,10 +71,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onNeighborChanged(World world, int x, int y, int z, int fromBlockId, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (!world.isClient) {
-				onWireUpdated(world, x, y, z, TYPE);
-			}
-
+			onWireUpdated(world, x, y, z);
 			ci.cancel();
 		}
 	}
