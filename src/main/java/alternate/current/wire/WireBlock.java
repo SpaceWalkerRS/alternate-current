@@ -18,15 +18,21 @@ public interface WireBlock {
 
 	public WireType getWireType();
 
-	default void onWireAdded(World world, int x, int y, int z, WireType type) {
-		((IServerWorld)world).getWireHandler().onWireAdded(new BlockPos(x, y, z), type);
+	default void onWireAdded(World world, int x, int y, int z) {
+		if (!world.isClient) {
+			((IServerWorld)world).getWireHandler().onWireAdded(new BlockPos(x, y, z), getWireType());
+		}
 	}
 
-	default void onWireRemoved(World world, int x, int y, int z, int blockId, int metadata, WireType type) {
-		((IServerWorld)world).getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(blockId, metadata), type);
+	default void onWireRemoved(World world, int x, int y, int z, int blockId, int metadata) {
+		if (!world.isClient) {
+			((IServerWorld)world).getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(blockId, metadata), getWireType());
+		}
 	}
 
-	default void onWireUpdated(World world, int x, int y, int z, WireType type) {
-		((IServerWorld)world).getWireHandler().onWireUpdated(new BlockPos(x, y, z), type);
+	default void onWireUpdated(World world, int x, int y, int z) {
+		if (!world.isClient) {
+			((IServerWorld)world).getWireHandler().onWireUpdated(new BlockPos(x, y, z), getWireType());
+		}
 	}
 }
