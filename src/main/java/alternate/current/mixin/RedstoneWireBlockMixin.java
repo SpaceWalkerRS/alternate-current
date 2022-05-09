@@ -8,7 +8,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.interfaces.mixin.IServerLevel;
 import alternate.current.wire.WireBlock;
 import alternate.current.wire.WireType;
 import alternate.current.wire.WireTypes;
@@ -49,7 +48,7 @@ public class RedStoneWireBlockMixin implements WireBlock {
 	)
 	private void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerLevel)level).getWireHandler().onWireAdded(pos, TYPE);
+			onWireAdded(level, pos);
 		}
 	}
 
@@ -63,7 +62,7 @@ public class RedStoneWireBlockMixin implements WireBlock {
 	)
 	private void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerLevel)level).getWireHandler().onWireRemoved(pos, state, TYPE);
+			onWireRemoved(level, pos, state);
 		}
 	}
 
@@ -76,10 +75,7 @@ public class RedStoneWireBlockMixin implements WireBlock {
 	)
 	private void onNeighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (!level.isClientSide()) {
-				((IServerLevel)level).getWireHandler().onWireUpdated(pos, TYPE);
-			}
-
+			onWireUpdated(level, pos);
 			ci.cancel();
 		}
 	}
