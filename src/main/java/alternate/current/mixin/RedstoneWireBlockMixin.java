@@ -8,7 +8,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.wire.WireBlock;
 import alternate.current.wire.WireType;
 import alternate.current.wire.WireTypes;
@@ -49,7 +48,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onPlace(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireAdded(pos, TYPE);
+			onWireAdded(world, pos);
 		}
 	}
 
@@ -63,7 +62,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onRemove(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireRemoved(pos, state, TYPE);
+			onWireRemoved(world, pos, state);
 		}
 	}
 
@@ -76,10 +75,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onNeighborChanged(BlockState state, World world, BlockPos pos, Block fromBlock, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (!world.isClient) {
-				((IServerWorld)world).getWireHandler().onWireUpdated(pos, TYPE);
-			}
-
+			onWireUpdated(world, pos);
 			ci.cancel();
 		}
 	}
