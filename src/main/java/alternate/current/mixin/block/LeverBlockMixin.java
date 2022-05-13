@@ -13,18 +13,18 @@ import net.minecraft.world.level.block.state.BlockState;
 
 @Mixin(LeverBlock.class)
 public abstract class LeverBlockMixin extends FaceAttachedHorizontalDirectionalBlock implements IBlock {
-	
-	protected LeverBlockMixin(Properties properties) {
+
+	private LeverBlockMixin(Properties properties) {
 		super(properties);
 	}
-	
+
 	@Override
-	public boolean emitsSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
-	
+
 	@Override
-	public boolean emitsDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return getConnectedDirection(state) == dir;
 	}
 }

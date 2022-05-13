@@ -13,14 +13,14 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 @Mixin(ObserverBlock.class)
 public class ObserverBlockMixin implements IBlock {
-	
+
 	@Override
-	public boolean emitsSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return state.getValue(BlockStateProperties.FACING) == dir;
 	}
-	
+
 	@Override
-	public boolean emitsDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return state.getValue(BlockStateProperties.FACING) == dir;
 	}
 }

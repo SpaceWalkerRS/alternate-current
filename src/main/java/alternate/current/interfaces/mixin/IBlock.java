@@ -6,12 +6,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 public interface IBlock {
-	
-	default boolean emitsSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+
+	default boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return false;
 	}
-	
-	default boolean emitsDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+
+	default boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return false;
 	}
 }
