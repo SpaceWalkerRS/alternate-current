@@ -12,9 +12,9 @@ import net.minecraft.world.level.block.state.BlockState;
 
 @Mixin(SculkSensorBlock.class)
 public class SculkSensorBlockMixin implements IBlock {
-	
+
 	@Override
-	public boolean emitsSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
 }

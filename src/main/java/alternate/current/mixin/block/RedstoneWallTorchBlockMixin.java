@@ -13,9 +13,9 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 @Mixin(RedstoneWallTorchBlock.class)
 public class RedstoneWallTorchBlockMixin implements IBlock {
-	
+
 	@Override
-	public boolean emitsSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return state.getValue(BlockStateProperties.HORIZONTAL_FACING) != dir;
 	}
 }

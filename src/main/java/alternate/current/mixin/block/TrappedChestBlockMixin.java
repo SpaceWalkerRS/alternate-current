@@ -12,14 +12,14 @@ import net.minecraft.world.level.block.state.BlockState;
 
 @Mixin(TrappedChestBlock.class)
 public class TrappedChestBlockMixin implements IBlock {
-	
+
 	@Override
-	public boolean emitsSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
-	
+
 	@Override
-	public boolean emitsDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+	public boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return dir == Direction.UP;
 	}
 }

@@ -13,18 +13,16 @@ import net.minecraft.world.level.block.state.BlockState;
 
 @Mixin(ButtonBlock.class)
 public abstract class ButtonBlockMixin extends FaceAttachedHorizontalDirectionalBlock implements IBlock {
-	
-	protected ButtonBlockMixin(Properties properties) {
+
+	private ButtonBlockMixin(Properties properties) {
 		super(properties);
 	}
-	
-	@Override
-	public boolean emitsSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+
+	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
-	
-	@Override
-	public boolean emitsDirectSignalTo(Level level, BlockPos pos, BlockState state, Direction dir) {
+
+	public boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return getConnectedDirection(state) == dir;
 	}
 }

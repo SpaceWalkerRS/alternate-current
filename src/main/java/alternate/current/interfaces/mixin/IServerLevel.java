@@ -1,10 +1,9 @@
 package alternate.current.interfaces.mixin;
 
-import alternate.current.redstone.WireBlock;
-import alternate.current.redstone.LevelAccess;
+import alternate.current.wire.WireHandler;
 
 public interface IServerLevel {
-	
-	public LevelAccess getAccess(WireBlock wireBlock);
-	
+
+	public WireHandler getWireHandler();
+
 }
