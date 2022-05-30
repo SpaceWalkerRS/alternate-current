@@ -28,6 +28,15 @@ public class Node {
 
 	private int flags;
 
+	/** The previous node in the update queue. */
+	Node prev;
+	/** The next node in the update queue. */
+	Node next;
+	/** The priority with which this node was queued. */
+	int priority;
+	/** The wire that queued this node for an update. */
+	WireNode neighborWire;
+
 	Node(LevelAccess level) {
 		this.level = level;
 		this.neighbors = new Node[Directions.ALL.length];
@@ -75,6 +84,20 @@ public class Node {
 		}
 
 		return this;
+	}
+
+	/**
+	 * Determine the priority with which this node should be queued.
+	 */
+	int priority() {
+		return neighborWire.priority();
+	}
+
+	/**
+	 * Determine the offset with which this node should be queued.
+	 */
+	int offset() {
+		return neighborWire.offset();
 	}
 
 	public boolean isWire() {

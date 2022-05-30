@@ -37,13 +37,6 @@ public class WireNode extends Node {
 	boolean prepared;
 	boolean inNetwork;
 
-	/** The power for which this wire was queued. */
-	int power;
-	/** The previous wire in the power queue. */
-	WireNode prev;
-	/** The next wire in the power queue. */
-	WireNode next;
-
 	WireNode(WireBlock wireBlock, LevelAccess level, BlockPos pos, BlockState state) {
 		this(wireBlock.getWireType(), level, pos, state);
 	}
@@ -58,11 +51,22 @@ public class WireNode extends Node {
 		this.connections = new WireConnectionManager(this);
 
 		this.virtualPower = this.currentPower = this.type.getPower(this.level, this.pos, this.state);
+		this.priority = priority();
 	}
 
 	@Override
-	public Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
+	Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		throw new UnsupportedOperationException("Cannot update a WireNode!");
+	}
+
+	@Override
+	int priority() {
+		return type.clamp(virtualPower);
+	}
+
+	@Override
+	int offset() {
+		return -type.minPower;
 	}
 
 	@Override
@@ -78,10 +82,6 @@ public class WireNode extends Node {
 	@Override
 	public WireNode asWire() {
 		return this;
-	}
-
-	int nextPower() {
-		return type.clamp(virtualPower);
 	}
 
 	boolean offerPower(int power, int iDir) {
@@ -113,7 +113,7 @@ public class WireNode extends Node {
 			return level.breakWire(pos, state);
 		}
 
-		currentPower = power;
+		currentPower = type.clamp(virtualPower);
 		state = type.setPower(level, pos, state, currentPower);
 
 		return level.setWireState(pos, state, added);

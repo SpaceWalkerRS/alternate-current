@@ -263,7 +263,7 @@ public class WireHandler {
 	/** Map of wires and neighboring blocks. */
 	private final Long2ObjectMap<Node> nodes;
 	/** All the power changes that need to happen. */
-	private final Queue<WireNode> powerChanges;
+	private final Queue<Node> updates;
 
 	private int rootCount;
 	// Rather than creating new nodes every time a network is updated we keep
@@ -278,7 +278,7 @@ public class WireHandler {
 
 		this.network = new ArrayList<>();
 		this.nodes = new Long2ObjectOpenHashMap<>();
-		this.powerChanges = new PowerQueue();
+		this.updates = new UpdateQueue();
 
 		this.nodeCache = new Node[16];
 		this.fillNodeCache(0, 16);
@@ -837,7 +837,7 @@ public class WireHandler {
 			updatingPower = false;
 
 			throw t;
-		} finally {
+//		} finally {
 //			profiler.pop();
 //			profiler.end();
 		}
@@ -855,12 +855,14 @@ public class WireHandler {
 			// The order in which wires are added to the network can influence the
 			// order in which they update their power levels.
 			wire.connections.forEach(connection -> {
+				// No power is offered to the connected wire; move on to the next.
 				if (!connection.offer) {
 					return;
 				}
 
 				WireNode neighbor = connection.wire;
 
+				// Connected wire is already part of network; move on to the next.
 				if (neighbor.inNetwork) {
 					return;
 				}
@@ -909,7 +911,7 @@ public class WireHandler {
 			findPower(wire, true);
 
 			if (index < rootCount || wire.removed || wire.shouldBreak || wire.virtualPower > wire.type.minPower) {
-				queuePowerChange(wire);
+				queueWire(wire);
 			} else {
 				// Wires that do not receive any power do not queue power changes
 				// until they are offered power from a neighboring wire. To ensure
@@ -922,17 +924,49 @@ public class WireHandler {
 	}
 
 	/**
-	 * Queue the power change for the given wire. If the wire does not need a power
-	 * change (perhaps because its power has already changed), transmit power to
-	 * neighboring wires.
+	 * Carry out power changes, setting the new power of each wire in the world,
+	 * notifying neighbors of the power change, then queueing power changes of
+	 * connected wires.
 	 */
-	private void queuePowerChange(WireNode wire) {
-		if (needsPowerChange(wire)) {
-			powerChanges.offer(wire);
-		} else {
-			findPowerFlow(wire);
-			transmitPower(wire);
+	private void letPowerFlow() {
+		// If an instantaneous update chain causes updates to another network
+		// (or the same network in another place), new power changes will be
+		// integrated into the already ongoing power queue, so we can exit early
+		// here.
+		if (updatingPower) {
+			return;
 		}
+
+		updatingPower = true;
+
+		while (!updates.isEmpty()) {
+			Node node = updates.poll();
+
+			if (node.isWire()) {
+				WireNode wire = node.asWire();
+
+				if (!needsPowerChange(wire)) {
+					continue;
+				}
+
+				findPowerFlow(wire);
+				transmitPower(wire);
+
+				if (wire.setPower()) {
+					queueNeighbors(wire);
+
+					// If the wire was newly placed or removed, shape updates have
+					// already been emitted.
+					if (!wire.added && !wire.shouldBreak) {
+						updateNeighborShapes(wire);
+					}
+				}
+			} else {
+				updateNeighbor(node);
+			}
+		}
+
+		updatingPower = false;
 	}
 
 	/**
@@ -953,7 +987,8 @@ public class WireHandler {
 	}
 
 	/**
-	 * Transmit power from the given wire to neighboring wires.
+	 * Transmit power from the given wire to neighboring wires and queue updates
+	 * to those wires.
 	 */
 	private void transmitPower(WireNode wire) {
 		wire.connections.forEach(connection -> {
@@ -968,50 +1003,9 @@ public class WireHandler {
 			int iDir = connection.iDir;
 
 			if (neighbor.offerPower(power, iDir)) {
-				queuePowerChange(neighbor);
+				queueWire(neighbor);
 			}
 		}, wire.iFlowDir);
-	}
-
-	/**
-	 * Carry out power changes, setting the new power of each wire in the world,
-	 * notifying neighbors of the power change, then queueing power changes of
-	 * connected wires.
-	 */
-	private void letPowerFlow() {
-		// If an instantaneous update chain causes updates to another network
-		// (or the same network in another place), new power changes will be
-		// integrated into the already ongoing power queue, so we can exit early
-		// here.
-		if (updatingPower) {
-			return;
-		}
-
-		updatingPower = true;
-
-		while (!powerChanges.isEmpty()) {
-			WireNode wire = powerChanges.poll();
-
-			if (!needsPowerChange(wire)) {
-				continue;
-			}
-
-			findPowerFlow(wire);
-
-			if (wire.setPower()) {
-				// If the wire was newly placed or removed, shape updates have
-				// already been emitted.
-				if (!wire.added && !wire.shouldBreak) {
-					updateNeighborShapes(wire);
-				}
-
-				updateNeighborBlocks(wire);
-			}
-
-			transmitPower(wire);
-		}
-
-		updatingPower = false;
 	}
 
 	/**
@@ -1028,19 +1022,21 @@ public class WireHandler {
 
 	private void updateNeighborShape(BlockPos pos, Direction fromDir, BlockPos fromPos, BlockState fromState) {
 		BlockState state = level.getBlockState(pos);
+		Block block = state.getBlock();
 
 		// Shape updates to redstone wire are very expensive, and should never happen
 		// as a result of power changes anyway.
-		if (!state.isAir() && !(state.getBlock() instanceof WireBlock)) {
+		if (!state.isAir() && !(block instanceof WireBlock)) {
 			level.updateNeighborShape(pos, state, fromDir, fromPos, fromState);
 		}
 	}
 
 	/**
-	 * Emit block updates around the given wire. The order in which neighbors are
-	 * updated is determined as follows:
+	 * Queue updates to nodes around the given wire. The order in which neighbors
+	 * are updated is designed to be an extension of the default block update order,
+	 * and is determined as follows:
 	 * <br>
-	 * 1. The direction of power flow through the wire is to be considered'forward'.
+	 * 1. The direction of power flow through the wire is to be considered 'forward'.
 	 * The order in which neighbors are updated depends on their relative positions
 	 * to the wire.
 	 * <br>
@@ -1062,58 +1058,96 @@ public class WireHandler {
 	 * be 'forward': { west, east, north, south, down, up } - this is the order of
 	 * shape updates.
 	 */
-	private void updateNeighborBlocks(WireNode wire) {
-		int iDir = wire.iFlowDir;
+	private void queueNeighbors(WireNode wire) {
+		int forward   = wire.iFlowDir;
+		int rightward = (forward + 1) & 0b11;
+		int backward  = (forward + 2) & 0b11;
+		int leftward  = (forward + 3) & 0b11;
+		int downward  = Directions.DOWN;
+		int upward    = Directions.UP;
 
-		Direction forward   = Directions.HORIZONTAL[ iDir            ];
-		Direction rightward = Directions.HORIZONTAL[(iDir + 1) & 0b11];
-		Direction backward  = Directions.HORIZONTAL[(iDir + 2) & 0b11];
-		Direction leftward  = Directions.HORIZONTAL[(iDir + 3) & 0b11];
-		Direction downward  = Direction.DOWN;
-		Direction upward    = Direction.UP;
-
-		BlockPos self  = wire.pos;
-		BlockPos front = self.relative(forward);
-		BlockPos right = self.relative(rightward);
-		BlockPos back  = self.relative(backward);
-		BlockPos left  = self.relative(leftward);
-		BlockPos below = self.relative(downward);
-		BlockPos above = self.relative(upward);
-
-		Block block = wire.state.getBlock();
+		Node front = getNeighbor(wire, forward);
+		Node right = getNeighbor(wire, rightward);
+		Node back  = getNeighbor(wire, backward);
+		Node left  = getNeighbor(wire, leftward);
+		Node below = getNeighbor(wire, downward);
+		Node above = getNeighbor(wire, upward);
 
 		// direct neighbors (6)
-		updateNeighbor(front, self, block);
-		updateNeighbor(back, self, block);
-		updateNeighbor(right, self, block);
-		updateNeighbor(left, self, block);
-		updateNeighbor(below, self, block);
-		updateNeighbor(above, self, block);
+		queueNeighbor(front, wire);
+		queueNeighbor(back , wire);
+		queueNeighbor(right, wire);
+		queueNeighbor(left , wire);
+		queueNeighbor(below, wire);
+		queueNeighbor(above, wire);
 
 		// diagonal neighbors (12)
-		updateNeighbor(front.relative(rightward), self, block);
-		updateNeighbor(back.relative(leftward), self, block);
-		updateNeighbor(front.relative(leftward), self, block);
-		updateNeighbor(back.relative(rightward), self, block);
-		updateNeighbor(front.relative(downward), self, block);
-		updateNeighbor(back.relative(upward), self, block);
-		updateNeighbor(front.relative(upward), self, block);
-		updateNeighbor(back.relative(downward), self, block);
-		updateNeighbor(right.relative(downward), self, block);
-		updateNeighbor(left.relative(upward), self, block);
-		updateNeighbor(right.relative(upward), self, block);
-		updateNeighbor(left.relative(downward), self, block);
+		queueNeighborOfNode(front, rightward, wire);
+		queueNeighborOfNode(back , leftward , wire);
+		queueNeighborOfNode(front, leftward , wire);
+		queueNeighborOfNode(back , rightward, wire);
+		queueNeighborOfNode(front, downward , wire);
+		queueNeighborOfNode(back , upward   , wire);
+		queueNeighborOfNode(front, upward   , wire);
+		queueNeighborOfNode(back , downward , wire);
+		queueNeighborOfNode(right, downward , wire);
+		queueNeighborOfNode(left , upward   , wire);
+		queueNeighborOfNode(right, upward   , wire);
+		queueNeighborOfNode(left , downward , wire);
 
 		// far neighbors (6)
-		updateNeighbor(front.relative(forward), self, block);
-		updateNeighbor(back.relative(backward), self, block);
-		updateNeighbor(right.relative(rightward), self, block);
-		updateNeighbor(left.relative(leftward), self, block);
-		updateNeighbor(below.relative(downward), self, block);
-		updateNeighbor(above.relative(upward), self, block);
+		queueNeighborOfNode(front, forward  , wire);
+		queueNeighborOfNode(back , backward , wire);
+		queueNeighborOfNode(right, rightward, wire);
+		queueNeighborOfNode(left , leftward , wire);
+		queueNeighborOfNode(below, downward , wire);
+		queueNeighborOfNode(above, upward   , wire);
 	}
 
-	private void updateNeighbor(BlockPos pos, BlockPos fromPos, Block fromBlock) {
+	/**
+	 * Queue the neighbor of the given node in the given direction for an update
+	 * from the given neighboring wire.
+	 */
+	private void queueNeighborOfNode(Node node, int iDir, WireNode neighborWire) {
+		queueNeighbor(getNeighbor(node, iDir), neighborWire);
+	}
+
+	/**
+	 * Queue the given node for an update from the given neighboring wire.
+	 */
+	private void queueNeighbor(Node node, WireNode neighborWire) {
+		// Updates to wires are queued when power is transmitted.
+		if (!node.isWire()) {
+			node.neighborWire = neighborWire;
+			updates.offer(node);
+		}
+	}
+
+	/**
+	 * Queue the given wire for a power change. If the wire does not need a power
+	 * change (perhaps because its power has already changed), transmit power to
+	 * neighboring wires.
+	 */
+	private void queueWire(WireNode wire) {
+		if (needsPowerChange(wire)) {
+			updates.offer(wire);
+		} else {
+			findPowerFlow(wire);
+			transmitPower(wire);
+		}
+	}
+
+	/**
+	 * Emit a block update to the given node.
+	 */
+	private void updateNeighbor(Node node) {
+		WireNode neighborWire = node.neighborWire;
+
+		if (neighborWire == null) {
+			return;
+		}
+
+		BlockPos pos = node.pos;
 		BlockState state = level.getBlockState(pos);
 		Block block = state.getBlock();
 
@@ -1127,7 +1161,10 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (!state.isAir() && !(block instanceof WireBlock)) {
-			level.updateNeighborBlock(pos, state, fromPos, fromBlock);
+			BlockPos neighborPos = neighborWire.pos;
+			Block neighborBlock = neighborWire.state.getBlock();
+
+			level.updateNeighborBlock(pos, state, neighborPos, neighborBlock);
 		}
 	}
 
