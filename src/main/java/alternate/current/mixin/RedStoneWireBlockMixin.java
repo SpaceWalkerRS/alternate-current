@@ -4,6 +4,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.AlternateCurrentMod;
@@ -12,6 +13,7 @@ import alternate.current.wire.WireType;
 import alternate.current.wire.WireTypes;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RedStoneWireBlock;
@@ -21,6 +23,28 @@ import net.minecraft.world.level.block.state.BlockState;
 public class RedStoneWireBlockMixin implements WireBlock {
 
 	private static final WireType TYPE = WireTypes.REDSTONE;
+
+	@Redirect(
+		method = "getConnectingSide(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/RedstoneSide;",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;shouldConnectTo(Lnet/minecraft/world/level/block/state/BlockState;)Z"
+		)
+	)
+	private boolean redirectShouldConnectTo(BlockState state) {
+		return shouldConnect(state);
+	}
+
+	@Redirect(
+		method = "getConnectingSide(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/RedstoneSide;",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;shouldConnectTo(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Direction;)Z"
+		)
+	)
+	private boolean redirectShouldConnectTo(BlockState state, Direction dir) {
+		return shouldConnect(state, dir);
+	}
 
 	@Inject(
 		method = "updatePowerStrength",
