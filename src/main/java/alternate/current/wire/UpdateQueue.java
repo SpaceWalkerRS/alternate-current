@@ -19,7 +19,7 @@ public class UpdateQueue extends AbstractQueue<Node> {
 	private int size;
 
 	public UpdateQueue() {
-		this.tails = new Node[(Redstone.SIGNAL_MAX + 1) + OFFSET];
+		this.tails = new Node[(Redstone.SIGNAL_MAX + OFFSET) + 1];
 	}
 
 	@Override
