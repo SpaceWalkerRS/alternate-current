@@ -30,6 +30,9 @@
 	"depends": {
 		"minecraft": "1.19.x"
 	},
+	"breaks": {
+		"alternate-current-plus": "*"
+	},
 
 	"custom": {
 		"modmenu": {
