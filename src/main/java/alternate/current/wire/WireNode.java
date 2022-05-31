@@ -71,17 +71,17 @@ public class WireNode extends Node {
 		return this;
 	}
 
-	boolean offerPower(int power, int flow) {
+	boolean offerPower(int power, int iDir) {
 		if (removed || shouldBreak) {
 			return false;
 		}
 		if (power == virtualPower) {
-			flowIn |= flow;
+			flowIn |= (1 << iDir);
 			return false;
 		}
 		if (power > virtualPower) {
 			virtualPower = power;
-			flowIn = flow;
+			flowIn = (1 << iDir);
 
 			return true;
 		}
