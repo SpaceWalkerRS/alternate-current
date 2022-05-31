@@ -7,7 +7,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
@@ -51,7 +50,7 @@ public class LevelAccess {
 	 * block entity updates are omitted.
 	 */
 	boolean setWireState(BlockPos pos, BlockState state, boolean updateNeighborShapes) {
-		if (!(state.getBlock() instanceof WireBlock)) {
+		if (!state.is(Blocks.REDSTONE_WIRE)) {
 			return false;
 		}
 
@@ -93,8 +92,7 @@ public class LevelAccess {
 	}
 
 	boolean breakWire(BlockPos pos, BlockState state) {
-		BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
-		Block.dropResources(state, level, pos, blockEntity);
+		Block.dropResources(state, level, pos);
 		return level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
 	}
 

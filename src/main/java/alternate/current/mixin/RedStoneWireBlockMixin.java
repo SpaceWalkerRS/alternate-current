@@ -4,47 +4,19 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.wire.WireBlock;
-import alternate.current.wire.WireType;
-import alternate.current.wire.WireTypes;
+import alternate.current.interfaces.mixin.IServerLevel;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 @Mixin(RedStoneWireBlock.class)
-public class RedStoneWireBlockMixin implements WireBlock {
-
-	private static final WireType TYPE = WireTypes.REDSTONE;
-
-	@Redirect(
-		method = "getConnectingSide(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/RedstoneSide;",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;shouldConnectTo(Lnet/minecraft/world/level/block/state/BlockState;)Z"
-		)
-	)
-	private boolean redirectShouldConnectTo(BlockState state) {
-		return shouldConnect(state);
-	}
-
-	@Redirect(
-		method = "getConnectingSide(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/RedstoneSide;",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;shouldConnectTo(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Direction;)Z"
-		)
-	)
-	private boolean redirectShouldConnectTo(BlockState state, Direction dir) {
-		return shouldConnect(state, dir);
-	}
+public class RedStoneWireBlockMixin {
 
 	@Inject(
 		method = "updatePowerStrength",
@@ -71,7 +43,7 @@ public class RedStoneWireBlockMixin implements WireBlock {
 	)
 	private void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireAdded(level, pos);
+			((IServerLevel)level).getWireHandler().onWireAdded(pos);
 		}
 	}
 
@@ -85,7 +57,7 @@ public class RedStoneWireBlockMixin implements WireBlock {
 	)
 	private void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireRemoved(level, pos, state);
+			((IServerLevel)level).getWireHandler().onWireRemoved(pos, state);
 		}
 	}
 
@@ -98,13 +70,8 @@ public class RedStoneWireBlockMixin implements WireBlock {
 	)
 	private void onNeighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireUpdated(level, pos);
+			((IServerLevel)level).getWireHandler().onWireUpdated(pos);
 			ci.cancel();
 		}
-	}
-
-	@Override
-	public WireType getWireType() {
-		return TYPE;
 	}
 }

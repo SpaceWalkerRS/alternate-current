@@ -1,23 +1,25 @@
 package alternate.current.wire;
 
 import java.util.AbstractQueue;
+import java.util.Arrays;
 import java.util.Iterator;
+
+import net.minecraft.world.level.redstone.Redstone;
 
 public class UpdateQueue extends AbstractQueue<Node> {
 
-	private static final int DEFAULT_TAILS_CAPACITY = (WireTypes.REDSTONE.maxPower + 1) - WireTypes.REDSTONE.minPower;
+	private static final int OFFSET = -Redstone.SIGNAL_MIN;
+
+	/** The last node for each priority value. */
+	private final Node[] tails;
 
 	private Node head;
 	private Node tail;
 
-	/** The last node for each priority value. */
-	private Node[] tails;
-
-	private int offset;
 	private int size;
 
 	public UpdateQueue() {
-		clear();
+		this.tails = new Node[(Redstone.SIGNAL_MAX + 1) + OFFSET];
 	}
 
 	@Override
@@ -53,13 +55,13 @@ public class UpdateQueue extends AbstractQueue<Node> {
 		Node next = node.next;
 
 		if (next == null) {
-			clear(); // reset the tails array and offset
+			clear(); // reset the tails array
 		} else {
 			if (node.priority != next.priority) {
 				// If the head is also a tail, its entry in the array
 				// can be cleared; there is no previous node with the
 				// same priority to take its place.
-				tails[node.priority + offset] = null;
+				tails[node.priority + OFFSET] = null;
 			}
 
 			node.next = null;
@@ -87,12 +89,11 @@ public class UpdateQueue extends AbstractQueue<Node> {
 			n.next = null;
 		}
 
+		Arrays.fill(tails, null);
+
 		head = null;
 		tail = null;
 
-		tails = new Node[DEFAULT_TAILS_CAPACITY];
-
-		offset = 0;
 		size = 0;
 	}
 
@@ -123,10 +124,10 @@ public class UpdateQueue extends AbstractQueue<Node> {
 			// assign a new tail for this node's priority
 			if (node == head || node.priority != prev.priority) {
 				// there is no other node with the same priority; clear
-				tails[node.priority + offset] = null;
+				tails[node.priority + OFFSET] = null;
 			} else {
 				// the previous node in the queue becomes the tail
-				tails[node.priority + offset] = prev;
+				tails[node.priority + OFFSET] = prev;
 			}
 		}
 
@@ -150,9 +151,6 @@ public class UpdateQueue extends AbstractQueue<Node> {
 	private void insert(Node node, int priority) {
 		node.priority = priority;
 
-		// update the tails array and offset if needed
-		index(node);
-
 		// nodes are sorted by priority (highest to lowest)
 		// nodes with the same priority are ordered FIFO
 		if (head == null) {
@@ -168,43 +166,9 @@ public class UpdateQueue extends AbstractQueue<Node> {
 			linkAfter(findPrev(node), node);
 		}
 
-		tails[priority + offset] = node;
+		tails[priority + OFFSET] = node;
 
 		size++;
-	}
-
-	private void index(Node node) {
-		// required size is at least index + 1
-		int size = (node.priority + offset) + 1;
-		// move is new offset minus current offset
-		int move = node.offset() - offset;
-
-		// new size cannot be less than current size
-		if (size < tails.length) {
-			size = tails.length;
-		}
-		// since size cannot decrease, move cannot be negative
-		if (move < 0) {
-			move = 0;
-		}
-
-		// size increases by the increase in offset
-		size += move;
-
-		if (size > tails.length) {
-			resize(size, move);
-		}
-	}
-
-	private void resize(int size, int move) {
-		Node[] array = tails;
-		tails = new Node[size];
-
-		for (int i = 0; i < array.length; i++) {
-			tails[i + move] = array[i];
-		}
-
-		offset += move;
 	}
 
 	private void linkHead(Node node) {
@@ -234,7 +198,7 @@ public class UpdateQueue extends AbstractQueue<Node> {
 	private Node findPrev(Node node) {
 		Node prev = null;
 
-		for (int i = node.priority + offset; i < tails.length; i++) {
+		for (int i = node.priority + OFFSET; i < tails.length; i++) {
 			prev = tails[i];
 
 			if (prev != null) {

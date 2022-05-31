@@ -5,6 +5,7 @@ import java.util.Arrays;
 import alternate.current.wire.WireHandler.Directions;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
@@ -62,7 +63,7 @@ public class Node {
 	}
 
 	Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
-		if (state.getBlock() instanceof WireBlock) {
+		if (state.is(Blocks.REDSTONE_WIRE)) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 
@@ -90,21 +91,10 @@ public class Node {
 	 * Determine the priority with which this node should be queued.
 	 */
 	int priority() {
-		return neighborWire.priority();
-	}
-
-	/**
-	 * Determine the offset with which this node should be queued.
-	 */
-	int offset() {
-		return neighborWire.offset();
+		return neighborWire.priority;
 	}
 
 	public boolean isWire() {
-		return false;
-	}
-
-	public boolean isWire(WireType type) {
 		return false;
 	}
 
