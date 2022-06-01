@@ -1,18 +1,21 @@
 package alternate.current.wire;
 
+import alternate.current.util.Redstone;
+
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * A WireNode is a Node that represents a wire in the world. It stores
- * all the information about the wire that the WireHandler needs to
- * calculate power changes.
+ * A WireNode is a Node that represents a wire in the world. It stores all the
+ * information about the wire that the WireHandler needs to calculate power
+ * changes.
  * 
  * @author Space Walker
  */
 public class WireNode extends Node {
 
-	final WireType type;
 	final WireConnectionManager connections;
 
 	/** The power level this wire currently holds in the world. */
@@ -37,32 +40,26 @@ public class WireNode extends Node {
 	boolean prepared;
 	boolean inNetwork;
 
-	/** The power for which this wire was queued. */
-	int power;
-	/** The previous wire in the power queue. */
-	WireNode prev;
-	/** The next wire in the power queue. */
-	WireNode next;
-
-	WireNode(WireBlock wireBlock, LevelAccess level, BlockPos pos, BlockState state) {
-		this(wireBlock.getWireType(), level, pos, state);
-	}
-
-	WireNode(WireType type, LevelAccess level, BlockPos pos, BlockState state) {
+	WireNode(LevelAccess level, BlockPos pos, BlockState state) {
 		super(level);
 
 		this.pos = pos.immutable();
 		this.state = state;
 
-		this.type = type;
 		this.connections = new WireConnectionManager(this);
 
-		this.virtualPower = this.currentPower = this.type.getPower(this.level, this.pos, this.state);
+		this.virtualPower = this.currentPower = this.state.getValue(RedStoneWireBlock.POWER);
+		this.priority = priority();
 	}
 
 	@Override
-	public Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
+	Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		throw new UnsupportedOperationException("Cannot update a WireNode!");
+	}
+
+	@Override
+	int priority() {
+		return Mth.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
 	}
 
 	@Override
@@ -71,17 +68,8 @@ public class WireNode extends Node {
 	}
 
 	@Override
-	public boolean isWire(WireType type) {
-		return this.type == type;
-	}
-
-	@Override
 	public WireNode asWire() {
 		return this;
-	}
-
-	int nextPower() {
-		return type.clamp(virtualPower);
 	}
 
 	boolean offerPower(int power, int iDir) {
@@ -113,8 +101,8 @@ public class WireNode extends Node {
 			return level.breakWire(pos, state);
 		}
 
-		currentPower = power;
-		state = type.setPower(level, pos, state, currentPower);
+		currentPower = Mth.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
+		state = state.setValue(RedStoneWireBlock.POWER, currentPower);
 
 		return level.setWireState(pos, state, added);
 	}
