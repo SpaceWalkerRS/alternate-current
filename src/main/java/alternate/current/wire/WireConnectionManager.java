@@ -92,18 +92,7 @@ public class WireConnectionManager {
 	}
 
 	private void add(WireNode wire, int iDir, boolean offer, boolean accept) {
-		if (owner.type != wire.type) {
-			if (offer) {
-				offer = owner.type.offer && wire.type.accept;
-			}
-			if (accept) {
-				accept = owner.type.accept && wire.type.offer;
-			}
-		}
-
-		if (offer || accept) {
-			add(new WireConnection(wire, iDir, offer, accept));
-		}
+		add(new WireConnection(wire, iDir, offer, accept));
 	}
 
 	private void add(WireConnection connection) {
@@ -115,19 +104,17 @@ public class WireConnectionManager {
 			tail = connection;
 		}
 
+		total++;
+
 		if (heads[connection.iDir] == null) {
 			heads[connection.iDir] = connection;
-
 			flowTotal |= (1 << connection.iDir);
 		}
-
-		total++;
 	}
 
-	/** 
-	 * Iterate over all connections, without any specific
-	 * update order in mind. Use this method if the iteration
-	 * order is not important.
+	/**
+	 * Iterate over all connections. Use this method if the iteration order is not
+	 * important.
 	 */
 	void forEach(Consumer<WireConnection> consumer) {
 		for (WireConnection c = head; c != null; c = c.next) {
@@ -136,9 +123,8 @@ public class WireConnectionManager {
 	}
 
 	/**
-	 * Iterate over all connections in an order determined by
-	 * the given flow direction. Use this method if the iteration
-	 * order is important.
+	 * Iterate over all connections. Use this method if the iteration order is
+	 * important.
 	 */
 	void forEach(Consumer<WireConnection> consumer, int iFlowDir) {
 		for (int iDir : WireHandler.CARDINAL_UPDATE_ORDERS[iFlowDir]) {
