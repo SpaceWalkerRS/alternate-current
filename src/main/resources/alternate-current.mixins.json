@@ -9,6 +9,7 @@
 		"ServerLevelMixin",
 		"block.BasePressurePlateBlockMixin",
 		"block.BlockMixin",
+		"block.BlockStateMixin",
 		"block.ButtonBlockMixin",
 		"block.DaylightDetectorBlockMixin",
 		"block.DiodeBlockMixin",
