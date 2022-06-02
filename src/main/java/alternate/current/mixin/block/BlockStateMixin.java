@@ -19,8 +19,8 @@ import net.minecraft.world.level.block.state.properties.Property;
 @Mixin(BlockState.class)
 public abstract class BlockStateMixin extends BlockStateBase implements IBlockState {
 
-	private BlockStateMixin(Block block, ImmutableMap<Property<?>, Comparable<?>> valaues, MapCodec<BlockState> codec) {
-		super(block, valaues, codec);
+	private BlockStateMixin(Block block, ImmutableMap<Property<?>, Comparable<?>> values, MapCodec<BlockState> codec) {
+		super(block, values, codec);
 	}
 
 	@Override
