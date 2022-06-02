@@ -1,9 +1,13 @@
 package alternate.current.wire;
 
+import alternate.current.util.BlockUtil;
 import alternate.current.util.Redstone;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -40,7 +44,7 @@ public class WireNode extends Node {
 	boolean prepared;
 	boolean inNetwork;
 
-	WireNode(LevelAccess level, BlockPos pos, BlockState state) {
+	WireNode(ServerLevel level, BlockPos pos, BlockState state) {
 		super(level);
 
 		this.pos = pos.immutable();
@@ -98,12 +102,15 @@ public class WireNode extends Node {
 		state = level.getBlockState(pos);
 
 		if (shouldBreak) {
-			return level.breakWire(pos, state);
+			Block.dropResources(state, level, pos);
+			level.setBlock(pos, Blocks.AIR.defaultBlockState(), BlockUtil.FLAG_UPDATE_CLIENTS);
+
+			return true;
 		}
 
 		currentPower = Mth.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
 		state = state.setValue(RedStoneWireBlock.POWER, currentPower);
 
-		return level.setWireState(pos, state, added);
+		return LevelHelper.setWireState(level, pos, state, added);
 	}
 }
