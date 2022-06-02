@@ -7,6 +7,7 @@ import java.util.Queue;
 import java.util.function.Consumer;
 
 //import alternate.current.AlternateCurrentMod;
+import alternate.current.interfaces.mixin.IBlockState;
 import alternate.current.util.BlockUtil;
 //import alternate.current.util.profiler.Profiler;
 
@@ -263,7 +264,7 @@ public class WireHandler {
 	// be only one WireHandler per level, in case redstone updates in multiple
 	// levels at the same time. There are already mods that add multi-threading
 	// as well.
-	private final LevelAccess level;
+	private final ServerLevel level;
 
 	/** All the wires in the network. */
 	private final List<WireNode> network;
@@ -281,7 +282,7 @@ public class WireHandler {
 	private boolean updatingPower;
 
 	public WireHandler(ServerLevel level) {
-		this.level = new LevelAccess(level);
+		this.level = level;
 
 		this.network = new ArrayList<>();
 		this.nodes = new Long2ObjectOpenHashMap<>();
@@ -602,7 +603,7 @@ public class WireHandler {
 				// Redstone components can power multiple wires through solid
 				// blocks.
 				findSignalSourcesAround(neighbor, Directions.iOpposite(iDir));
-			} else if (level.isSignalSourceTo(neighbor.pos, neighbor.state, Directions.ALL[iDir])) {
+			} else if (((IBlockState)neighbor.state).isSignalSourceTo(level, neighbor.pos, Directions.ALL[iDir])) {
 				// Redstone components can also power multiple wires directly.
 				findRootsAroundSignalSource(neighbor, Directions.iOpposite(iDir));
 			}
@@ -618,7 +619,7 @@ public class WireHandler {
 		for (int iDir : Directions.I_EXCEPT[except]) {
 			Node neighbor = getNeighbor(node, iDir);
 
-			if (level.isDirectSignalSourceTo(neighbor.pos, neighbor.state, Directions.ALL[iDir])) {
+			if (((IBlockState)neighbor.state).isDirectSignalSourceTo(level, neighbor.pos, Directions.ALL[iDir])) {
 				findRootsAroundSignalSource(neighbor, iDir);
 			}
 		}
@@ -635,8 +636,8 @@ public class WireHandler {
 			int iOpp = Directions.iOpposite(iDir);
 			Direction opp = Directions.ALL[iOpp];
 
-			boolean signal = level.isSignalSourceTo(node.pos, node.state, opp);
-			boolean directSignal = level.isDirectSignalSourceTo(node.pos, node.state, opp);
+			boolean signal = ((IBlockState)node.state).isSignalSourceTo(level, node.pos, opp);
+			boolean directSignal = ((IBlockState)node.state).isDirectSignalSourceTo(level, node.pos, opp);
 
 			// If the signal source does not emit any power in this direction,
 			// move on to the next direction.
@@ -719,7 +720,7 @@ public class WireHandler {
 		wire.prepared = true;
 		wire.inNetwork = false;
 
-		if (!wire.removed && !wire.shouldBreak && level.shouldBreak(wire.pos, wire.state)) {
+		if (!wire.removed && !wire.shouldBreak && !wire.state.canSurvive(level, wire.pos)) {
 			wire.shouldBreak = true;
 		}
 
@@ -748,7 +749,7 @@ public class WireHandler {
 				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
 			}
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, level.getSignalFrom(neighbor.pos, neighbor.state, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getSignal(level, neighbor.pos, Directions.ALL[iDir]));
 			}
 
 			if (power >= POWER_MAX) {
@@ -770,7 +771,7 @@ public class WireHandler {
 			Node neighbor = getNeighbor(node, iDir);
 
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, level.getDirectSignalFrom(neighbor.pos, neighbor.state, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getDirectSignal(level, neighbor.pos, Directions.ALL[iDir]));
 
 				if (power >= POWER_MAX) {
 					return POWER_MAX;
@@ -1087,7 +1088,8 @@ public class WireHandler {
 		// Shape updates to redstone wire are very expensive, and should never happen
 		// as a result of power changes anyway.
 		if (!state.isAir() && !state.is(Blocks.REDSTONE_WIRE)) {
-			level.updateNeighborShape(pos, state, fromDir, fromPos, fromState);
+			BlockState newState = state.updateShape(fromDir, fromState, level, pos, fromPos);
+			Block.updateOrDestroy(state, newState, level, pos, Block.UPDATE_CLIENTS);
 		}
 	}
 
@@ -1151,7 +1153,7 @@ public class WireHandler {
 			BlockPos neighborPos = neighborWire.pos;
 			Block neighborBlock = neighborWire.state.getBlock();
 
-			level.updateNeighborBlock(pos, state, neighborPos, neighborBlock);
+			state.neighborChanged(level, pos, neighborBlock, neighborPos, false);
 		}
 	}
 
