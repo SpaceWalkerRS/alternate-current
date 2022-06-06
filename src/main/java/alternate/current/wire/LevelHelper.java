@@ -3,7 +3,6 @@ package alternate.current.wire;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
@@ -18,10 +17,6 @@ public class LevelHelper {
 	 * omitted.
 	 */
 	static boolean setWireState(ServerLevel level, BlockPos pos, BlockState state, boolean updateNeighborShapes) {
-		if (!state.is(Blocks.REDSTONE_WIRE)) {
-			return false;
-		}
-
 		int y = pos.getY();
 
 		if (y < level.getMinBuildHeight() || y >= level.getMaxBuildHeight()) {
