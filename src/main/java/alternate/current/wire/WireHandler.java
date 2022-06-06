@@ -279,7 +279,8 @@ public class WireHandler {
 	private Node[] nodeCache;
 	private int nodeCount;
 
-	private boolean updatingPower;
+	/** Is this WireHandler currently working through the update queue? */
+	private boolean updating;
 
 	public WireHandler(ServerLevel level) {
 		this.level = level;
@@ -292,6 +293,10 @@ public class WireHandler {
 		this.fillNodeCache(0, 16);
 	}
 
+	/**
+	 * Retrieve the {@link alternate.current.wire.Node Node} that represents the
+	 * block at the given position in the level.
+	 */
 	private Node getOrAddNode(BlockPos pos) {
 		return nodes.compute(pos.asLong(), (key, node) -> {
 			if (node == null) {
@@ -308,8 +313,92 @@ public class WireHandler {
 	}
 
 	/**
+	 * Return a {@link alternate.current.wire.Node Node} that represents the block
+	 * at the given position.
+	 */
+	private Node getNextNode(BlockPos pos) {
+		return getNextNode(pos, level.getBlockState(pos));
+	}
+
+	/**
+	 * Return a node that represents the given position and block state. If it is a
+	 * wire, then create a new {@link alternate.current.wire.WireNode WireNode}.
+	 * Otherwise, grab the next {@link alternate.current.wire.Node Node} from the
+	 * cache and update it.
+	 */
+	private Node getNextNode(BlockPos pos, BlockState state) {
+		return state.getBlock() == Blocks.REDSTONE_WIRE ? new WireNode(level, pos, state) : getNextNode().update(pos, state, true);
+	}
+
+	/**
+	 * Grab the first unused Node from the cache. If all of the cache is already in
+	 * use, increase it in size first.
+	 */
+	private Node getNextNode() {
+		if (nodeCount == nodeCache.length) {
+			increaseNodeCache();
+		}
+
+		return nodeCache[nodeCount++];
+	}
+
+	private void increaseNodeCache() {
+		Node[] oldCache = nodeCache;
+		nodeCache = new Node[oldCache.length << 1];
+
+		for (int index = 0; index < oldCache.length; index++) {
+			nodeCache[index] = oldCache[index];
+		}
+
+		fillNodeCache(oldCache.length, nodeCache.length);
+	}
+
+	private void fillNodeCache(int start, int end) {
+		for (int index = start; index < end; index++) {
+			nodeCache[index] = new Node(level);
+		}
+	}
+
+	private Node removeNode(BlockPos pos) {
+		return nodes.remove(pos.asLong());
+	}
+
+	/**
+	 * Try to revalidate the given node by looking at the block state that is
+	 * occupying its position. If the given node is a wire but the block state is
+	 * not, a new node must be created/grabbed from the cache. Otherwise, the node
+	 * can be quickly revalidated with the new block state;
+	 */
+	private Node revalidateNode(Node node) {
+		BlockPos pos = node.pos;
+		BlockState state = level.getBlockState(pos);
+
+		boolean wasWire = node.isWire();
+		boolean isWire = state.getBlock() == Blocks.REDSTONE_WIRE;
+
+		if (wasWire != isWire) {
+			return getNextNode(pos, state);
+		}
+
+		node.invalid = false;
+
+		if (isWire) {
+			// No need to update the block state of this wire - it will grab
+			// the current block state just before setting power anyway.
+			WireNode wire = node.asWire();
+
+			wire.prepared = false;
+			wire.inNetwork = false;
+		} else {
+			node.update(pos, state, false);
+		}
+
+		return node;
+	}
+
+	/**
 	 * Retrieve the neighbor of a node in the given direction and create a link
-	 * between the two nodes.
+	 * between the two nodes if they are not yet linked.
 	 */
 	private Node getNeighbor(Node node, int iDir) {
 		Node neighbor = node.neighbors[iDir];
@@ -406,78 +495,12 @@ public class WireHandler {
 		consumer.accept(getNeighbor(above, upward));
 	}
 
-	private Node removeNode(BlockPos pos) {
-		return nodes.remove(pos.asLong());
-	}
-
-	private Node revalidateNode(Node node) {
-		node.invalid = false;
-
-		if (node.isWire()) {
-			WireNode wire = node.asWire();
-
-			wire.prepared = false;
-			wire.inNetwork = false;
-		} else {
-			BlockPos pos = node.pos;
-			BlockState state = level.getBlockState(pos);
-
-			node.update(pos, state, false);
-		}
-
-		return node;
-	}
-
-	/**
-	 * Check the BlockState that occupies the given position. If it is a wire, then
-	 * create a new WireNode. Otherwise, grab the next Node from the cache and
-	 * update it.
-	 */
-	private Node getNextNode(BlockPos pos) {
-		BlockState state = level.getBlockState(pos);
-
-		if (state.getBlock() == Blocks.REDSTONE_WIRE) {
-			return new WireNode(level, pos, state);
-		}
-
-		return getNextNode().update(pos, state, true);
-	}
-
-	/**
-	 * Grab the first unused Node from the cache. If all of the cache is already in
-	 * use, increase it in size first.
-	 */
-	private Node getNextNode() {
-		if (nodeCount == nodeCache.length) {
-			increaseNodeCache();
-		}
-
-		return nodeCache[nodeCount++];
-	}
-
-	private void increaseNodeCache() {
-		Node[] oldCache = nodeCache;
-		nodeCache = new Node[oldCache.length << 1];
-
-		for (int index = 0; index < oldCache.length; index++) {
-			nodeCache[index] = oldCache[index];
-		}
-
-		fillNodeCache(oldCache.length, nodeCache.length);
-	}
-
-	private void fillNodeCache(int start, int end) {
-		for (int index = start; index < end; index++) {
-			nodeCache[index] = new Node(level);
-		}
-	}
-
 	/**
 	 * This method should be called whenever a wire receives a block update.
 	 */
 	public void onWireUpdated(BlockPos pos) {
 		invalidateNodes();
-		findRoots(pos, true);
+		findRoots(pos);
 		tryUpdatePower();
 	}
 
@@ -495,7 +518,7 @@ public class WireHandler {
 		wire.added = true;
 
 		invalidateNodes();
-		findRoots(pos, false);
+		tryAddRoot(wire);
 		tryUpdatePower();
 	}
 
@@ -517,7 +540,7 @@ public class WireHandler {
 
 		// If these fields are set to 'true', the removal of this wire was part of
 		// already ongoing power changes, so we can exit early here.
-		if (updatingPower && wire.shouldBreak) {
+		if (updating && wire.shouldBreak) {
 			return;
 		}
 
@@ -534,7 +557,7 @@ public class WireHandler {
 	 * again. This ensures the power calculations of the network are accurate.
 	 */
 	private void invalidateNodes() {
-		if (updatingPower && !nodes.isEmpty()) {
+		if (updating && !nodes.isEmpty()) {
 			Iterator<Entry<Node>> it = Long2ObjectMaps.fastIterator(nodes);
 
 			while (it.hasNext()) {
@@ -580,7 +603,7 @@ public class WireHandler {
 	 * these optimizations would limit code modifications to the RedStoneWireBlock
 	 * and ServerLevel classes while leaving the performance mostly intact.
 	 */
-	private void findRoots(BlockPos pos, boolean checkNeighbors) {
+	private void findRoots(BlockPos pos) {
 		Node node = getOrAddNode(pos);
 
 		if (!node.isWire()) {
@@ -592,7 +615,7 @@ public class WireHandler {
 
 		// If the wire at the given position is not in an invalid state or is not
 		// part of a larger network, we can exit early.
-		if (!checkNeighbors || !wire.inNetwork || wire.connections.total == 0) {
+		if (!wire.inNetwork || wire.connections.total == 0) {
 			return;
 		}
 
@@ -836,7 +859,7 @@ public class WireHandler {
 		if (rootCount > 0) {
 			updatePower();
 		}
-		if (!updatingPower) {
+		if (!updating) {
 			nodes.clear();
 			nodeCount = 0;
 		}
@@ -905,7 +928,7 @@ public class WireHandler {
 			// If anything goes wrong while carrying out power changes, this field must
 			// be reset to 'false', or the wire handler will be locked out of carrying
 			// out power changes until the world is reloaded.
-			updatingPower = false;
+			updating = false;
 
 			throw t;
 //		} finally {
@@ -996,11 +1019,11 @@ public class WireHandler {
 		// (or the same network in another place), new power changes will be
 		// integrated into the already ongoing power queue, so we can exit early
 		// here.
-		if (updatingPower) {
+		if (updating) {
 			return;
 		}
 
-		updatingPower = true;
+		updating = true;
 
 		while (!updates.isEmpty()) {
 			Node node = updates.poll();
@@ -1025,11 +1048,18 @@ public class WireHandler {
 					}
 				}
 			} else {
-				updateNeighbor(node);
+				WireNode neighborWire = node.neighborWire;
+
+				if (neighborWire != null) {
+					BlockPos neighborPos = neighborWire.pos;
+					Block neighborBlock = neighborWire.state.getBlock();
+
+					updateNeighbor(node, neighborPos, neighborBlock);
+				}
 			}
 		}
 
-		updatingPower = false;
+		updating = false;
 	}
 
 	/**
@@ -1077,12 +1107,20 @@ public class WireHandler {
 		BlockPos wirePos = wire.pos;
 		BlockState wireState = wire.state;
 
-		for (Direction dir : BlockUtil.SHAPE_UPDATE_ORDER) {
-			updateNeighborShape(wirePos.relative(dir), dir.getOpposite(), wirePos, wireState);
+		for (int iDir : DEFAULT_FULL_UPDATE_ORDER) {
+			Node neighbor = getNeighbor(wire, iDir);
+
+			if (!neighbor.isWire()) {
+				int iOpp = Directions.iOpposite(iDir);
+				Direction opp = Directions.ALL[iOpp];
+
+				updateNeighborShape(neighbor, opp, wirePos, wireState);
+			}
 		}
 	}
 
-	private void updateNeighborShape(BlockPos pos, Direction fromDir, BlockPos fromPos, BlockState fromState) {
+	private void updateNeighborShape(Node node, Direction fromDir, BlockPos fromPos, BlockState fromState) {
+		BlockPos pos = node.pos;
 		BlockState state = level.getBlockState(pos);
 
 		// Shape updates to redstone wire are very expensive, and should never happen
@@ -1130,13 +1168,7 @@ public class WireHandler {
 	/**
 	 * Emit a block update to the given node.
 	 */
-	private void updateNeighbor(Node node) {
-		WireNode neighborWire = node.neighborWire;
-
-		if (neighborWire == null) {
-			return;
-		}
-
+	private void updateNeighbor(Node node, BlockPos fromPos, Block fromBlock) {
 		BlockPos pos = node.pos;
 		BlockState state = level.getBlockState(pos);
 
@@ -1150,10 +1182,7 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (!state.isAir() && state.getBlock() != Blocks.REDSTONE_WIRE) {
-			BlockPos neighborPos = neighborWire.pos;
-			Block neighborBlock = neighborWire.state.getBlock();
-
-			state.neighborChanged(level, pos, neighborBlock, neighborPos, false);
+			state.neighborChanged(level, pos, fromBlock, fromPos, false);
 		}
 	}
 
