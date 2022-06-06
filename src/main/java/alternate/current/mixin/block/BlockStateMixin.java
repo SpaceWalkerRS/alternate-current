@@ -19,15 +19,15 @@ public class BlockStateMixin implements IBlockState {
 
 	@Override
 	public boolean isSignalSourceTo(Level level, BlockPos pos, Direction dir) {
-		return ((IBlock)getBlock()).isSignalSourceTo(level, pos, state(), dir);
+		return ((IBlock)getBlock()).isSignalSourceTo(level, pos, asState(), dir);
 	}
 
 	@Override
 	public boolean isDirectSignalSourceTo(Level level, BlockPos pos, Direction dir) {
-		return ((IBlock)getBlock()).isDirectSignalSourceTo(level, pos, state(), dir);
+		return ((IBlock)getBlock()).isDirectSignalSourceTo(level, pos, asState(), dir);
 	}
 
-	private BlockState state() {
+	private BlockState asState() {
 		return (BlockState)(Object)this;
 	}
 }

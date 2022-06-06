@@ -101,6 +101,10 @@ public class WireNode extends Node {
 
 		state = level.getBlockState(pos);
 
+		if (state.getBlock() != Blocks.REDSTONE_WIRE) {
+			return false; // we should never get here
+		}
+
 		if (shouldBreak) {
 			Block.dropResources(state, level, pos);
 			level.setBlock(pos, Blocks.AIR.defaultBlockState(), BlockUtil.FLAG_UPDATE_CLIENTS);
