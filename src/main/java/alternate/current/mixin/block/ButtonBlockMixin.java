@@ -18,10 +18,12 @@ public abstract class ButtonBlockMixin extends FaceAttachedHorizontalDirectional
 		super(properties);
 	}
 
+	@Override
 	public boolean isSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return true;
 	}
 
+	@Override
 	public boolean isDirectSignalSourceTo(Level level, BlockPos pos, BlockState state, Direction dir) {
 		return getConnectedDirection(state) == dir;
 	}
