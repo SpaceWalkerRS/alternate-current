@@ -162,10 +162,8 @@ public class WireHandler {
 			return iDir ^ (0b10 >>> (iDir >>> 2));
 		}
 
-		/**
-		 * Each array is placed at the index that encodes the direction that is missing
-		 * from the array.
-		 */
+		// Each array is placed at the index that encodes the direction that is missing
+		// from the array.
 		private static final int[][] I_EXCEPT = {
 			{       NORTH, EAST, SOUTH, DOWN, UP },
 			{ WEST,        EAST, SOUTH, DOWN, UP },
@@ -173,6 +171,14 @@ public class WireHandler {
 			{ WEST, NORTH, EAST,        DOWN, UP },
 			{ WEST, NORTH, EAST, SOUTH,       UP },
 			{ WEST, NORTH, EAST, SOUTH, DOWN     }
+		};
+		private static final int[][] I_EXCEPT_CARDINAL = {
+			{       NORTH, EAST, SOUTH },
+			{ WEST,        EAST, SOUTH },
+			{ WEST, NORTH,       SOUTH },
+			{ WEST, NORTH, EAST,       },
+			{ WEST, NORTH, EAST, SOUTH },
+			{ WEST, NORTH, EAST, SOUTH }
 		};
 	}
 
@@ -630,6 +636,30 @@ public class WireHandler {
 				findRootsAroundSignalSource(neighbor, Directions.iOpposite(iDir));
 			}
 		}
+
+		// An alternate version of the for-loop above that is a little less
+		// effective at finding nearby roots, but removes the need for code
+		// modifications in every signal source's block class.
+//		for (int iDir : DEFAULT_CARDINAL_UPDATE_ORDER) {
+//			Node neighbor = getNeighbor(wire, iDir);
+//
+//			if (neighbor.isConductor() || neighbor.isSignalSource()) {
+//				findRootsAround(neighbor, Directions.iOpposite(iDir));
+//			}
+//		}
+//	}
+//
+//	/**
+//	 * Look for wires around the given node that require power changes.
+//	 */
+//	private void findRootsAround(Node node, int except) {
+//		for (int iDir : Directions.I_EXCEPT_CARDINAL[except]) {
+//			Node neighbor = getNeighbor(node, iDir);
+//
+//			if (neighbor.isWire()) {
+//				tryAddRoot(neighbor.asWire());
+//			}
+//		}
 	}
 
 	/**
