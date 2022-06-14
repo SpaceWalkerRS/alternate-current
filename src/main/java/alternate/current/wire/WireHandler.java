@@ -7,7 +7,6 @@ import java.util.Queue;
 import java.util.function.Consumer;
 
 //import alternate.current.AlternateCurrentMod;
-import alternate.current.interfaces.mixin.IBlockState;
 //import alternate.current.util.profiler.Profiler;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -600,13 +599,6 @@ public class WireHandler {
 	 * practical to cover every possible situation where a network is (un)powered
 	 * from multiple points at once, checking for common cases like the one
 	 * described above is relatively straight-forward.
-	 * 
-	 * <p>
-	 * While these extra checks can provide significant performance gains in some
-	 * cases, in the majority of cases they will have little to no effect, but do
-	 * require extra code modifications to all redstone power emitters. Removing
-	 * these optimizations would limit code modifications to the RedStoneWireBlock
-	 * and ServerLevel classes while leaving the performance mostly intact.
 	 */
 	private void findRoots(BlockPos pos) {
 		Node node = getOrAddNode(pos);
@@ -627,82 +619,8 @@ public class WireHandler {
 		for (int iDir : DEFAULT_FULL_UPDATE_ORDER) {
 			Node neighbor = getNeighbor(wire, iDir);
 
-			if (neighbor.isConductor()) {
-				// Redstone components can power multiple wires through solid
-				// blocks.
-				findSignalSourcesAround(neighbor, Directions.iOpposite(iDir));
-			} else if (((IBlockState)neighbor.state).isSignalSourceTo(level, neighbor.pos, Directions.ALL[iDir])) {
-				// Redstone components can also power multiple wires directly.
-				findRootsAroundSignalSource(neighbor, Directions.iOpposite(iDir));
-			}
-		}
-
-		// An alternate version of the for-loop above that is a little less
-		// effective at finding nearby roots, but removes the need for code
-		// modifications in every signal source's block class.
-//		for (int iDir : DEFAULT_CARDINAL_UPDATE_ORDER) {
-//			Node neighbor = getNeighbor(wire, iDir);
-//
-//			if (neighbor.isConductor() || neighbor.isSignalSource()) {
-//				findRootsAround(neighbor, Directions.iOpposite(iDir));
-//			}
-//		}
-//	}
-//
-//	/**
-//	 * Look for wires around the given node that require power changes.
-//	 */
-//	private void findRootsAround(Node node, int except) {
-//		for (int iDir : Directions.I_EXCEPT_CARDINAL[except]) {
-//			Node neighbor = getNeighbor(node, iDir);
-//
-//			if (neighbor.isWire()) {
-//				tryAddRoot(neighbor.asWire());
-//			}
-//		}
-	}
-
-	/**
-	 * Find signal sources around the given node that can provide direct signals to
-	 * that node, and then search for wires that require power changes around those
-	 * signal sources.
-	 */
-	private void findSignalSourcesAround(Node node, int except) {
-		for (int iDir : Directions.I_EXCEPT[except]) {
-			Node neighbor = getNeighbor(node, iDir);
-
-			if (((IBlockState)neighbor.state).isDirectSignalSourceTo(level, neighbor.pos, Directions.ALL[iDir])) {
-				findRootsAroundSignalSource(neighbor, iDir);
-			}
-		}
-	}
-
-	/**
-	 * Find wires around the given signal source that require power changes.
-	 */
-	private void findRootsAroundSignalSource(Node node, int except) {
-		for (int iDir : Directions.I_EXCEPT[except]) {
-			// Directions are backwards for redstone related methods, so we must
-			// check for power emitted in the opposite direction that we are
-			// interested in.
-			int iOpp = Directions.iOpposite(iDir);
-			Direction opp = Directions.ALL[iOpp];
-
-			boolean signal = ((IBlockState)node.state).isSignalSourceTo(level, node.pos, opp);
-			boolean directSignal = ((IBlockState)node.state).isDirectSignalSourceTo(level, node.pos, opp);
-
-			// If the signal source does not emit any power in this direction,
-			// move on to the next direction.
-			if (!signal && !directSignal) {
-				continue;
-			}
-
-			Node neighbor = getNeighbor(node, iDir);
-
-			if (signal && neighbor.isWire()) {
-				tryAddRoot(neighbor.asWire());
-			} else if (directSignal && neighbor.isConductor()) {
-				findRootsAround(neighbor, iOpp);
+			if (neighbor.isConductor() || neighbor.isSignalSource()) {
+				findRootsAround(neighbor, Directions.iOpposite(iDir));
 			}
 		}
 	}
@@ -711,7 +629,7 @@ public class WireHandler {
 	 * Look for wires around the given node that require power changes.
 	 */
 	private void findRootsAround(Node node, int except) {
-		for (int iDir : Directions.I_EXCEPT[except]) {
+		for (int iDir : Directions.I_EXCEPT_CARDINAL[except]) {
 			Node neighbor = getNeighbor(node, iDir);
 
 			if (neighbor.isWire()) {
