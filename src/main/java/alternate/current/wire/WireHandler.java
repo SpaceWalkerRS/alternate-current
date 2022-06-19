@@ -262,8 +262,8 @@ public class WireHandler {
 	 */
 	static final int[] DEFAULT_CARDINAL_UPDATE_ORDER = CARDINAL_UPDATE_ORDERS[0];
 
-	private static final int POWER_MAX = Redstone.SIGNAL_MAX;
 	private static final int POWER_MIN = Redstone.SIGNAL_MIN;
+	private static final int POWER_MAX = Redstone.SIGNAL_MAX;
 	private static final int POWER_STEP = 1;
 
 	// If Vanilla will ever multi-thread the ticking of levels, there should
