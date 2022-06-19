@@ -747,7 +747,7 @@ public class WireHandler {
 		// If the wire is removed or going to break, its power level should always be
 		// the minimum value. Thus external power need not be computed.
 		// In other cases external power need only be computed once.
-		if (!wire.removed && !wire.shouldBreak && wire.externalPower >= POWER_MIN) {
+		if (wire.removed || wire.shouldBreak || wire.externalPower >= POWER_MIN) {
 			return;
 		}
 
