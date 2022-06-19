@@ -39,8 +39,12 @@ public class WireNode extends Node {
 	boolean added;
 	boolean removed;
 	boolean shouldBreak;
-	boolean prepared;
-	boolean inNetwork;
+	boolean root;
+	boolean discovered;
+	boolean searched;
+
+	/** The next wire in the simple queue. */
+	WireNode next_wire;
 
 	WireNode(ServerLevel level, BlockPos pos, BlockState state) {
 		super(level);
@@ -55,7 +59,7 @@ public class WireNode extends Node {
 	}
 
 	@Override
-	Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
+	Node set(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		throw new UnsupportedOperationException("Cannot update a WireNode!");
 	}
 
