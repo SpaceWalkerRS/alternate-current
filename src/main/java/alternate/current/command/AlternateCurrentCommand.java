@@ -7,7 +7,7 @@ import net.minecraft.command.AbstractCommand;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.IncorrectUsageException;
-import net.minecraft.text.class_1687;
+import net.minecraft.text.ChatMessage;
 
 public class AlternateCurrentCommand extends AbstractCommand {
 
@@ -61,7 +61,7 @@ public class AlternateCurrentCommand extends AbstractCommand {
 
 	private void query(CommandSource source) {
 		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
-		source.method_5505(class_1687.method_6026(String.format("Alternate Current is currently %s", state)));
+		source.method_5505(ChatMessage.createTextMessage(String.format("Alternate Current is currently %s", state)));
 	}
 
 	private void set(CommandSource source, boolean on) {

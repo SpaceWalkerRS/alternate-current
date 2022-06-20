@@ -7,17 +7,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.wire.WireBlock;
-import alternate.current.wire.WireType;
-import alternate.current.wire.WireTypes;
+import alternate.current.interfaces.mixin.IServerWorld;
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
 
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.world.World;
 
 @Mixin(RedstoneWireBlock.class)
-public class RedstoneWireBlockMixin implements WireBlock {
-
-	private static final WireType TYPE = WireTypes.REDSTONE;
+public class RedstoneWireBlockMixin {
 
 	@Inject(
 		method = "method_375",
@@ -35,7 +33,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	}
 
 	@Inject(
-		method = "method_460",
+		method = "breakNaturally",
 		at = @At(
 			value = "INVOKE",
 			shift = Shift.BEFORE,
@@ -44,7 +42,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onPlace(World world, int x, int y, int z, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireAdded(world, x, y, z);
+			((IServerWorld)world).getWireHandler().onWireAdded(new BlockPos(x, y, z));
 		}
 	}
 
@@ -58,7 +56,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onRemove(World world, int x, int y, int z, int blockId, int metadata, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireRemoved(world, x, y, z, blockId, metadata);
+			((IServerWorld)world).getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(blockId, metadata));
 		}
 	}
 
@@ -69,15 +67,10 @@ public class RedstoneWireBlockMixin implements WireBlock {
 			value = "HEAD"
 		)
 	)
-	private void onNeighborChanged(World world, int x, int y, int z, int fromBlockId, CallbackInfo ci) {
+	private void onNeighborChanged(World world, int x, int y, int z, int blockId, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireUpdated(world, x, y, z);
+			((IServerWorld)world).getWireHandler().onWireUpdated(new BlockPos(x, y, z));
 			ci.cancel();
 		}
-	}
-
-	@Override
-	public WireType getWireType() {
-		return TYPE;
 	}
 }
