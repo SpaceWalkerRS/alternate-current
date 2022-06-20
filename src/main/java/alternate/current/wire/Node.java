@@ -5,6 +5,8 @@ import java.util.Arrays;
 import alternate.current.wire.WireHandler.Directions;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 
 /**
@@ -19,7 +21,7 @@ public class Node {
 	private static final int CONDUCTOR = 0b01;
 	private static final int SOURCE    = 0b10;
 
-	final LevelAccess level;
+	final ServerWorld world;
 	final Node[] neighbors;
 
 	BlockPos pos;
@@ -28,8 +30,17 @@ public class Node {
 
 	private int flags;
 
-	Node(LevelAccess level) {
-		this.level = level;
+	/** The previous node in the priority queue. */
+	Node prev_node;
+	/** The next node in the priority queue. */
+	Node next_node;
+	/** The priority with which this node was queued. */
+	int priority;
+	/** The wire that queued this node for an update. */
+	WireNode neighborWire;
+
+	Node(ServerWorld world) {
+		this.world = world;
 		this.neighbors = new Node[Directions.ALL.length];
 	}
 
@@ -44,7 +55,7 @@ public class Node {
 
 		Node node = (Node)obj;
 
-		return level == node.level && pos.equals(node.pos);
+		return world == node.world && pos.equals(node.pos);
 	}
 
 	@Override
@@ -52,8 +63,8 @@ public class Node {
 		return pos.hashCode();
 	}
 
-	Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
-		if (state.getBlock() instanceof WireBlock) {
+	Node set(BlockPos pos, BlockState state, boolean clearNeighbors) {
+		if (state.getBlock() == Blocks.REDSTONE_WIRE) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 
@@ -67,7 +78,7 @@ public class Node {
 
 		this.flags = 0;
 
-		if (this.level.isConductor(this.pos, this.state)) {
+		if (this.state.method_11734()) {
 			this.flags |= CONDUCTOR;
 		}
 		if (this.state.method_11735()) {
@@ -77,11 +88,14 @@ public class Node {
 		return this;
 	}
 
-	public boolean isWire() {
-		return false;
+	/**
+	 * Determine the priority with which this node should be queued.
+	 */
+	int priority() {
+		return neighborWire.priority;
 	}
 
-	public boolean isWire(WireType type) {
+	public boolean isWire() {
 		return false;
 	}
 
