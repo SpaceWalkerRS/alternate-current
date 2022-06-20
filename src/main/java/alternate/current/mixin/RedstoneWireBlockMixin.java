@@ -8,9 +8,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.wire.WireBlock;
-import alternate.current.wire.WireType;
-import alternate.current.wire.WireTypes;
+import alternate.current.interfaces.mixin.IServerWorld;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -19,9 +17,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 @Mixin(RedstoneWireBlock.class)
-public class RedstoneWireBlockMixin implements WireBlock {
-
-	private static final WireType TYPE = WireTypes.REDSTONE;
+public class RedstoneWireBlockMixin {
 
 	@Inject(
 		method = "update",
@@ -48,7 +44,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onPlace(BlockState state, World world, BlockPos pos, BlockState oldState, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireAdded(world, pos);
+			((IServerWorld)world).getWireHandler().onWireAdded(pos);
 		}
 	}
 
@@ -62,7 +58,7 @@ public class RedstoneWireBlockMixin implements WireBlock {
 	)
 	private void onRemove(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireRemoved(world, pos, state);
+			((IServerWorld)world).getWireHandler().onWireRemoved(pos, state);
 		}
 	}
 
@@ -73,15 +69,10 @@ public class RedstoneWireBlockMixin implements WireBlock {
 			value = "HEAD"
 		)
 	)
-	private void onNeighborChanged(BlockState state, World world, BlockPos pos, Block fromBlock, BlockPos fromPos, CallbackInfo ci) {
+	private void onNeighborChanged(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			onWireUpdated(world, pos);
+			((IServerWorld)world).getWireHandler().onWireUpdated(pos);
 			ci.cancel();
 		}
-	}
-
-	@Override
-	public WireType getWireType() {
-		return TYPE;
 	}
 }

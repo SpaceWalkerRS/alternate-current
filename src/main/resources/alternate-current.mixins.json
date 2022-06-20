@@ -6,19 +6,7 @@
 	"mixins": [
 		"CommandManagerMixin",
 		"RedstoneWireBlockMixin",
-		"ServerWorldMixin",
-		"block.AbstractButtonBlockMixin",
-		"block.AbstractPressurePlateBlockMixin",
-		"block.BlockMixin",
-		"block.DaylightDetectorBlockMixin",
-		"block.LeverBlockMixin",
-		"block.ObserverBlockMixin",
-		"block.RedstoneBlockMixin",
-		"block.RedstoneComponentBlockMixin",
-		"block.RedstoneTorchBlockMixin",
-		"block.RedstoneWallTorchBlockMixin",
-		"block.TrappedChestBlockMixin",
-		"block.TripwireHookBlockMixin"
+		"ServerWorldMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
