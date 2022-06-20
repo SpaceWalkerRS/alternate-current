@@ -1,7 +1,5 @@
 package alternate.current.util;
 
-import alternate.current.wire.WireBlock;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.world.World;
@@ -32,12 +30,8 @@ public class BlockState {
 		return block;
 	}
 
-	public boolean isOf(Block block) {
+	public boolean is(Block block) {
 		return this.block == block;
-	}
-
-	public boolean isOf(WireBlock wireBlock) {
-		return this.block == wireBlock;
 	}
 
 	public int get() {
@@ -56,31 +50,27 @@ public class BlockState {
 		return block.isFullCube();
 	}
 
-	public boolean isPowerSource() {
+	public boolean isSignalSource() {
 		return block.emitsRedstonePower();
 	}
 
-	public int getSignalFrom(World world, BlockPos pos, Direction dir) {
-		return block.method_426(world, pos.x, pos.y, pos.z, dir.index);
+	public int getSignal(World world, BlockPos pos, Direction dir) {
+		return block.getWeakRedstonePower(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
-	public int getDirectSignalFrom(World world, BlockPos pos, Direction dir) {
-		return block.method_444(world, pos.x, pos.y, pos.z, dir.index);
-	}
-
-	public boolean isWire() {
-		return block instanceof WireBlock;
+	public int getDirectSignal(World world, BlockPos pos, Direction dir) {
+		return block.getStrongRedstonePower(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
 	public boolean canSurviveAt(World world, BlockPos pos) {
-		return block.method_434(world, pos.x, pos.y, pos.z);
+		return block.canPlaceBlockAt(world, pos.x, pos.y, pos.z);
 	}
 
 	public void dropAsItem(World world, BlockPos pos) {
-		block.method_445(world, pos.x, pos.y, pos.z, 0, 0);
+		block.canStayPlaced(world, pos.x, pos.y, pos.z, 0, 0);
 	}
 
-	public void neighborChanged(World world, BlockPos pos, Block fromBlock) {
-		block.method_408(world, pos.x, pos.y, pos.z, fromBlock);
+	public void neighborChanged(World world, BlockPos pos, Block neighborBlock) {
+		block.onNeighborUpdate(world, pos.x, pos.y, pos.z, neighborBlock);
 	}
 }
