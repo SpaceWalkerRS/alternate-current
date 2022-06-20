@@ -2,28 +2,17 @@ package alternate.current.wire;
 
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
-import alternate.current.util.Direction;
 
-import net.minecraft.block.Block;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 
-public class LevelAccess {
+public class WorldHelper {
 
 	private static final int Y_MIN = 0;
 	private static final int Y_MAX = 256;
 
-	private final ServerWorld world;
-
-	LevelAccess(ServerWorld world) {
-		this.world = world;
-	}
-
-	/**
-	 * A slightly optimized version of Level.getBlockState.
-	 */
-	BlockState getBlockState(BlockPos pos) {
+	static BlockState getBlockState(ServerWorld world, BlockPos pos) {
 		int y = pos.y;
 
 		if (y < Y_MIN || y >= Y_MAX) {
@@ -50,19 +39,18 @@ public class LevelAccess {
 			return BlockState.AIR;
 		}
 
-		return new BlockState(blockId, section.getBlockData(x, y, z));
+		int metadata = section.getBlockData(x, y, z);
+
+		return new BlockState(blockId, metadata);
 	}
 
 	/**
-	 * An optimized version of Level.setBlock. Since this method is only used to
-	 * update redstone wire block states, lighting checks, height map updates, and
-	 * block entity updates are omitted.
+	 * An optimized version of {@link net.minecraft.world.World#setBlockState
+	 * World.setBlockState}. Since this method is only used to update redstone wire
+	 * block states, lighting checks, height map updates, and block entity updates
+	 * are omitted.
 	 */
-	boolean setWireState(BlockPos pos, BlockState state) {
-		if (!state.isWire()) {
-			return false;
-		}
-
+	static boolean setWireState(ServerWorld world, BlockPos pos, BlockState state) {
 		int y = pos.y;
 
 		if (y < Y_MIN || y >= Y_MAX) {
@@ -105,34 +93,5 @@ public class LevelAccess {
 		chunk.setModified();
 
 		return true;
-	}
-
-	boolean breakWire(BlockPos pos, BlockState state) {
-		state.dropAsItem(world, pos);
-		return world.method_3652(pos.x, pos.y, pos.z, 0);
-	}
-
-	void updateNeighborBlock(BlockPos pos, Block fromBlock) {
-		getBlockState(pos).neighborChanged(world, pos, fromBlock);
-	}
-
-	void updateNeighborBlock(BlockPos pos, BlockState state, Block fromBlock) {
-		state.neighborChanged(world, pos, fromBlock);
-	}
-
-	public boolean isConductor(BlockPos pos) {
-		return world.method_3783(pos.x, pos.y, pos.z);
-	}
-
-	public boolean hasSignalFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.hasSignalFrom(world, pos, dir);
-	}
-
-	public boolean hasDirectSignalFrom(BlockPos pos, BlockState state, Direction dir) {
-		return state.hasDirectSignalFrom(world, pos, dir);
-	}
-
-	public boolean shouldBreak(BlockPos pos, BlockState state) {
-		return !state.canSurviveAt(world, pos);
 	}
 }

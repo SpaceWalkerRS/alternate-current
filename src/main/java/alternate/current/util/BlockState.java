@@ -1,7 +1,5 @@
 package alternate.current.util;
 
-import alternate.current.wire.WireBlock;
-
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
@@ -9,14 +7,12 @@ public class BlockState {
 
 	public static final BlockState AIR = new BlockState(null, 0) {
 		public int getBlockId() { return 0; }
-		public boolean isOf(Block block) { return false; }
-		public boolean isOf(WireBlock wireBlock) { return false; }
+		public boolean is(Block block) { return false; }
 		public BlockState with(int metadata) { return this; }
 		public boolean isAir() { return true; }
-		public boolean isPowerSource() { return false; }
-		public boolean hasSignalFrom(World world, BlockPos pos, Direction dir) { return false; }
-		public boolean hasDirectSignalFrom(World world, BlockPos pos, Direction dir) { return false; }
-		public boolean isWire() { return false; }
+		public boolean isSignalSource() { return false; }
+		public boolean hasSignal(World world, BlockPos pos, Direction dir) { return false; }
+		public boolean hasDirectSignal(World world, BlockPos pos, Direction dir) { return false; }
 		public boolean canSurviveAt(World world, BlockPos pos) { return true; }
 		public void dropAsItem(World world, BlockPos pos) { }
 		public void neighborChanged(World world, BlockPos pos, Block fromBlock) { }
@@ -44,20 +40,16 @@ public class BlockState {
 		return false;
 	}
 
-	public Block getBlock() {
-		return block;
-	}
-
 	public int getBlockId() {
 		return block.id;
 	}
 
-	public boolean isOf(Block block) {
-		return this.block == block;
+	public Block getBlock() {
+		return block;
 	}
 
-	public boolean isOf(WireBlock wireBlock) {
-		return this.block == wireBlock;
+	public boolean is(Block block) {
+		return this.block == block;
 	}
 
 	public int get() {
@@ -69,34 +61,30 @@ public class BlockState {
 	}
 
 	public boolean isAir() {
-		return false;
+		return this == AIR;
 	}
 
-	public boolean isPowerSource() {
+	public boolean isSignalSource() {
 		return block.emitsRedstonePower();
 	}
 
-	public boolean hasSignalFrom(World world, BlockPos pos, Direction dir) {
+	public boolean hasSignal(World world, BlockPos pos, Direction dir) {
 		return block.method_426(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
-	public boolean hasDirectSignalFrom(World world, BlockPos pos, Direction dir) {
+	public boolean hasDirectSignal(World world, BlockPos pos, Direction dir) {
 		return block.method_444(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
-	public boolean isWire() {
-		return block instanceof WireBlock;
-	}
-
 	public boolean canSurviveAt(World world, BlockPos pos) {
-		return block.method_434(world, pos.x, pos.y, pos.z);
+		return block.canPlaceBlockAt(world, pos.x, pos.y, pos.z);
 	}
 
 	public void dropAsItem(World world, BlockPos pos) {
-		block.method_445(world, pos.x, pos.y, pos.z, 0, 0);
+		block.canStayPlaced(world, pos.x, pos.y, pos.z, 0, 0);
 	}
 
-	public void neighborChanged(World world, BlockPos pos, Block fromBlock) {
-		block.method_408(world, pos.x, pos.y, pos.z, fromBlock.id);
+	public void neighborChanged(World world, BlockPos pos, Block neighborBlock) {
+		block.method_408(world, pos.x, pos.y, pos.z, neighborBlock.id);
 	}
 }
