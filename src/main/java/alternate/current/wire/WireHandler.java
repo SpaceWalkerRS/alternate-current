@@ -509,16 +509,8 @@ public class WireHandler {
 	 * This method should be called whenever a wire receives a block update.
 	 */
 	public void onWireUpdated(BlockPos pos) {
-		Node node = getOrAddNode(pos);
-
-		if (!node.isWire()) {
-			return; // we should never get here
-		}
-
-		WireNode wire = node.asWire();
-
-		invalidateNodes();
-		findRoots(wire);
+		invalidate();
+		findRoots(pos, false);
 		tryUpdate();
 	}
 
@@ -526,17 +518,8 @@ public class WireHandler {
 	 * This method should be called whenever a wire is placed.
 	 */
 	public void onWireAdded(BlockPos pos) {
-		Node node = getOrAddNode(pos);
-
-		if (!node.isWire()) {
-			return; // we should never get here
-		}
-
-		WireNode wire = node.asWire();
-		wire.added = true;
-
-		invalidateNodes();
-		findRoot(wire);
+		invalidate();
+		findRoots(pos, true);
 		tryUpdate();
 	}
 
@@ -562,7 +545,7 @@ public class WireHandler {
 			return;
 		}
 
-		invalidateNodes();
+		invalidate();
 		findRoot(wire);
 		tryUpdate();
 	}
@@ -574,7 +557,7 @@ public class WireHandler {
 	 * again every node must be invalidated, and revalidated before it is used
 	 * again. This ensures the power calculations of the network are accurate.
 	 */
-	private void invalidateNodes() {
+	private void invalidate() {
 		if (updating && !nodes.isEmpty()) {
 			Iterator<Entry<Node>> it = Long2ObjectMaps.fastIterator(nodes);
 
@@ -614,12 +597,21 @@ public class WireHandler {
 	 * from multiple points at once, checking for common cases like the one
 	 * described above is relatively straight-forward.
 	 */
-	private void findRoots(WireNode wire) {
+	private void findRoots(BlockPos pos, boolean added) {
+		Node node = getOrAddNode(pos);
+
+		if (!node.isWire()) {
+			return; // we should never get here
+		}
+
+		WireNode wire = node.asWire();
+		wire.added = added;
+
 		findRoot(wire);
 
 		// If the wire at the given position is not in an invalid state or is not
 		// part of a larger network, we can exit early.
-		if (!wire.searched || wire.connections.total == 0) {
+		if (added || !wire.searched || wire.connections.total == 0) {
 			return;
 		}
 
