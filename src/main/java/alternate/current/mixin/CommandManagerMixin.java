@@ -2,6 +2,7 @@ package alternate.current.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -16,7 +17,9 @@ public abstract class CommandManagerMixin extends CommandRegistry {
 	@Inject(
 		method="<init>",
 		at = @At(
-			value = "RETURN"
+			value = "INVOKE",
+			shift = Shift.BEFORE,
+			target = "Lnet/minecraft/command/AbstractCommand;setCommandProvider(Lnet/minecraft/command/CommandProvider;)V"
 		)
 	)
 	private void registerCommands(CallbackInfo ci) {
