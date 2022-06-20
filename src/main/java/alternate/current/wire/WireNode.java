@@ -2,17 +2,21 @@ package alternate.current.wire;
 
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
+import alternate.current.util.Redstone;
+
+import net.minecraft.block.Block;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.MathHelper;
 
 /**
- * A WireNode is a Node that represents a wire in the world. It stores
- * all the information about the wire that the WireHandler needs to
- * calculate power changes.
+ * A WireNode is a Node that represents a wire in the world. It stores all the
+ * information about the wire that the WireHandler needs to calculate power
+ * changes.
  * 
  * @author Space Walker
  */
 public class WireNode extends Node {
 
-	final WireType type;
 	final WireConnectionManager connections;
 
 	/** The power level this wire currently holds in the world. */
@@ -34,35 +38,33 @@ public class WireNode extends Node {
 	boolean added;
 	boolean removed;
 	boolean shouldBreak;
-	boolean prepared;
-	boolean inNetwork;
+	boolean root;
+	boolean discovered;
+	boolean searched;
 
-	/** The power for which this wire was queued. */
-	int power;
-	/** The previous wire in the power queue. */
-	WireNode prev;
-	/** The next wire in the power queue. */
-	WireNode next;
+	/** The next wire in the simple queue. */
+	WireNode next_wire;
 
-	WireNode(WireBlock wireBlock, LevelAccess level, BlockPos pos, BlockState state) {
-		this(wireBlock.getWireType(), level, pos, state);
-	}
-
-	WireNode(WireType type, LevelAccess level, BlockPos pos, BlockState state) {
-		super(level);
+	WireNode(ServerWorld world, BlockPos pos, BlockState state) {
+		super(world);
 
 		this.pos = pos;
 		this.state = state;
 
-		this.type = type;
 		this.connections = new WireConnectionManager(this);
 
-		this.virtualPower = this.currentPower = this.type.getPower(this.level, this.pos, this.state);
+		this.virtualPower = this.currentPower = this.state.get();
+		this.priority = priority();
 	}
 
 	@Override
-	public Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
+	Node set(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		throw new UnsupportedOperationException("Cannot update a WireNode!");
+	}
+
+	@Override
+	int priority() {
+		return MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
 	}
 
 	@Override
@@ -71,17 +73,8 @@ public class WireNode extends Node {
 	}
 
 	@Override
-	public boolean isWire(WireType type) {
-		return this.type == type;
-	}
-
-	@Override
 	public WireNode asWire() {
 		return this;
-	}
-
-	int nextPower() {
-		return type.clamp(virtualPower);
 	}
 
 	boolean offerPower(int power, int iDir) {
@@ -107,15 +100,22 @@ public class WireNode extends Node {
 			return true;
 		}
 
-		state = level.getBlockState(pos);
+		state = WorldHelper.getBlockState(world, pos);
 
-		if (shouldBreak) {
-			return level.breakWire(pos, state);
+		if (!state.is(Block.REDSTONE_WIRE)) {
+			return false; // we should never get here
 		}
 
-		currentPower = power;
-		state = type.setPower(level, pos, state, currentPower);
+		if (shouldBreak) {
+			state.dropAsItem(world, pos);
+			world.setAir(pos.x, pos.y, pos.z);
 
-		return level.setWireState(pos, state);
+			return true;
+		}
+
+		currentPower = MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
+		state = state.with(currentPower);
+
+		return WorldHelper.setWireState(world, pos, state);
 	}
 }
