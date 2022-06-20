@@ -6,7 +6,7 @@ import java.util.Iterator;
 
 import alternate.current.util.Redstone;
 
-public class UpdateQueue extends AbstractQueue<Node> {
+public class PriorityQueue extends AbstractQueue<Node> {
 
 	private static final int OFFSET = -Redstone.SIGNAL_MIN;
 
@@ -18,7 +18,7 @@ public class UpdateQueue extends AbstractQueue<Node> {
 
 	private int size;
 
-	public UpdateQueue() {
+	PriorityQueue() {
 		this.tails = new Node[(Redstone.SIGNAL_MAX + OFFSET) + 1];
 	}
 
@@ -52,7 +52,7 @@ public class UpdateQueue extends AbstractQueue<Node> {
 		}
 
 		Node node = head;
-		Node next = node.next;
+		Node next = node.next_node;
 
 		if (next == null) {
 			clear(); // reset the tails array
@@ -64,8 +64,8 @@ public class UpdateQueue extends AbstractQueue<Node> {
 				tails[node.priority + OFFSET] = null;
 			}
 
-			node.next = null;
-			next.prev = null;
+			node.next_node = null;
+			next.prev_node = null;
 			head = next;
 
 			size--;
@@ -83,10 +83,10 @@ public class UpdateQueue extends AbstractQueue<Node> {
 	public void clear() {
 		for (Node node = head; node != null; ) {
 			Node n = node;
-			node = node.next;
+			node = node.next_node;
 
-			n.prev = null;
-			n.next = null;
+			n.prev_node = null;
+			n.next_node = null;
 		}
 
 		Arrays.fill(tails, null);
@@ -108,7 +108,7 @@ public class UpdateQueue extends AbstractQueue<Node> {
 	}
 
 	public boolean contains(Node node) {
-		return node == head || node.prev != null;
+		return node == head || node.prev_node != null;
 	}
 
 	private void move(Node node, int priority) {
@@ -117,8 +117,8 @@ public class UpdateQueue extends AbstractQueue<Node> {
 	}
 
 	private void remove(Node node) {
-		Node prev = node.prev;
-		Node next = node.next;
+		Node prev = node.prev_node;
+		Node next = node.next_node;
 
 		if (node == tail || node.priority != next.priority) {
 			// assign a new tail for this node's priority
@@ -134,16 +134,16 @@ public class UpdateQueue extends AbstractQueue<Node> {
 		if (node == head) {
 			head = next;
 		} else {
-			prev.next = next;
+			prev.next_node = next;
 		}
 		if (node == tail) {
 			tail = prev;
 		} else {
-			next.prev = prev;
+			next.prev_node = prev;
 		}
 
-		node.prev = null;
-		node.next = null;
+		node.prev_node = null;
+		node.next_node = null;
 
 		size--;
 	}
@@ -172,27 +172,27 @@ public class UpdateQueue extends AbstractQueue<Node> {
 	}
 
 	private void linkHead(Node node) {
-		node.next = head;
-		head.prev = node;
+		node.next_node = head;
+		head.prev_node = node;
 		head = node;
 	}
 
 	private void linkTail(Node node) {
-		tail.next = node;
-		node.prev = tail;
+		tail.next_node = node;
+		node.prev_node = tail;
 		tail = node;
 	}
 
 	private void linkAfter(Node prev, Node node) {
-		linkBetween(prev, node, prev.next);
+		linkBetween(prev, node, prev.next_node);
 	}
 
 	private void linkBetween(Node prev, Node node, Node next) {
-		prev.next = node;
-		node.prev = prev;
+		prev.next_node = node;
+		node.prev_node = prev;
 
-		node.next = next;
-		next.prev = node;
+		node.next_node = next;
+		next.prev_node = node;
 	}
 
 	private Node findPrev(Node node) {
