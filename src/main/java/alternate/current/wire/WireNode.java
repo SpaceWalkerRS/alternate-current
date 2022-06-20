@@ -102,7 +102,7 @@ public class WireNode extends Node {
 
 		state = WorldHelper.getBlockState(world, pos);
 
-		if (state.getBlock() != Blocks.REDSTONE_WIRE) {
+		if (!state.is(Blocks.REDSTONE_WIRE)) {
 			return false; // we should never get here
 		}
 
