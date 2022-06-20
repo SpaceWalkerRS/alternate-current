@@ -13,7 +13,6 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -512,7 +511,7 @@ public class WireHandler {
 	 */
 	public void onWireUpdated(BlockPos pos) {
 		invalidate();
-		findRoots(pos, false);
+		findRoots(pos);
 		tryUpdate();
 	}
 
@@ -520,8 +519,18 @@ public class WireHandler {
 	 * This method should be called whenever a wire is placed.
 	 */
 	public void onWireAdded(BlockPos pos) {
+		Node node = getOrAddNode(pos);
+
+		if (!node.isWire()) {
+			return; // we should never get here
+		}
+
+		WireNode wire = node.asWire();
+		wire.added = true;
+
 		invalidate();
-		findRoots(pos, true);
+		revalidateNode(wire);
+		findRoot(wire);
 		tryUpdate();
 	}
 
@@ -548,6 +557,7 @@ public class WireHandler {
 		}
 
 		invalidate();
+		revalidateNode(wire);
 		findRoot(wire);
 		tryUpdate();
 	}
@@ -599,7 +609,7 @@ public class WireHandler {
 	 * from multiple points at once, checking for common cases like the one
 	 * described above is relatively straight-forward.
 	 */
-	private void findRoots(BlockPos pos, boolean added) {
+	private void findRoots(BlockPos pos) {
 		Node node = getOrAddNode(pos);
 
 		if (!node.isWire()) {
@@ -607,13 +617,11 @@ public class WireHandler {
 		}
 
 		WireNode wire = node.asWire();
-		wire.added = added;
-
 		findRoot(wire);
 
 		// If the wire at the given position is not in an invalid state or is not
 		// part of a larger network, we can exit early.
-		if (added || !wire.searched || wire.connections.total == 0) {
+		if (!wire.searched || wire.connections.total == 0) {
 			return;
 		}
 
