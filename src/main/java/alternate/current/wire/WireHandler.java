@@ -396,6 +396,7 @@ public class WireHandler {
 			// the current block state just before setting power anyway.
 			WireNode wire = node.asWire();
 
+			wire.root = false;
 			wire.discovered = false;
 			wire.searched = false;
 		} else {
