@@ -30,10 +30,10 @@ public class Node {
 
 	private int flags;
 
-	/** The previous node in the update queue. */
-	Node prev;
-	/** The next node in the update queue. */
-	Node next;
+	/** The previous node in the priority queue. */
+	Node prev_node;
+	/** The next node in the priority queue. */
+	Node next_node;
 	/** The priority with which this node was queued. */
 	int priority;
 	/** The wire that queued this node for an update. */
@@ -63,7 +63,7 @@ public class Node {
 		return pos.hashCode();
 	}
 
-	Node update(BlockPos pos, BlockState state, boolean clearNeighbors) {
+	Node set(BlockPos pos, BlockState state, boolean clearNeighbors) {
 		if (state.getBlock() == Blocks.REDSTONE_WIRE) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
