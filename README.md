@@ -30,7 +30,7 @@ Alternate Current fixes each of these problems as follows.
 (1)
 To make sure a wire calculates its power level as little as possible, we remove the recursive nature in which redstone wire updates in Vanilla. Instead, we build a network of connected wires, find those wires that receive redstone power from "outside" the network, and spread the power from there. This has a few advantages:
 
-- Each wire checks for power from non-wire components just once, and from nearby wires just twice.
+- Each wire checks for power from non-wire components at most once, and from nearby wires just twice.
 - Each wire only sets its power level in the world once. This is important, because calls to Level.setBlock are even more expensive than calls to Level.getBlockState.
 
 (2)
