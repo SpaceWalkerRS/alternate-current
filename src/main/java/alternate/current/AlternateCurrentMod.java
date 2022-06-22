@@ -10,13 +10,14 @@ import alternate.current.util.profiler.Profiler;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 
 @Mod(AlternateCurrentMod.MOD_ID)
 public class AlternateCurrentMod {
 
 	public static final String MOD_ID = "alternate_current";
 	public static final String MOD_NAME = "Alternate Current";
-	public static final String MOD_VERSION = "1.2.1";
+	public static final String MOD_VERSION = "1.4.0";
 	public static final Logger LOGGER = LogManager.getLogger(MOD_NAME);
 	public static final boolean DEBUG = false;
 
@@ -26,7 +27,7 @@ public class AlternateCurrentMod {
 		return DEBUG ? new ACProfiler() : Profiler.DUMMY;
 	}
 
-	@Mod.EventBusSubscriber(modid = MOD_ID)
+	@EventBusSubscriber(modid = MOD_ID)
 	public static class ModEvents {
 
 		@SubscribeEvent

@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "alternate.current.mixin",
+	"compatibilityLevel": "JAVA_16",
+	"refmap": "alternate-current.mixins.refmap.json",
+	"mixins": [
+		"RedStoneWireBlockMixin",
+		"ServerLevelMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
