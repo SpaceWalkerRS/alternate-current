@@ -619,9 +619,9 @@ public class WireHandler {
 		WireNode wire = node.asWire();
 		findRoot(wire);
 
-		// If the wire at the given position is not in an invalid state or is not
-		// part of a larger network, we can exit early.
-		if (!wire.searched || wire.connections.total == 0) {
+		// If the wire at the given position is not in an invalid state
+		// we can exit early.
+		if (!wire.searched) {
 			return;
 		}
 
