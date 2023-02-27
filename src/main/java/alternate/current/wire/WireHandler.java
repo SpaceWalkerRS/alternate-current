@@ -12,7 +12,6 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.ObserverBlock;
 import net.minecraft.block.state.BlockState;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -877,7 +876,7 @@ public class WireHandler {
 	 * <br>
 	 * Work through the update queue, setting the new power level of each wire and
 	 * updating neighboring blocks. After a wire has updated its power level, it
-	 * will emit observer updates and queue updates for neighboring wires and blocks.
+	 * will queue updates for neighboring wires and blocks.
 	 */
 	private void update() {
 		// The profiler keeps track of how long various parts of the algorithm take.
@@ -1001,21 +1000,12 @@ public class WireHandler {
 
 				if (wire.setPower()) {
 					queueNeighbors(wire);
-
-					// If the wire was newly placed or removed, observer updates have
-					// already been emitted.
-					if (!wire.added && !wire.shouldBreak) {
-						updateObservers(wire);
-					}
 				}
 			} else {
 				WireNode neighborWire = node.neighborWire;
 
 				if (neighborWire != null) {
-					BlockPos neighborPos = neighborWire.pos;
-					Block neighborBlock = neighborWire.state.getBlock();
-
-					updateBlock(node, neighborPos, neighborBlock);
+					updateBlock(node, neighborWire.state.getBlock());
 				}
 			}
 		}
@@ -1062,35 +1052,6 @@ public class WireHandler {
 	}
 
 	/**
-	 * Emit observer updates around the given wire.
-	 */
-	private void updateObservers(WireNode wire) {
-		BlockPos wirePos = wire.pos;
-		Block wireBlock = wire.state.getBlock();
-
-		for (int iDir : DEFAULT_FULL_UPDATE_ORDER) {
-			Node neighbor = getNeighbor(wire, iDir);
-
-			if (!neighbor.isWire()) {
-				int iOpp = Directions.iOpposite(iDir);
-				Direction opp = Directions.ALL[iOpp];
-
-				updateObserver(neighbor, opp, wirePos, wireBlock);
-			}
-		}
-	}
-
-	private void updateObserver(Node node, Direction dir, BlockPos neighborPos, Block neighborBlock) {
-		BlockPos pos = node.pos;
-		BlockState state = world.getBlockState(pos);
-		Block block = state.getBlock();
-
-		if (block == Blocks.OBSERVER) {
-			((ObserverBlock)block).updateObserver(state, world, pos, neighborBlock, neighborPos);
-		}
-	}
-
-	/**
 	 * Queue block updates to nodes around the given wire.
 	 */
 	private void queueNeighbors(WireNode wire) {
@@ -1127,7 +1088,7 @@ public class WireHandler {
 	/**
 	 * Emit a block update to the given node.
 	 */
-	private void updateBlock(Node node, BlockPos neighborPos, Block neighborBlock) {
+	private void updateBlock(Node node, Block neighborBlock) {
 		BlockPos pos = node.pos;
 		BlockState state = world.getBlockState(pos);
 		Block block = state.getBlock();
@@ -1142,7 +1103,7 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (block != Blocks.AIR && block != Blocks.REDSTONE_WIRE) {
-			state.update(world, pos, neighborBlock, neighborPos);
+			state.update(world, pos, neighborBlock);
 		}
 	}
 
