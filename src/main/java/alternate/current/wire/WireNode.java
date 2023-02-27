@@ -50,7 +50,7 @@ public class WireNode extends Node {
 	WireNode(ServerWorld world, BlockPos pos, BlockState state) {
 		super(world);
 
-		this.pos = pos.immutable();
+		this.pos = pos;
 		this.state = state;
 
 		this.connections = new WireConnectionManager(this);

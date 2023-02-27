@@ -69,7 +69,7 @@ public class RedstoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onUpdate(BlockState state, World world, BlockPos pos, Block block, CallbackInfo ci) {
+	private void onUpdate(World world, BlockPos pos, BlockState state, Block block, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerWorld)world).getWireHandler().onWireUpdated(pos);
 			ci.cancel();

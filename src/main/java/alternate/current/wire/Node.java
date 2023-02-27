@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import alternate.current.wire.WireHandler.Directions;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.state.BlockState;
 import net.minecraft.server.world.ServerWorld;
@@ -64,7 +65,9 @@ public class Node {
 	}
 
 	Node set(BlockPos pos, BlockState state, boolean clearNeighbors) {
-		if (state.getBlock() == Blocks.REDSTONE_WIRE) {
+		Block block = state.getBlock();
+
+		if (block == Blocks.REDSTONE_WIRE) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 
@@ -72,16 +75,16 @@ public class Node {
 			Arrays.fill(neighbors, null);
 		}
 
-		this.pos = pos.immutable();
+		this.pos = pos;
 		this.state = state;
 		this.invalid = false;
 
 		this.flags = 0;
 
-		if (this.state.isConductor()) {
+		if (block.isConductor()) {
 			this.flags |= CONDUCTOR;
 		}
-		if (this.state.isPowerSource()) {
+		if (block.isPowerSource()) {
 			this.flags |= SOURCE;
 		}
 
