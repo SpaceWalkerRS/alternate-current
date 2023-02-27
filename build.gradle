@@ -15,7 +15,9 @@ dependencies {
 	minecraft libs.minecraft
 	mappings loom.layered {
 		mappings libs.feather.mappings
+		ploceus.nestedMappings(it)
 	}
+	nests libs.nests
 
 	modImplementation libs.quilt.loader
 }

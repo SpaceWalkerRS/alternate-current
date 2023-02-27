@@ -6,15 +6,15 @@ import java.util.Queue;
 import java.util.function.Consumer;
 
 //import alternate.current.AlternateCurrentMod;
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
+import alternate.current.util.Direction;
 import alternate.current.util.Redstone;
 //import alternate.current.util.profiler.Profiler;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.state.BlockState;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 
 /**
  * This class handles power changes for redstone wire. The algorithm was
@@ -75,8 +75,8 @@ import net.minecraft.util.math.Direction;
  * nearby wires just twice.
  * <br>
  * - Each wire only sets its power level in the world once. This is important,
- * because calls to World.setBlockState are even more expensive than calls to
- * World.getBlockState.
+ * because calls to World.setBlock are even more expensive than calls to
+ * World.getBlock.
  * 
  * <p>
  * 2. There are 2 obvious ways in which we can reduce the number of block and
@@ -326,7 +326,7 @@ public class WireHandler {
 	 * at the given position.
 	 */
 	private Node getNextNode(BlockPos pos) {
-		return getNextNode(pos, world.getBlockState(pos));
+		return getNextNode(pos, WorldHelper.getBlockState(world, pos));
 	}
 
 	/**
@@ -336,7 +336,7 @@ public class WireHandler {
 	 * cache and update it.
 	 */
 	private Node getNextNode(BlockPos pos, BlockState state) {
-		return state.getBlock() == Blocks.REDSTONE_WIRE ? new WireNode(world, pos, state) : getNextNode().set(pos, state, true);
+		return state.is(Blocks.REDSTONE_WIRE) ? new WireNode(world, pos, state) : getNextNode().set(pos, state, true);
 	}
 
 	/**
@@ -376,10 +376,10 @@ public class WireHandler {
 	 */
 	private Node revalidateNode(Node node) {
 		BlockPos pos = node.pos;
-		BlockState state = world.getBlockState(pos);
+		BlockState state = WorldHelper.getBlockState(world, pos);
 
 		boolean wasWire = node.isWire();
-		boolean isWire = state.getBlock() == Blocks.REDSTONE_WIRE;
+		boolean isWire = state.is(Blocks.REDSTONE_WIRE);
 
 		if (wasWire != isWire) {
 			return getNextNode(pos, state);
@@ -675,7 +675,7 @@ public class WireHandler {
 		wire.discovered = true;
 		wire.searched = false;
 
-		if (!wire.removed && !wire.shouldBreak && !wire.state.getBlock().canSurvive(world, wire.pos)) {
+		if (!wire.removed && !wire.shouldBreak && !wire.state.canSurvive(world, wire.pos)) {
 			wire.shouldBreak = true;
 		}
 
@@ -772,7 +772,7 @@ public class WireHandler {
 				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
 			}
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getBlock().getEmittedWeakPower(world, neighbor.pos, neighbor.state, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getEmittedWeakPower(world, neighbor.pos, Directions.ALL[iDir]));
 			}
 
 			if (power >= POWER_MAX) {
@@ -794,7 +794,7 @@ public class WireHandler {
 			Node neighbor = getNeighbor(node, iDir);
 
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getBlock().getEmittedStrongPower(world, neighbor.pos, neighbor.state, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getEmittedStrongPower(world, neighbor.pos, Directions.ALL[iDir]));
 
 				if (power >= POWER_MAX) {
 					return POWER_MAX;
@@ -1089,8 +1089,7 @@ public class WireHandler {
 	 */
 	private void updateBlock(Node node, Block neighborBlock) {
 		BlockPos pos = node.pos;
-		BlockState state = world.getBlockState(pos);
-		Block block = state.getBlock();
+		BlockState state = WorldHelper.getBlockState(world, pos);
 
 		// While this check makes sure wires in the network are not given block
 		// updates, it also prevents block updates to wires in neighboring networks.
@@ -1101,8 +1100,8 @@ public class WireHandler {
 		// performance gains in certain setups, if you are not, you can add all the
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
-		if (block != Blocks.AIR && block != Blocks.REDSTONE_WIRE) {
-			block.update(world, pos, state, neighborBlock);
+		if (!state.isAir() && !state.is(Blocks.REDSTONE_WIRE)) {
+			state.update(world, pos, neighborBlock);
 		}
 	}
 

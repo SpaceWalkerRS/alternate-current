@@ -2,13 +2,12 @@ package alternate.current.wire;
 
 import java.util.Arrays;
 
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
 import alternate.current.wire.WireHandler.Directions;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.state.BlockState;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
 
 /**
  * A Node represents a block in the world. It also holds a few other pieces of
@@ -65,9 +64,7 @@ public class Node {
 	}
 
 	Node set(BlockPos pos, BlockState state, boolean clearNeighbors) {
-		Block block = state.getBlock();
-
-		if (block == Blocks.REDSTONE_WIRE) {
+		if (state.is(Blocks.REDSTONE_WIRE)) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 
@@ -81,10 +78,10 @@ public class Node {
 
 		this.flags = 0;
 
-		if (block.isConductor()) {
+		if (this.state.isConductor()) {
 			this.flags |= CONDUCTOR;
 		}
-		if (block.isPowerSource()) {
+		if (this.state.isPowerSource()) {
 			this.flags |= SOURCE;
 		}
 

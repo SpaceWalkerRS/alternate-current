@@ -1,13 +1,11 @@
 package alternate.current.wire;
 
-import alternate.current.util.BlockUtil;
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
 import alternate.current.util.Redstone;
 
 import net.minecraft.block.Blocks;
-import net.minecraft.block.RedstoneWireBlock;
-import net.minecraft.block.state.BlockState;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
 /**
@@ -55,7 +53,7 @@ public class WireNode extends Node {
 
 		this.connections = new WireConnectionManager(this);
 
-		this.virtualPower = this.currentPower = this.state.get(RedstoneWireBlock.POWER);
+		this.virtualPower = this.currentPower = this.state.get();
 		this.priority = priority();
 	}
 
@@ -102,21 +100,21 @@ public class WireNode extends Node {
 			return true;
 		}
 
-		state = world.getBlockState(pos);
+		state = WorldHelper.getBlockState(world, pos);
 
-		if (state.getBlock() != Blocks.REDSTONE_WIRE) {
+		if (!state.is(Blocks.REDSTONE_WIRE)) {
 			return false; // we should never get here
 		}
 
 		if (shouldBreak) {
-			state.getBlock().dropItems(world, pos, state, 0);
-			world.setBlockState(pos, Blocks.AIR.defaultState(), BlockUtil.FLAG_UPDATE_CLIENTS);
+			state.dropItems(world, pos);
+			world.removeBlock(pos.x, pos.y, pos.z);
 
 			return true;
 		}
 
 		currentPower = MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
-		state = state.set(RedstoneWireBlock.POWER, currentPower);
+		state = state.set(currentPower);
 
 		return WorldHelper.setWireState(world, pos, state);
 	}
