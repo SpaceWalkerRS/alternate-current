@@ -12,11 +12,11 @@ import com.mojang.brigadier.CommandDispatcher;
 
 import alternate.current.command.AlternateCurrentCommand;
 
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import net.minecraft.server.command.handler.CommandManager;
+import net.minecraft.server.command.source.CommandSourceStack;
 
-@Mixin(Commands.class)
-public class CommandsMixin {
+@Mixin(CommandManager.class)
+public class CommandManagerMixin {
 
 	@Shadow @Final private CommandDispatcher<CommandSourceStack> dispatcher;
 

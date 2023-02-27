@@ -4,9 +4,9 @@
 	"package": "alternate.current.mixin",
 	"compatibilityLevel": "JAVA_8",
 	"mixins": [
-		"CommandsMixin",
-		"RedStoneWireBlockMixin",
-		"ServerLevelMixin"
+		"CommandManagerMixin",
+		"RedstoneWireBlockMixin",
+		"ServerWorldMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
