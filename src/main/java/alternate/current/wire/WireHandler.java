@@ -14,12 +14,12 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.state.BlockState;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 
 /**
  * This class handles power changes for redstone wire. The algorithm was
@@ -80,8 +80,8 @@ import net.minecraft.world.level.block.state.BlockState;
  * nearby wires just twice.
  * <br>
  * - Each wire only sets its power level in the world once. This is important,
- * because calls to Level.setBlock are even more expensive than calls to
- * Level.getBlockState.
+ * because calls to World.setBlockState are even more expensive than calls to
+ * World.getBlockState.
  * 
  * <p>
  * 2. There are 2 obvious ways in which we can reduce the number of block and
@@ -267,11 +267,11 @@ public class WireHandler {
 	private static final int POWER_MAX = Redstone.SIGNAL_MAX;
 	private static final int POWER_STEP = Redstone.SIGNAL_STEP;
 
-	// If Vanilla will ever multi-thread the ticking of levels, there should
-	// be only one WireHandler per level, in case redstone updates in multiple
-	// levels at the same time. There are already mods that add multi-threading
+	// If Vanilla will ever multi-thread the ticking of worlds, there should
+	// be only one WireHandler per world, in case redstone updates in multiple
+	// worlds at the same time. There are already mods that add multi-threading
 	// as well.
-	private final ServerLevel level;
+	private final ServerWorld world;
 
 	/** Map of wires and neighboring blocks. */
 	private final Long2ObjectMap<Node> nodes;
@@ -288,8 +288,8 @@ public class WireHandler {
 	/** Is this WireHandler currently working through the update queue? */
 	private boolean updating;
 
-	public WireHandler(ServerLevel level) {
-		this.level = level;
+	public WireHandler(ServerWorld world) {
+		this.world = world;
 
 		this.nodes = new Long2ObjectOpenHashMap<>();
 		this.search = new SimpleQueue();
@@ -301,10 +301,10 @@ public class WireHandler {
 
 	/**
 	 * Retrieve the {@link alternate.current.wire.Node Node} that represents the
-	 * block at the given position in the level.
+	 * block at the given position in the world.
 	 */
 	private Node getOrAddNode(BlockPos pos) {
-		return nodes.compute(pos.asLong(), (key, node) -> {
+		return nodes.compute(pos.toLong(), (key, node) -> {
 			if (node == null) {
 				// If there is not yet a node at this position, retrieve and
 				// update one from the cache.
@@ -323,7 +323,7 @@ public class WireHandler {
 	 * position.
 	 */
 	private Node removeNode(BlockPos pos) {
-		return nodes.remove(pos.asLong());
+		return nodes.remove(pos.toLong());
 	}
 
 	/**
@@ -331,7 +331,7 @@ public class WireHandler {
 	 * at the given position.
 	 */
 	private Node getNextNode(BlockPos pos) {
-		return getNextNode(pos, level.getBlockState(pos));
+		return getNextNode(pos, world.getBlockState(pos));
 	}
 
 	/**
@@ -341,7 +341,7 @@ public class WireHandler {
 	 * cache and update it.
 	 */
 	private Node getNextNode(BlockPos pos, BlockState state) {
-		return state.getBlock() == Blocks.REDSTONE_WIRE ? new WireNode(level, pos, state) : getNextNode().set(pos, state, true);
+		return state.getBlock() == Blocks.REDSTONE_WIRE ? new WireNode(world, pos, state) : getNextNode().set(pos, state, true);
 	}
 
 	/**
@@ -369,7 +369,7 @@ public class WireHandler {
 
 	private void fillNodeCache(int start, int end) {
 		for (int index = start; index < end; index++) {
-			nodeCache[index] = new Node(level);
+			nodeCache[index] = new Node(world);
 		}
 	}
 
@@ -381,7 +381,7 @@ public class WireHandler {
 	 */
 	private Node revalidateNode(Node node) {
 		BlockPos pos = node.pos;
-		BlockState state = level.getBlockState(pos);
+		BlockState state = world.getBlockState(pos);
 
 		boolean wasWire = node.isWire();
 		boolean isWire = state.getBlock() == Blocks.REDSTONE_WIRE;
@@ -417,7 +417,7 @@ public class WireHandler {
 
 		if (neighbor == null || neighbor.invalid) {
 			Direction dir = Directions.ALL[iDir];
-			BlockPos pos = node.pos.relative(dir);
+			BlockPos pos = node.pos.offset(dir);
 
 			Node oldNeighbor = neighbor;
 			neighbor = getOrAddNode(pos);
@@ -543,7 +543,7 @@ public class WireHandler {
 		WireNode wire;
 
 		if (node == null || !node.isWire()) {
-			wire = new WireNode(level, pos, state);
+			wire = new WireNode(world, pos, state);
 		} else {
 			wire = node.asWire();
 		}
@@ -685,7 +685,7 @@ public class WireHandler {
 		wire.discovered = true;
 		wire.searched = false;
 
-		if (!wire.removed && !wire.shouldBreak && !wire.state.canSurvive(level, wire.pos)) {
+		if (!wire.removed && !wire.shouldBreak && !wire.state.canSurvive(world, wire.pos)) {
 			wire.shouldBreak = true;
 		}
 
@@ -782,7 +782,7 @@ public class WireHandler {
 				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
 			}
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getSignal(level, neighbor.pos, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getEmittedWeakPower(world, neighbor.pos, Directions.ALL[iDir]));
 			}
 
 			if (power >= POWER_MAX) {
@@ -804,7 +804,7 @@ public class WireHandler {
 			Node neighbor = getNeighbor(node, iDir);
 
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getDirectSignal(level, neighbor.pos, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getEmittedStrongPower(world, neighbor.pos, Directions.ALL[iDir]));
 
 				if (power >= POWER_MAX) {
 					return POWER_MAX;
@@ -1090,13 +1090,13 @@ public class WireHandler {
 
 	private void updateShape(Node node, Direction dir, BlockPos neighborPos, BlockState neighborState) {
 		BlockPos pos = node.pos;
-		BlockState state = level.getBlockState(pos);
+		BlockState state = world.getBlockState(pos);
 
 		// Shape updates to redstone wire are very expensive, and should never happen
 		// as a result of power changes anyway.
 		if (!state.isAir() && state.getBlock() != Blocks.REDSTONE_WIRE) {
-			BlockState newState = state.updateShape(dir, neighborState, level, pos, neighborPos);
-			Block.updateOrDestroy(state, newState, level, pos, BlockUtil.FLAG_UPDATE_CLIENTS);
+			BlockState newState = state.updateShape(dir, neighborState, world, pos, neighborPos);
+			Block.updateOrBreak(state, newState, world, pos, BlockUtil.FLAG_UPDATE_CLIENTS);
 		}
 	}
 
@@ -1139,7 +1139,7 @@ public class WireHandler {
 	 */
 	private void updateBlock(Node node, BlockPos neighborPos, Block neighborBlock) {
 		BlockPos pos = node.pos;
-		BlockState state = level.getBlockState(pos);
+		BlockState state = world.getBlockState(pos);
 
 		// While this check makes sure wires in the network are not given block
 		// updates, it also prevents block updates to wires in neighboring networks.
@@ -1151,7 +1151,7 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (!state.isAir() && state.getBlock() != Blocks.REDSTONE_WIRE) {
-			state.neighborChanged(level, pos, neighborBlock, neighborPos, false);
+			state.update(world, pos, neighborBlock, neighborPos);
 		}
 	}
 

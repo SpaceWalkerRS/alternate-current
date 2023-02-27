@@ -3,13 +3,12 @@ package alternate.current.wire;
 import alternate.current.util.BlockUtil;
 import alternate.current.util.Redstone;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.Mth;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.RedStoneWireBlock;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.RedstoneWireBlock;
+import net.minecraft.block.state.BlockState;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 
 /**
  * A WireNode is a Node that represents a wire in the world. It stores all the
@@ -48,15 +47,15 @@ public class WireNode extends Node {
 	/** The next wire in the simple queue. */
 	WireNode next_wire;
 
-	WireNode(ServerLevel level, BlockPos pos, BlockState state) {
-		super(level);
+	WireNode(ServerWorld world, BlockPos pos, BlockState state) {
+		super(world);
 
 		this.pos = pos.immutable();
 		this.state = state;
 
 		this.connections = new WireConnectionManager(this);
 
-		this.virtualPower = this.currentPower = this.state.getValue(RedStoneWireBlock.POWER);
+		this.virtualPower = this.currentPower = this.state.get(RedstoneWireBlock.POWER);
 		this.priority = priority();
 	}
 
@@ -67,7 +66,7 @@ public class WireNode extends Node {
 
 	@Override
 	int priority() {
-		return Mth.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
+		return MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
 	}
 
 	@Override
@@ -103,22 +102,22 @@ public class WireNode extends Node {
 			return true;
 		}
 
-		state = level.getBlockState(pos);
+		state = world.getBlockState(pos);
 
 		if (state.getBlock() != Blocks.REDSTONE_WIRE) {
 			return false; // we should never get here
 		}
 
 		if (shouldBreak) {
-			Block.dropResources(state, level, pos);
-			level.setBlock(pos, Blocks.AIR.defaultBlockState(), BlockUtil.FLAG_UPDATE_CLIENTS);
+			state.dropItems(world, pos, 0);
+			world.setBlockState(pos, Blocks.AIR.defaultState(), BlockUtil.FLAG_UPDATE_CLIENTS);
 
 			return true;
 		}
 
-		currentPower = Mth.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
-		state = state.setValue(RedStoneWireBlock.POWER, currentPower);
+		currentPower = MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
+		state = state.set(RedstoneWireBlock.POWER, currentPower);
 
-		return LevelHelper.setWireState(level, pos, state, added);
+		return WorldHelper.setWireState(world, pos, state, added);
 	}
 }

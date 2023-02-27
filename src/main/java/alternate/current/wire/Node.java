@@ -4,10 +4,10 @@ import java.util.Arrays;
 
 import alternate.current.wire.WireHandler.Directions;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.state.BlockState;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 
 /**
  * A Node represents a block in the world. It also holds a few other pieces of
@@ -21,7 +21,7 @@ public class Node {
 	private static final int CONDUCTOR = 0b01;
 	private static final int SOURCE    = 0b10;
 
-	final ServerLevel level;
+	final ServerWorld world;
 	final Node[] neighbors;
 
 	BlockPos pos;
@@ -39,8 +39,8 @@ public class Node {
 	/** The wire that queued this node for an update. */
 	WireNode neighborWire;
 
-	Node(ServerLevel level) {
-		this.level = level;
+	Node(ServerWorld world) {
+		this.world = world;
 		this.neighbors = new Node[Directions.ALL.length];
 	}
 
@@ -55,7 +55,7 @@ public class Node {
 
 		Node node = (Node)obj;
 
-		return level == node.level && pos.equals(node.pos);
+		return world == node.world && pos.equals(node.pos);
 	}
 
 	@Override
@@ -78,10 +78,10 @@ public class Node {
 
 		this.flags = 0;
 
-		if (this.state.isRedstoneConductor(this.level, this.pos)) {
+		if (this.state.isConductor()) {
 			this.flags |= CONDUCTOR;
 		}
-		if (this.state.isSignalSource()) {
+		if (this.state.isPowerSource()) {
 			this.flags |= SOURCE;
 		}
 
