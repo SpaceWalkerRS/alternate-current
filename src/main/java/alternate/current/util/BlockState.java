@@ -1,15 +1,29 @@
 package alternate.current.util;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.world.World;
 
 public class BlockState {
 
-	public static final BlockState AIR = new BlockState(Blocks.AIR, 0);
+	public static final BlockState AIR = new BlockState(null, 0) {
+		public int getBlockId() { return 0; }
+		public boolean is(Block block) { return false; }
+		public BlockState set(int metadata) { return this; }
+		public boolean isAir() { return true; }
+		public boolean isPowerSource() { return false; }
+		public int getEmittedWeakPower(World world, BlockPos pos, Direction dir) { return 0; }
+		public int getEmittedStrongPower(World world, BlockPos pos, Direction dir) { return 0; }
+		public boolean canSurvive(World world, BlockPos pos) { return true; }
+		public void dropItems(World world, BlockPos pos) { }
+		public void update(World world, BlockPos pos, Block fromBlock) { }
+	};
 
 	private final Block block;
 	private final int metadata;
+
+	public BlockState(int blockId, int metadata) {
+		this(Block.BY_ID[blockId], metadata);
+	}
 
 	public BlockState(Block block, int metadata) {
 		this.block = block;
@@ -24,6 +38,10 @@ public class BlockState {
 		}
 
 		return false;
+	}
+
+	public int getBlockId() {
+		return block.rawId;
 	}
 
 	public Block getBlock() {
@@ -47,7 +65,7 @@ public class BlockState {
 	}
 
 	public boolean isConductor() {
-		return block.isConductor();
+		return Block.isConductor(block.rawId);
 	}
 
 	public boolean isPowerSource() {
@@ -71,6 +89,6 @@ public class BlockState {
 	}
 
 	public void update(World world, BlockPos pos, Block neighborBlock) {
-		block.update(world, pos.x, pos.y, pos.z, neighborBlock);
+		block.update(world, pos.x, pos.y, pos.z, neighborBlock.rawId);
 	}
 }

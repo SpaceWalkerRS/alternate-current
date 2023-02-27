@@ -3,8 +3,6 @@ package alternate.current.wire;
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.chunk.WorldChunkSection;
@@ -35,15 +33,15 @@ public class WorldHelper {
 		y &= 15;
 		z &= 15;
 
-		Block block = section.getBlock(x, y, z);
+		int blockId = section.getBlock(x, y, z);
 
-		if (block == Blocks.AIR) {
+		if (blockId == 0) {
 			return BlockState.AIR;
 		}
 
 		int metadata = section.getBlockMetadata(x, y, z);
 
-		return new BlockState(block, metadata);
+		return new BlockState(blockId, metadata);
 	}
 
 	/**
@@ -73,10 +71,10 @@ public class WorldHelper {
 		y &= 15;
 		z &= 15;
 
-		Block block = state.getBlock();
-		Block prevBlock = section.getBlock(x, y, z);
+		int blockId = state.getBlockId();
+		int prevBlockId = section.getBlock(x, y, z);
 
-		if (block != prevBlock) {
+		if (blockId != prevBlockId) {
 			return false;
 		}
 

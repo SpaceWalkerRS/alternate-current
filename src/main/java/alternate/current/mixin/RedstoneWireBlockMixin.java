@@ -11,7 +11,6 @@ import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.world.World;
 
@@ -55,9 +54,9 @@ public class RedstoneWireBlockMixin {
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;III)V"
 		)
 	)
-	private void onRemoved(World world, int x, int y, int z, Block block, int metadata, CallbackInfo ci) {
+	private void onRemoved(World world, int x, int y, int z, int blockId, int metadata, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(block, metadata));
+			((IServerWorld)world).getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(blockId, metadata));
 		}
 	}
 
@@ -68,7 +67,7 @@ public class RedstoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onUpdate(World world, int x, int y, int z, Block block, CallbackInfo ci) {
+	private void onUpdate(World world, int x, int y, int z, int blockId, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerWorld)world).getWireHandler().onWireUpdated(new BlockPos(x, y, z));
 			ci.cancel();

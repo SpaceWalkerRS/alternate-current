@@ -6,7 +6,7 @@ import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 import alternate.current.wire.WireHandler.Directions;
 
-import net.minecraft.block.Blocks;
+import net.minecraft.block.Block;
 import net.minecraft.server.world.ServerWorld;
 
 /**
@@ -64,7 +64,7 @@ public class Node {
 	}
 
 	Node set(BlockPos pos, BlockState state, boolean clearNeighbors) {
-		if (state.is(Blocks.REDSTONE_WIRE)) {
+		if (state.is(Block.REDSTONE_WIRE)) {
 			throw new IllegalStateException("Cannot update a regular Node to a WireNode!");
 		}
 

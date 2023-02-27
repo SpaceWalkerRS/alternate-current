@@ -4,7 +4,7 @@ import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 import alternate.current.util.Redstone;
 
-import net.minecraft.block.Blocks;
+import net.minecraft.block.Block;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.MathHelper;
 
@@ -102,7 +102,7 @@ public class WireNode extends Node {
 
 		state = WorldHelper.getBlockState(world, pos);
 
-		if (!state.is(Blocks.REDSTONE_WIRE)) {
+		if (!state.is(Block.REDSTONE_WIRE)) {
 			return false; // we should never get here
 		}
 

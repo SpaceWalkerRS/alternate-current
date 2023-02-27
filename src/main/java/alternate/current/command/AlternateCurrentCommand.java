@@ -8,7 +8,7 @@ import net.minecraft.server.command.ICommand;
 import net.minecraft.server.command.exception.CommandException;
 import net.minecraft.server.command.exception.IncorrectUsageException;
 import net.minecraft.server.command.source.CommandSource;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 
 public class AlternateCurrentCommand extends Command {
 
@@ -45,7 +45,7 @@ public class AlternateCurrentCommand extends Command {
 				return;
 			case "resetProfiler":
 				if (AlternateCurrentMod.DEBUG) {
-					sendSuccess(source, this, "profiler results have been cleared!");
+					sendSuccess(source, "profiler results have been cleared!");
 
 					ProfilerResults.log();
 					ProfilerResults.clear();
@@ -62,14 +62,14 @@ public class AlternateCurrentCommand extends Command {
 
 	private void query(CommandSource source) {
 		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
-		source.sendMessage(new LiteralText(String.format("Alternate Current is currently %s", state)));
+		source.sendMessage(Text.literal(String.format("Alternate Current is currently %s", state)));
 	}
 
 	private void set(CommandSource source, boolean on) {
 		AlternateCurrentMod.on = on;
 
 		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
-		sendSuccess(source, this, String.format("Alternate Current has been %s!", state));
+		sendSuccess(source, String.format("Alternate Current has been %s!", state));
 	}
 
 	@Override
