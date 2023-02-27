@@ -4,8 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.apache.logging.log4j.Logger;
+import java.util.logging.Logger;
 
 import alternate.current.AlternateCurrentMod;
 

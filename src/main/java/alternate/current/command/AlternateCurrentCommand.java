@@ -17,11 +17,6 @@ public class AlternateCurrentCommand extends Command {
 	}
 
 	@Override
-	public int getRequiredPermissionLevel() {
-		return 2;
-	}
-
-	@Override
 	public String getUsage(CommandSource source) {
 		return AlternateCurrentMod.DEBUG ? "/alternatecurrent [on/off/resetProfiler]" : "/alternatecurrent [on/off]";
 	}

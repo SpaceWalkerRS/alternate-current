@@ -1,9 +1,9 @@
 [versions]
 # The latest versions are available at https://lambdaurora.dev/tools/import_quilt.html
-minecraft = "1.4.7"
+minecraft = "1.3.2"
 quilt_loader = "0.18.2"
-feather_mappings = "1.4.7+build.1"
-nests = "1.4.7+build.1"
+feather_mappings = "1.3.2+build.1"
+nests = "1.3.2+build.1"
 
 [libraries]
 minecraft = { module = "com.mojang:minecraft", version.ref = "minecraft" }
