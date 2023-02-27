@@ -743,7 +743,7 @@ public class WireHandler {
 			return;
 		}
 
-		wire.externalPower = getExternalPower(wire);
+		wire.externalPower = hasExternalPower(wire) ? Redstone.SIGNAL_MAX : Redstone.SIGNAL_MIN;
 
 		if (wire.externalPower > wire.virtualPower) {
 			wire.virtualPower = wire.externalPower;
@@ -751,12 +751,10 @@ public class WireHandler {
 	}
 
 	/**
-	 * Determine the redstone signal the given wire receives from non-wire
+	 * Determine whether the given wire receives a redstone signal from non-wire
 	 * components.
 	 */
-	private int getExternalPower(WireNode wire) {
-		int power = POWER_MIN;
-
+	private boolean hasExternalPower(WireNode wire) {
 		for (int iDir = 0; iDir < Directions.ALL.length; iDir++) {
 			Node neighbor = getNeighbor(wire, iDir);
 
@@ -767,41 +765,31 @@ public class WireHandler {
 
 			// Since 1.16 there is a block that is both a conductor and a signal
 			// source: the target block!
-			if (neighbor.isConductor()) {
-				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
+			if (neighbor.isConductor() && hasDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir))) {
+				return true;
 			}
-			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getEmittedWeakPower(world, neighbor.pos, Directions.ALL[iDir]));
-			}
-
-			if (power >= POWER_MAX) {
-				return POWER_MAX;
+			if (neighbor.isSignalSource() && neighbor.state.isEmittingWeakPower(world, neighbor.pos, Directions.ALL[iDir])) {
+				return true;
 			}
 		}
 
-		return power;
+		return false;
 	}
 
 	/**
-	 * Determine the direct signal the given wire receives from neighboring blocks
-	 * through the given conductor node.
+	 * Determine whether the given wire receives a direct signal from non-wire
+	 * components through the given conductor node.
 	 */
-	private int getDirectSignalTo(WireNode wire, Node node, int except) {
-		int power = POWER_MIN;
-
+	private boolean hasDirectSignalTo(WireNode wire, Node node, int except) {
 		for (int iDir : Directions.I_EXCEPT[except]) {
 			Node neighbor = getNeighbor(node, iDir);
 
-			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getEmittedStrongPower(world, neighbor.pos, Directions.ALL[iDir]));
-
-				if (power >= POWER_MAX) {
-					return POWER_MAX;
-				}
+			if (neighbor.isSignalSource() && neighbor.state.isEmittingStrongPower(world, neighbor.pos, Directions.ALL[iDir])) {
+				return true;
 			}
 		}
 
-		return power;
+		return false;
 	}
 
 	/**

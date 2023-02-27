@@ -11,8 +11,8 @@ public class BlockState {
 		public BlockState set(int metadata) { return this; }
 		public boolean isAir() { return true; }
 		public boolean isPowerSource() { return false; }
-		public int getEmittedWeakPower(World world, BlockPos pos, Direction dir) { return 0; }
-		public int getEmittedStrongPower(World world, BlockPos pos, Direction dir) { return 0; }
+		public boolean isEmittingWeakPower(World world, BlockPos pos, Direction dir) { return false; }
+		public boolean isEmittingStrongPower(World world, BlockPos pos, Direction dir) { return false; }
 		public boolean canSurvive(World world, BlockPos pos) { return true; }
 		public void dropItems(World world, BlockPos pos) { }
 		public void update(World world, BlockPos pos, Block fromBlock) { }
@@ -72,12 +72,12 @@ public class BlockState {
 		return block.isPowerSource();
 	}
 
-	public int getEmittedWeakPower(World world, BlockPos pos, Direction dir) {
-		return block.getEmittedWeakPower(world, pos.x, pos.y, pos.z, dir.index);
+	public boolean isEmittingWeakPower(World world, BlockPos pos, Direction dir) {
+		return block.isEmittingWeakPower(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
-	public int getEmittedStrongPower(World world, BlockPos pos, Direction dir) {
-		return block.getEmittedStrongPower(world, pos.x, pos.y, pos.z, dir.index);
+	public boolean isEmittingStrongPower(World world, BlockPos pos, Direction dir) {
+		return block.isEmittingStrongPower(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
 	public boolean canSurvive(World world, BlockPos pos) {

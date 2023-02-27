@@ -108,7 +108,7 @@ public class WireNode extends Node {
 
 		if (shouldBreak) {
 			state.dropItems(world, pos);
-			world.removeBlock(pos.x, pos.y, pos.z);
+			world.setBlock(pos.x, pos.y, pos.z, 0);
 
 			return true;
 		}
