@@ -3,7 +3,6 @@ package alternate.current.command;
 import alternate.current.AlternateCurrentMod;
 import alternate.current.util.profiler.ProfilerResults;
 
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.Command;
 import net.minecraft.server.command.exception.CommandException;
 import net.minecraft.server.command.exception.IncorrectUsageException;
@@ -28,7 +27,7 @@ public class AlternateCurrentCommand extends Command {
 	}
 
 	@Override
-	public void run(MinecraftServer server, CommandSource source, String[] args) throws CommandException {
+	public void run(CommandSource source, String[] args) throws CommandException {
 		switch (args.length) {
 		case 0:
 			query(source);

@@ -1,14 +1,13 @@
 package alternate.current.wire;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.function.Consumer;
 
 //import alternate.current.AlternateCurrentMod;
 import alternate.current.util.Redstone;
 //import alternate.current.util.profiler.Profiler;
-
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -270,7 +269,7 @@ public class WireHandler {
 	private final ServerWorld world;
 
 	/** Map of wires and neighboring blocks. */
-	private final Long2ObjectMap<Node> nodes;
+	private final Map<BlockPos, Node> nodes;
 	/** Queue for the breadth-first search through the network. */
 	private final Queue<WireNode> search;
 	/** Queue of updates to wires and neighboring blocks. */
@@ -287,7 +286,7 @@ public class WireHandler {
 	public WireHandler(ServerWorld world) {
 		this.world = world;
 
-		this.nodes = new Long2ObjectOpenHashMap<>();
+		this.nodes = new HashMap<>();
 		this.search = new SimpleQueue();
 		this.updates = new PriorityQueue();
 
@@ -300,7 +299,7 @@ public class WireHandler {
 	 * block at the given position in the world.
 	 */
 	private Node getOrAddNode(BlockPos pos) {
-		return nodes.compute(pos.toLong(), (key, node) -> {
+		return nodes.compute(pos, (key, node) -> {
 			if (node == null) {
 				// If there is not yet a node at this position, retrieve and
 				// update one from the cache.
@@ -319,7 +318,7 @@ public class WireHandler {
 	 * position.
 	 */
 	private Node removeNode(BlockPos pos) {
-		return nodes.remove(pos.toLong());
+		return nodes.remove(pos);
 	}
 
 	/**
@@ -773,7 +772,7 @@ public class WireHandler {
 				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
 			}
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getEmittedWeakPower(world, neighbor.pos, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getBlock().getEmittedWeakPower(world, neighbor.pos, neighbor.state, Directions.ALL[iDir]));
 			}
 
 			if (power >= POWER_MAX) {
@@ -795,7 +794,7 @@ public class WireHandler {
 			Node neighbor = getNeighbor(node, iDir);
 
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getEmittedStrongPower(world, neighbor.pos, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getBlock().getEmittedStrongPower(world, neighbor.pos, neighbor.state, Directions.ALL[iDir]));
 
 				if (power >= POWER_MAX) {
 					return POWER_MAX;
@@ -1103,7 +1102,7 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (block != Blocks.AIR && block != Blocks.REDSTONE_WIRE) {
-			state.update(world, pos, neighborBlock);
+			block.update(world, pos, state, neighborBlock);
 		}
 	}
 
