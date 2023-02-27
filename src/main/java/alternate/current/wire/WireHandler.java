@@ -1,21 +1,18 @@
 package alternate.current.wire;
 
-import java.util.Iterator;
 import java.util.Queue;
 import java.util.function.Consumer;
 
 //import alternate.current.AlternateCurrentMod;
-import alternate.current.util.BlockUtil;
 import alternate.current.util.Redstone;
 //import alternate.current.util.profiler.Profiler;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.ObserverBlock;
 import net.minecraft.block.state.BlockState;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -572,14 +569,9 @@ public class WireHandler {
 	 */
 	private void invalidate() {
 		if (updating && !nodes.isEmpty()) {
-			Iterator<Entry<Node>> it = Long2ObjectMaps.fastIterator(nodes);
-
-			while (it.hasNext()) {
-				Entry<Node> entry = it.next();
-				Node node = entry.getValue();
-
+			nodes.forEach((key, node) -> {
 				node.invalid = true;
-			}
+			});
 		}
 	}
 
@@ -685,7 +677,7 @@ public class WireHandler {
 		wire.discovered = true;
 		wire.searched = false;
 
-		if (!wire.removed && !wire.shouldBreak && !wire.state.canSurvive(world, wire.pos)) {
+		if (!wire.removed && !wire.shouldBreak && !wire.state.getBlock().canSurvive(world, wire.pos)) {
 			wire.shouldBreak = true;
 		}
 
@@ -885,7 +877,7 @@ public class WireHandler {
 	 * <br>
 	 * Work through the update queue, setting the new power level of each wire and
 	 * updating neighboring blocks. After a wire has updated its power level, it
-	 * will emit shape updates and queue updates for neighboring wires and blocks.
+	 * will emit observer updates and queue updates for neighboring wires and blocks.
 	 */
 	private void update() {
 		// The profiler keeps track of how long various parts of the algorithm take.
@@ -1010,10 +1002,10 @@ public class WireHandler {
 				if (wire.setPower()) {
 					queueNeighbors(wire);
 
-					// If the wire was newly placed or removed, shape updates have
+					// If the wire was newly placed or removed, observer updates have
 					// already been emitted.
 					if (!wire.added && !wire.shouldBreak) {
-						updateNeighborShapes(wire);
+						updateObservers(wire);
 					}
 				}
 			} else {
@@ -1070,11 +1062,11 @@ public class WireHandler {
 	}
 
 	/**
-	 * Emit shape updates around the given wire.
+	 * Emit observer updates around the given wire.
 	 */
-	private void updateNeighborShapes(WireNode wire) {
+	private void updateObservers(WireNode wire) {
 		BlockPos wirePos = wire.pos;
-		BlockState wireState = wire.state;
+		Block wireBlock = wire.state.getBlock();
 
 		for (int iDir : DEFAULT_FULL_UPDATE_ORDER) {
 			Node neighbor = getNeighbor(wire, iDir);
@@ -1083,20 +1075,18 @@ public class WireHandler {
 				int iOpp = Directions.iOpposite(iDir);
 				Direction opp = Directions.ALL[iOpp];
 
-				updateShape(neighbor, opp, wirePos, wireState);
+				updateObserver(neighbor, opp, wirePos, wireBlock);
 			}
 		}
 	}
 
-	private void updateShape(Node node, Direction dir, BlockPos neighborPos, BlockState neighborState) {
+	private void updateObserver(Node node, Direction dir, BlockPos neighborPos, Block neighborBlock) {
 		BlockPos pos = node.pos;
 		BlockState state = world.getBlockState(pos);
+		Block block = state.getBlock();
 
-		// Shape updates to redstone wire are very expensive, and should never happen
-		// as a result of power changes anyway.
-		if (!state.isAir() && state.getBlock() != Blocks.REDSTONE_WIRE) {
-			BlockState newState = state.updateShape(dir, neighborState, world, pos, neighborPos);
-			Block.updateOrBreak(state, newState, world, pos, BlockUtil.FLAG_UPDATE_CLIENTS);
+		if (block == Blocks.OBSERVER) {
+			((ObserverBlock)block).updateObserver(state, world, pos, neighborBlock, neighborPos);
 		}
 	}
 
@@ -1140,6 +1130,7 @@ public class WireHandler {
 	private void updateBlock(Node node, BlockPos neighborPos, Block neighborBlock) {
 		BlockPos pos = node.pos;
 		BlockState state = world.getBlockState(pos);
+		Block block = state.getBlock();
 
 		// While this check makes sure wires in the network are not given block
 		// updates, it also prevents block updates to wires in neighboring networks.
@@ -1150,7 +1141,7 @@ public class WireHandler {
 		// performance gains in certain setups, if you are not, you can add all the
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
-		if (!state.isAir() && state.getBlock() != Blocks.REDSTONE_WIRE) {
+		if (block != Blocks.AIR && block != Blocks.REDSTONE_WIRE) {
 			state.update(world, pos, neighborBlock, neighborPos);
 		}
 	}

@@ -9,13 +9,12 @@ version = "${project.version}+${libs.versions.minecraft.get()}"
 group = project.maven_group
 
 repositories {
-
 }
 
 dependencies {
 	minecraft libs.minecraft
 	mappings loom.layered {
-		mappings libs.feather.mappings
+		mappings variantOf(libs.feather.mappings) { classifier 'v2' }
 	}
 
 	modImplementation libs.quilt.loader

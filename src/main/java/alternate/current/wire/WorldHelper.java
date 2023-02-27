@@ -1,7 +1,5 @@
 package alternate.current.wire;
 
-import alternate.current.util.BlockUtil;
-
 import net.minecraft.block.state.BlockState;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -19,7 +17,7 @@ public class WorldHelper {
 	 * states, lighting checks, height map updates, and block entity updates are
 	 * omitted.
 	 */
-	static boolean setWireState(ServerWorld world, BlockPos pos, BlockState state, boolean updateNeighborShapes) {
+	static boolean setWireState(ServerWorld world, BlockPos pos, BlockState state) {
 		int y = pos.getY();
 
 		if (y < Y_MIN || y >= Y_MAX) {
@@ -52,12 +50,6 @@ public class WorldHelper {
 		world.getChunkMap().onBlockChanged(pos);
 		// mark the chunk for saving
 		chunk.setDirty(true);
-
-		if (updateNeighborShapes) {
-			prevState.updateIndirectNeighborShapes(world, pos, BlockUtil.FLAG_UPDATE_CLIENTS);
-			state.updateNeighborShapes(world, pos, BlockUtil.FLAG_UPDATE_CLIENTS);
-			state.updateIndirectNeighborShapes(world, pos, BlockUtil.FLAG_UPDATE_CLIENTS);
-		}
 
 		return true;
 	}
