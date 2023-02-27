@@ -42,7 +42,7 @@ public class RedstoneWireBlockMixin {
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
 		)
 	)
-	private void onAdded(BlockState state, World world, BlockPos pos, BlockState oldState, CallbackInfo ci) {
+	private void onAdded(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerWorld)world).getWireHandler().onWireAdded(pos);
 		}
@@ -56,7 +56,7 @@ public class RedstoneWireBlockMixin {
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
 		)
 	)
-	private void onRemoved(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
+	private void onRemoved(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerWorld)world).getWireHandler().onWireRemoved(pos, state);
 		}

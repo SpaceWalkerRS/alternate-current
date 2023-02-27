@@ -109,7 +109,7 @@ public class WireNode extends Node {
 		}
 
 		if (shouldBreak) {
-			state.dropItems(world, pos, 0);
+			state.getBlock().dropItems(world, pos, state, 0);
 			world.setBlockState(pos, Blocks.AIR.defaultState(), BlockUtil.FLAG_UPDATE_CLIENTS);
 
 			return true;
@@ -118,6 +118,6 @@ public class WireNode extends Node {
 		currentPower = MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
 		state = state.set(RedstoneWireBlock.POWER, currentPower);
 
-		return WorldHelper.setWireState(world, pos, state, added);
+		return WorldHelper.setWireState(world, pos, state);
 	}
 }
