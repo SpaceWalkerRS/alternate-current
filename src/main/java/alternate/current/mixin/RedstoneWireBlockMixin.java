@@ -5,15 +5,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import alternate.current.AlternateCurrentMod;
 import alternate.current.interfaces.mixin.IServerWorld;
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.RedstoneWireBlock;
-import net.minecraft.block.state.BlockState;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 @Mixin(RedstoneWireBlock.class)
@@ -26,11 +25,11 @@ public class RedstoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onUpdatePower(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
+	private void onUpdatePower(World world, int x, int y, int z, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			// Using redirects for calls to this method makes conflicts with
 			// other mods more likely, so we inject-cancel instead.
-			cir.setReturnValue(state);
+			ci.cancel();
 		}
 	}
 
@@ -39,12 +38,12 @@ public class RedstoneWireBlockMixin {
 		at = @At(
 			value = "INVOKE",
 			shift = Shift.BEFORE,
-			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
+			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;III)V"
 		)
 	)
-	private void onAdded(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void onAdded(World world, int x, int y, int z, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireAdded(pos);
+			((IServerWorld)world).getWireHandler().onWireAdded(new BlockPos(x, y, z));
 		}
 	}
 
@@ -53,12 +52,12 @@ public class RedstoneWireBlockMixin {
 		at = @At(
 			value = "INVOKE",
 			shift = Shift.BEFORE,
-			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
+			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;III)V"
 		)
 	)
-	private void onRemoved(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void onRemoved(World world, int x, int y, int z, Block block, int metadata, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireRemoved(pos, state);
+			((IServerWorld)world).getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(block, metadata));
 		}
 	}
 
@@ -69,9 +68,9 @@ public class RedstoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onUpdate(World world, BlockPos pos, BlockState state, Block block, CallbackInfo ci) {
+	private void onUpdate(World world, int x, int y, int z, Block block, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireUpdated(pos);
+			((IServerWorld)world).getWireHandler().onWireUpdated(new BlockPos(x, y, z));
 			ci.cancel();
 		}
 	}

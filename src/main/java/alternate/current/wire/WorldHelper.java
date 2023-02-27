@@ -1,8 +1,11 @@
 package alternate.current.wire;
 
-import net.minecraft.block.state.BlockState;
+import alternate.current.util.BlockPos;
+import alternate.current.util.BlockState;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.chunk.WorldChunkSection;
 
@@ -11,6 +14,38 @@ public class WorldHelper {
 	private static final int Y_MIN = 0;
 	private static final int Y_MAX = 256;
 
+	static BlockState getBlockState(ServerWorld world, BlockPos pos) {
+		int y = pos.y;
+
+		if (y < Y_MIN || y >= Y_MAX) {
+			return BlockState.AIR;
+		}
+
+		int x = pos.x;
+		int z = pos.z;
+
+		WorldChunk chunk = world.getChunkAt(x >> 4, z >> 4);
+		WorldChunkSection section = chunk.getSections()[y >> 4];
+
+		if (section == null) {
+			return BlockState.AIR; // we should never get here
+		}
+
+		x &= 15;
+		y &= 15;
+		z &= 15;
+
+		Block block = section.getBlock(x, y, z);
+
+		if (block == Blocks.AIR) {
+			return BlockState.AIR;
+		}
+
+		int metadata = section.getBlockMetadata(x, y, z);
+
+		return new BlockState(block, metadata);
+	}
+
 	/**
 	 * An optimized version of {@link net.minecraft.world.World#setBlockState
 	 * World.setBlockState}. Since this method is only used to update redstone wire block
@@ -18,14 +53,14 @@ public class WorldHelper {
 	 * omitted.
 	 */
 	static boolean setWireState(ServerWorld world, BlockPos pos, BlockState state) {
-		int y = pos.getY();
+		int y = pos.y;
 
 		if (y < Y_MIN || y >= Y_MAX) {
 			return false;
 		}
 
-		int x = pos.getX();
-		int z = pos.getZ();
+		int x = pos.x;
+		int z = pos.z;
 
 		WorldChunk chunk = world.getChunkAt(x >> 4, z >> 4);
 		WorldChunkSection section = chunk.getSections()[y >> 4];
@@ -38,18 +73,26 @@ public class WorldHelper {
 		y &= 15;
 		z &= 15;
 
-		BlockState prevState = section.getBlockState(x, y, z);
+		Block block = state.getBlock();
+		Block prevBlock = section.getBlock(x, y, z);
 
-		if (state == prevState) {
+		if (block != prevBlock) {
 			return false;
 		}
 
-		section.setBlockState(x, y, z, state);
+		int metadata = state.get();
+		int prevMetadata = section.getBlockMetadata(x, y, z);
+
+		if (metadata == prevMetadata) {
+			return false;
+		}
+
+		section.setBlockMetadata(x, y, z, metadata);
 
 		// notify clients of the BlockState change
-		world.getChunkMap().onBlockChanged(pos);
+		world.getChunkMap().onBlockChanged(pos.x, pos.y, pos.z);
 		// mark the chunk for saving
-		chunk.setDirty(true);
+		chunk.markDirty();
 
 		return true;
 	}

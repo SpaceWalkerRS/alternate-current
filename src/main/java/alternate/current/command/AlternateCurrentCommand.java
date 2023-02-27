@@ -4,6 +4,7 @@ import alternate.current.AlternateCurrentMod;
 import alternate.current.util.profiler.ProfilerResults;
 
 import net.minecraft.server.command.Command;
+import net.minecraft.server.command.ICommand;
 import net.minecraft.server.command.exception.CommandException;
 import net.minecraft.server.command.exception.IncorrectUsageException;
 import net.minecraft.server.command.source.CommandSource;
@@ -69,5 +70,10 @@ public class AlternateCurrentCommand extends Command {
 
 		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
 		sendSuccess(source, this, String.format("Alternate Current has been %s!", state));
+	}
+
+	@Override
+	public int compareTo(Object o) {
+		return super.compareTo((ICommand)o);
 	}
 }
