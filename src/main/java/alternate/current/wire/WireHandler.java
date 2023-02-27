@@ -13,7 +13,6 @@ import alternate.current.util.Redstone;
 //import alternate.current.util.profiler.Profiler;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.server.world.ServerWorld;
 
 /**
@@ -336,7 +335,7 @@ public class WireHandler {
 	 * cache and update it.
 	 */
 	private Node getNextNode(BlockPos pos, BlockState state) {
-		return state.is(Blocks.REDSTONE_WIRE) ? new WireNode(world, pos, state) : getNextNode().set(pos, state, true);
+		return state.is(Block.REDSTONE_WIRE) ? new WireNode(world, pos, state) : getNextNode().set(pos, state, true);
 	}
 
 	/**
@@ -379,7 +378,7 @@ public class WireHandler {
 		BlockState state = WorldHelper.getBlockState(world, pos);
 
 		boolean wasWire = node.isWire();
-		boolean isWire = state.is(Blocks.REDSTONE_WIRE);
+		boolean isWire = state.is(Block.REDSTONE_WIRE);
 
 		if (wasWire != isWire) {
 			return getNextNode(pos, state);
@@ -1100,7 +1099,7 @@ public class WireHandler {
 		// performance gains in certain setups, if you are not, you can add all the
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
-		if (!state.isAir() && !state.is(Blocks.REDSTONE_WIRE)) {
+		if (!state.isAir() && !state.is(Block.REDSTONE_WIRE)) {
 			state.update(world, pos, neighborBlock);
 		}
 	}
