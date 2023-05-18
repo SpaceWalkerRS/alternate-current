@@ -28,6 +28,11 @@ public class LevelHelper {
 		int index = level.getSectionIndex(y);
 
 		ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
+
+		if (chunk == null) {
+			return false; // we should never get here
+		}
+
 		LevelChunkSection section = chunk.getSections()[index];
 
 		if (section == null) {

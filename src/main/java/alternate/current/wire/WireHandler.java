@@ -1,17 +1,9 @@
 package alternate.current.wire;
 
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.function.Consumer;
-
-//import alternate.current.AlternateCurrentMod;
-//import alternate.current.util.profiler.Profiler;
-
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -19,6 +11,10 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.redstone.Redstone;
+
+import java.util.Iterator;
+import java.util.Queue;
+import java.util.function.Consumer;
 
 /**
  * This class handles power changes for redstone wire. The algorithm was
@@ -257,10 +253,6 @@ public class WireHandler {
 		{ Directions.EAST , Directions.WEST , Directions.SOUTH, Directions.NORTH },
 		{ Directions.SOUTH, Directions.NORTH, Directions.WEST , Directions.EAST  }
 	};
-	/**
-	 * The default update order of all cardinal directions.
-	 */
-	static final int[] DEFAULT_CARDINAL_UPDATE_ORDER = CARDINAL_UPDATE_ORDERS[0];
 
 	private static final int POWER_MIN = Redstone.SIGNAL_MIN;
 	private static final int POWER_MAX = Redstone.SIGNAL_MAX;
@@ -359,9 +351,7 @@ public class WireHandler {
 		Node[] oldCache = nodeCache;
 		nodeCache = new Node[oldCache.length << 1];
 
-		for (int index = 0; index < oldCache.length; index++) {
-			nodeCache[index] = oldCache[index];
-		}
+		System.arraycopy(oldCache, 0, nodeCache, 0, oldCache.length);
 
 		fillNodeCache(oldCache.length, nodeCache.length);
 	}
@@ -778,7 +768,7 @@ public class WireHandler {
 			// Since 1.16 there is a block that is both a conductor and a signal
 			// source: the target block!
 			if (neighbor.isConductor()) {
-				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
+				power = Math.max(power, getDirectSignalTo(neighbor, Directions.iOpposite(iDir)));
 			}
 			if (neighbor.isSignalSource()) {
 				power = Math.max(power, neighbor.state.getSignal(level, neighbor.pos, Directions.ALL[iDir]));
@@ -793,10 +783,10 @@ public class WireHandler {
 	}
 
 	/**
-	 * Determine the direct signal the given wire receives from neighboring blocks
+	 * Determine the direct signal the given node receives from neighboring blocks
 	 * through the given conductor node.
 	 */
-	private int getDirectSignalTo(WireNode wire, Node node, int except) {
+	private int getDirectSignalTo(Node node, int except) {
 		int power = POWER_MIN;
 
 		for (int iDir : Directions.I_EXCEPT[except]) {
@@ -825,15 +815,7 @@ public class WireHandler {
 	 * Queue the given wire for the breadth-first search as a root.
 	 */
 	private void searchRoot(WireNode wire) {
-		int iBackupFlowDir;
-
-		if (wire.connections.iFlowDir < 0) {
-			iBackupFlowDir = 0;
-		} else {
-			iBackupFlowDir = wire.connections.iFlowDir;
-		}
-
-		search(wire, true, iBackupFlowDir);
+		search(wire, true, Math.max(wire.connections.iFlowDir, 0));
 	}
 
 	/**
@@ -1104,9 +1086,7 @@ public class WireHandler {
 	 * Queue block updates to nodes around the given wire.
 	 */
 	private void queueNeighbors(WireNode wire) {
-		forEachNeighbor(wire, neighbor -> {
-			queueNeighbor(neighbor, wire);
-		});
+		forEachNeighbor(wire, neighbor -> queueNeighbor(neighbor, wire));
 	}
 
 	/**
@@ -1156,9 +1136,9 @@ public class WireHandler {
 	}
 
 	@FunctionalInterface
-	public static interface NodeProvider {
+	public interface NodeProvider {
 
-		public Node getNeighbor(Node node, int iDir);
+		Node getNeighbor(Node node, int iDir);
 
 	}
 }

@@ -1,5 +1,11 @@
 package alternate.current.mixin;
 
+import alternate.current.command.AlternateCurrentCommand;
+import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.Commands.CommandSelection;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -7,15 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import com.mojang.brigadier.CommandDispatcher;
-
-import alternate.current.command.AlternateCurrentCommand;
-
-import net.minecraft.commands.CommandBuildContext;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.Commands.CommandSelection;
 
 @Mixin(Commands.class)
 public class CommandsMixin {
@@ -30,7 +27,7 @@ public class CommandsMixin {
 			target = "Lcom/mojang/brigadier/CommandDispatcher;setConsumer(Lcom/mojang/brigadier/ResultConsumer;)V"
 		)
 	)
-	private void registerCommands(CommandSelection selection, CommandBuildContext context, CallbackInfo ci) {
+	private void alternateCurrent$registerCommands(CommandSelection selection, CommandBuildContext context, CallbackInfo ci) {
 		AlternateCurrentCommand.register(dispatcher);
 	}
 }

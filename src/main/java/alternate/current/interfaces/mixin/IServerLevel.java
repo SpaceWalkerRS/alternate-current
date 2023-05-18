@@ -4,6 +4,6 @@ import alternate.current.wire.WireHandler;
 
 public interface IServerLevel {
 
-	public WireHandler getWireHandler();
+	WireHandler alternateCurrent$getWireHandler();
 
 }

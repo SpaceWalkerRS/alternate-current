@@ -1,12 +1,10 @@
 package alternate.current;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import alternate.current.util.profiler.ACProfiler;
 import alternate.current.util.profiler.Profiler;
-
 import net.fabricmc.api.ModInitializer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AlternateCurrentMod implements ModInitializer {
 

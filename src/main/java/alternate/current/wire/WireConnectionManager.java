@@ -1,10 +1,10 @@
 package alternate.current.wire;
 
-import java.util.Arrays;
-import java.util.function.Consumer;
-
 import alternate.current.wire.WireHandler.Directions;
 import alternate.current.wire.WireHandler.NodeProvider;
+
+import java.util.Arrays;
+import java.util.function.Consumer;
 
 public class WireConnectionManager {
 

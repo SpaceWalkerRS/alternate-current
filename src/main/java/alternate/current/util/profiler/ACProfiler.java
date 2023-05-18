@@ -1,12 +1,11 @@
 package alternate.current.util.profiler;
 
+import alternate.current.AlternateCurrentMod;
+import org.apache.logging.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-
-import org.apache.logging.log4j.Logger;
-
-import alternate.current.AlternateCurrentMod;
 
 public class ACProfiler implements Profiler {
 	
