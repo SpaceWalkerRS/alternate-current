@@ -71,7 +71,6 @@ public class RedStoneWireBlockMixin {
 	private void onNeighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, BlockPos neighborPos, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerLevel)level).getWireHandler().onWireUpdated(pos);
-			ci.cancel();
 		}
 	}
 }
