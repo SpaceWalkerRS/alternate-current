@@ -41,7 +41,7 @@ public class RedStoneWireBlockMixin {
 			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V"
 		)
 	)
-	private void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
+	private void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerLevel)level).getWireHandler().onWireAdded(pos);
 		}
@@ -55,7 +55,7 @@ public class RedStoneWireBlockMixin {
 			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V"
 		)
 	)
-	private void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved, CallbackInfo ci) {
+	private void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerLevel)level).getWireHandler().onWireRemoved(pos, state);
 		}
@@ -68,7 +68,7 @@ public class RedStoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onNeighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
+	private void onNeighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, BlockPos neighborPos, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerLevel)level).getWireHandler().onWireUpdated(pos);
 			ci.cancel();
