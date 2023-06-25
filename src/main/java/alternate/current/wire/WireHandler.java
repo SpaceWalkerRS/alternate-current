@@ -509,10 +509,14 @@ public class WireHandler {
 	/**
 	 * This method should be called whenever a wire receives a block update.
 	 */
-	public void onWireUpdated(BlockPos pos) {
+	public boolean onWireUpdated(BlockPos pos) {
+		Node node = getOrAddNode(pos);
+
 		invalidate();
 		findRoots(pos);
 		tryUpdate();
+
+		return node.isWire();
 	}
 
 	/**
