@@ -505,10 +505,14 @@ public class WireHandler {
 	/**
 	 * This method should be called whenever a wire receives a block update.
 	 */
-	public void onWireUpdated(BlockPos pos) {
+	public boolean onWireUpdated(BlockPos pos) {
+		Node node = getOrAddNode(pos);
+
 		invalidate();
 		findRoots(pos);
 		tryUpdate();
+
+		return node.isWire();
 	}
 
 	/**
@@ -772,7 +776,7 @@ public class WireHandler {
 				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
 			}
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getBlock().getEmittedWeakPower(world, neighbor.pos, neighbor.state, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getBlock().getSignal(world, neighbor.pos, neighbor.state, Directions.ALL[iDir]));
 			}
 
 			if (power >= POWER_MAX) {
@@ -794,7 +798,7 @@ public class WireHandler {
 			Node neighbor = getNeighbor(node, iDir);
 
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getBlock().getEmittedStrongPower(world, neighbor.pos, neighbor.state, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getBlock().getDirectSignal(world, neighbor.pos, neighbor.state, Directions.ALL[iDir]));
 
 				if (power >= POWER_MAX) {
 					return POWER_MAX;
@@ -1102,7 +1106,7 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (block != Blocks.AIR && block != Blocks.REDSTONE_WIRE) {
-			block.update(world, pos, state, neighborBlock);
+			block.neighborChanged(world, pos, state, neighborBlock);
 		}
 	}
 
