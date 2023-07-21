@@ -2,7 +2,6 @@ package alternate.current.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -38,7 +37,6 @@ public class RedstoneWireBlockMixin {
 		method = "onAdded",
 		at = @At(
 			value = "INVOKE",
-			shift = Shift.BEFORE,
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
 		)
 	)
@@ -52,7 +50,6 @@ public class RedstoneWireBlockMixin {
 		method = "onRemoved",
 		at = @At(
 			value = "INVOKE",
-			shift = Shift.BEFORE,
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
 		)
 	)
@@ -63,16 +60,17 @@ public class RedstoneWireBlockMixin {
 	}
 
 	@Inject(
-		method = "update",
+		method = "neighborChanged",
 		cancellable = true,
 		at = @At(
 			value = "HEAD"
 		)
 	)
-	private void onUpdate(BlockState state, World world, BlockPos pos, Block block, CallbackInfo ci) {
+	private void onNeighborChanged(BlockState state, World world, BlockPos pos, Block neighborBlock, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireUpdated(pos);
-			ci.cancel();
+			if (((IServerWorld)world).getWireHandler().onWireUpdated(pos)) {
+				ci.cancel(); // needed to fix duplication bugs
+			}
 		}
 	}
 }
