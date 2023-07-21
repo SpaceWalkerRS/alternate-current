@@ -2,10 +2,10 @@ package alternate.current.wire;
 
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
+import alternate.current.util.Mth;
 import alternate.current.util.Redstone;
 
 import net.minecraft.block.Block;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 
 /**
@@ -64,7 +64,7 @@ public class WireNode extends Node {
 
 	@Override
 	int priority() {
-		return MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
+		return Mth.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
 	}
 
 	@Override
@@ -113,7 +113,7 @@ public class WireNode extends Node {
 			return true;
 		}
 
-		currentPower = MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
+		currentPower = Mth.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
 		state = state.set(currentPower);
 
 		return WorldHelper.setWireState(world, pos, state);

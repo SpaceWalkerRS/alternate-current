@@ -5,12 +5,11 @@ import alternate.current.util.BlockState;
 
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
-import net.minecraft.world.chunk.WorldChunkSection;
 
 public class WorldHelper {
 
 	private static final int Y_MIN = 0;
-	private static final int Y_MAX = 256;
+	private static final int Y_MAX = 128;
 
 	static BlockState getBlockState(World world, BlockPos pos) {
 		int y = pos.y;
@@ -23,23 +22,18 @@ public class WorldHelper {
 		int z = pos.z;
 
 		WorldChunk chunk = world.getChunkAt(x >> 4, z >> 4);
-		WorldChunkSection section = chunk.getSections()[y >> 4];
-
-		if (section == null) {
-			return BlockState.AIR; // we should never get here
-		}
 
 		x &= 15;
 		y &= 15;
 		z &= 15;
 
-		int blockId = section.getBlock(x, y, z);
+		int blockId = chunk.getBlockAt(x, y, z);
 
 		if (blockId == 0) {
 			return BlockState.AIR;
 		}
 
-		int metadata = section.getBlockMetadata(x, y, z);
+		int metadata = chunk.getBlockMetadataAt(x, y, z);
 
 		return new BlockState(blockId, metadata);
 	}
@@ -61,31 +55,26 @@ public class WorldHelper {
 		int z = pos.z;
 
 		WorldChunk chunk = world.getChunkAt(x >> 4, z >> 4);
-		WorldChunkSection section = chunk.getSections()[y >> 4];
-
-		if (section == null) {
-			return false; // we should never get here
-		}
 
 		x &= 15;
 		y &= 15;
 		z &= 15;
 
 		int blockId = state.getBlockId();
-		int prevBlockId = section.getBlock(x, y, z);
+		int prevBlockId = chunk.getBlockAt(x, y, z);
 
 		if (blockId != prevBlockId) {
 			return false;
 		}
 
 		int metadata = state.get();
-		int prevMetadata = section.getBlockMetadata(x, y, z);
+		int prevMetadata = chunk.getBlockMetadataAt(x, y, z);
 
 		if (metadata == prevMetadata) {
 			return false;
 		}
 
-		section.setBlockMetadata(x, y, z, metadata);
+		chunk.setBlockMetadataAt(x, y, z, metadata);
 
 		// notify clients of the BlockState change
 		world.onBlockChanged(pos.x, pos.y, pos.z);

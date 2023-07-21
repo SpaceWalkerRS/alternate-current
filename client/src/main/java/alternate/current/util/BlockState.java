@@ -66,7 +66,7 @@ public class BlockState {
 	}
 
 	public boolean isConductor() {
-		return Block.isConductor(block.id);
+		return block.material.isSolidBlocking() && block.isFullCube();
 	}
 
 	public boolean isSignalSource() {
