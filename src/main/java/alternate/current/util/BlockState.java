@@ -10,12 +10,13 @@ public class BlockState {
 		public boolean is(Block block) { return false; }
 		public BlockState set(int metadata) { return this; }
 		public boolean isAir() { return true; }
-		public boolean isPowerSource() { return false; }
-		public boolean isEmittingWeakPower(World world, BlockPos pos, Direction dir) { return false; }
-		public boolean isEmittingStrongPower(World world, BlockPos pos, Direction dir) { return false; }
+		public boolean isConductor() { return false; }
+		public boolean isSignalSource() { return false; }
+		public boolean hasSignal(World world, BlockPos pos, Direction dir) { return false; }
+		public boolean hasDirectSignal(World world, BlockPos pos, Direction dir) { return false; }
 		public boolean canSurvive(World world, BlockPos pos) { return true; }
 		public void dropItems(World world, BlockPos pos) { }
-		public void update(World world, BlockPos pos, Block fromBlock) { }
+		public void neighborChanged(World world, BlockPos pos, Block fromBlock) { }
 	};
 
 	private final Block block;
@@ -41,7 +42,7 @@ public class BlockState {
 	}
 
 	public int getBlockId() {
-		return block.rawId;
+		return block.id;
 	}
 
 	public Block getBlock() {
@@ -65,19 +66,19 @@ public class BlockState {
 	}
 
 	public boolean isConductor() {
-		return Block.isConductor(block.rawId);
+		return Block.isConductor(block.id);
 	}
 
-	public boolean isPowerSource() {
-		return block.isPowerSource();
+	public boolean isSignalSource() {
+		return block.isSignalSource();
 	}
 
-	public boolean isEmittingWeakPower(World world, BlockPos pos, Direction dir) {
-		return block.isEmittingWeakPower(world, pos.x, pos.y, pos.z, dir.index);
+	public boolean hasSignal(World world, BlockPos pos, Direction dir) {
+		return block.hasSignal(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
-	public boolean isEmittingStrongPower(World world, BlockPos pos, Direction dir) {
-		return block.isEmittingStrongPower(world, pos.x, pos.y, pos.z, dir.index);
+	public boolean hasDirectSignal(World world, BlockPos pos, Direction dir) {
+		return block.hasDirectSignal(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
 	public boolean canSurvive(World world, BlockPos pos) {
@@ -88,7 +89,7 @@ public class BlockState {
 		block.dropItems(world, pos.x, pos.y, pos.z, 0, 0);
 	}
 
-	public void update(World world, BlockPos pos, Block neighborBlock) {
-		block.update(world, pos.x, pos.y, pos.z, neighborBlock.rawId);
+	public void neighborChanged(World world, BlockPos pos, Block neighborBlock) {
+		block.neighborChanged(world, pos.x, pos.y, pos.z, neighborBlock.id);
 	}
 }
