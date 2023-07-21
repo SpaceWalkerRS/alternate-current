@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "alternate.current.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"mixins": [
+		"RedstoneWireBlockMixin",
+		"WorldMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

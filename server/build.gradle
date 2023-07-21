@@ -1,0 +1,9 @@
+configure(project)
+
+loom {
+	serverOnlyMinecraftJar()
+}
+
+ploceus {
+	serverOnlyMappings()
+}
