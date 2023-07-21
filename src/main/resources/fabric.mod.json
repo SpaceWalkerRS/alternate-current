@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "alternate-current",
+	"version": "${version}",
+
+	"name": "Alternate Current",
+	"description": "An efficient and non-locational redstone dust implementation.",
+	"authors": [
+		"Space Walker"
+	],
+	"contact": {
+		"homepage": "https://modrinth.com/mod/alternate-current",
+		"sources": "https://github.com/SpaceWalkerRS/alternate-current",
+		"issues": "https://github.com/SpaceWalkerRS/alternate-current/issues"
+	},
+
+	"license": "MIT Licence",
+	"icon": "assets/alternate/current/icon.png",
+
+	"environment": "*",
+	"entrypoints": {
+	},
+	"mixins": [
+		"alternate-current.mixins.json"
+	],
+
+	"depends": {
+		"minecraft": "1.11.x"
+	},
+
+	"custom": {
+		"modmenu": {
+			"links": {
+				"modmenu.discord": "https://discord.gg/EJC9zkX"
+			}
+		}
+	}
+}
