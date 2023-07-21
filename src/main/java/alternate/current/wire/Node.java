@@ -81,7 +81,7 @@ public class Node {
 		if (this.state.isConductor()) {
 			this.flags |= CONDUCTOR;
 		}
-		if (this.state.isPowerSource()) {
+		if (this.state.isSignalSource()) {
 			this.flags |= SOURCE;
 		}
 

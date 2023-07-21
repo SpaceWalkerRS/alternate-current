@@ -50,16 +50,16 @@ public class BlockState {
 		return block.isConductor();
 	}
 
-	public boolean isPowerSource() {
-		return block.isPowerSource();
+	public boolean isSignalSource() {
+		return block.isSignalSource();
 	}
 
-	public int getEmittedWeakPower(World world, BlockPos pos, Direction dir) {
-		return block.getEmittedWeakPower(world, pos.x, pos.y, pos.z, dir.index);
+	public int getSignal(World world, BlockPos pos, Direction dir) {
+		return block.getSignal(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
-	public int getEmittedStrongPower(World world, BlockPos pos, Direction dir) {
-		return block.getEmittedStrongPower(world, pos.x, pos.y, pos.z, dir.index);
+	public int getDirectSignal(World world, BlockPos pos, Direction dir) {
+		return block.getDirectSignal(world, pos.x, pos.y, pos.z, dir.index);
 	}
 
 	public boolean canSurvive(World world, BlockPos pos) {
@@ -70,7 +70,7 @@ public class BlockState {
 		block.dropItems(world, pos.x, pos.y, pos.z, 0, 0);
 	}
 
-	public void update(World world, BlockPos pos, Block neighborBlock) {
-		block.update(world, pos.x, pos.y, pos.z, neighborBlock);
+	public void neighborChanged(World world, BlockPos pos, Block neighborBlock) {
+		block.neighborChanged(world, pos.x, pos.y, pos.z, neighborBlock);
 	}
 }
