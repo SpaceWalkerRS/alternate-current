@@ -24,7 +24,6 @@ public class WorldHelper {
 		WorldChunk chunk = world.getChunkAt(x >> 4, z >> 4);
 
 		x &= 15;
-		y &= 15;
 		z &= 15;
 
 		int blockId = chunk.getBlockAt(x, y, z);
@@ -57,7 +56,6 @@ public class WorldHelper {
 		WorldChunk chunk = world.getChunkAt(x >> 4, z >> 4);
 
 		x &= 15;
-		y &= 15;
 		z &= 15;
 
 		int blockId = state.getBlockId();
