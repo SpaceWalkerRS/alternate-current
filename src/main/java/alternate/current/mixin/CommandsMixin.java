@@ -29,7 +29,7 @@ public class CommandsMixin {
 			target = "Lcom/mojang/brigadier/CommandDispatcher;findAmbiguities(Lcom/mojang/brigadier/AmbiguityConsumer;)V"
 		)
 	)
-	private void registerCommands(CommandSelection selection, CallbackInfo ci) {
+	private void alternate_current$registerCommands(CommandSelection selection, CallbackInfo ci) {
 		AlternateCurrentCommand.register(dispatcher);
 	}
 }
