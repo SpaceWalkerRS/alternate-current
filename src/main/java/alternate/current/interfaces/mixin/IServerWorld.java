@@ -4,6 +4,6 @@ import alternate.current.wire.WireHandler;
 
 public interface IServerWorld {
 
-	public WireHandler getWireHandler();
+	WireHandler alternate_current$getWireHandler();
 
 }

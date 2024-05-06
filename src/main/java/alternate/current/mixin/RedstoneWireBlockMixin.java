@@ -23,7 +23,7 @@ public class RedstoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onUpdatePower(World world, int x, int y, int z, CallbackInfo ci) {
+	private void alternate_current$onUpdate(World world, int x, int y, int z, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			// Using redirects for calls to this method makes conflicts with
 			// other mods more likely, so we inject-cancel instead.
@@ -38,9 +38,9 @@ public class RedstoneWireBlockMixin {
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;III)V"
 		)
 	)
-	private void onAdded(World world, int x, int y, int z, CallbackInfo ci) {
+	private void alternate_current$onAdded(World world, int x, int y, int z, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireAdded(new BlockPos(x, y, z));
+			((IServerWorld)world).alternate_current$getWireHandler().onWireAdded(new BlockPos(x, y, z));
 		}
 	}
 
@@ -51,9 +51,9 @@ public class RedstoneWireBlockMixin {
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;III)V"
 		)
 	)
-	private void onRemoved(World world, int x, int y, int z, int blockId, int metadata, CallbackInfo ci) {
+	private void alternate_current$onRemoved(World world, int x, int y, int z, int block, int metadata, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(blockId, metadata));
+			((IServerWorld)world).alternate_current$getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(block, metadata));
 		}
 	}
 
@@ -64,9 +64,9 @@ public class RedstoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onNeighborChanged(World world, int x, int y, int z, int neighborBlockId, CallbackInfo ci) {
+	private void alternate_current$onNeighborChanged(World world, int x, int y, int z, int neighborBlock, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (((IServerWorld)world).getWireHandler().onWireUpdated(new BlockPos(x, y, z))) {
+			if (((IServerWorld)world).alternate_current$getWireHandler().onWireUpdated(new BlockPos(x, y, z))) {
 				ci.cancel(); // needed to fix duplication bugs
 			}
 		}
