@@ -25,7 +25,7 @@ public class RedstoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onUpdatePower(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
+	private void alternate_current$onUpdate(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
 		if (AlternateCurrentMod.on) {
 			// Using redirects for calls to this method makes conflicts with
 			// other mods more likely, so we inject-cancel instead.
@@ -40,9 +40,9 @@ public class RedstoneWireBlockMixin {
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
 		)
 	)
-	private void onAdded(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void alternate_current$onAdded(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireAdded(pos);
+			((IServerWorld)world).alternate_current$getWireHandler().onWireAdded(pos);
 		}
 	}
 
@@ -53,9 +53,9 @@ public class RedstoneWireBlockMixin {
 			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
 		)
 	)
-	private void onRemoved(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void alternate_current$onRemoved(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).getWireHandler().onWireRemoved(pos, state);
+			((IServerWorld)world).alternate_current$getWireHandler().onWireRemoved(pos, state);
 		}
 	}
 
@@ -66,9 +66,9 @@ public class RedstoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onNeighborChanged(BlockState state, World world, BlockPos pos, Block neighborBlock, CallbackInfo ci) {
+	private void alternate_current$onNeighborChanged(BlockState state, World world, BlockPos pos, Block neighborBlock, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (((IServerWorld)world).getWireHandler().onWireUpdated(pos)) {
+			if (((IServerWorld)world).alternate_current$getWireHandler().onWireUpdated(pos)) {
 				ci.cancel(); // needed to fix duplication bugs
 			}
 		}
