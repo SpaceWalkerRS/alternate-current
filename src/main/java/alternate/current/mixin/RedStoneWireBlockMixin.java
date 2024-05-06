@@ -25,7 +25,7 @@ public class RedStoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onUpdate(Level level, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
+	private void alternate_current$onUpdate(Level level, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
 		if (AlternateCurrentMod.on) {
 			// Using redirects for calls to this method makes conflicts with
 			// other mods more likely, so we inject-cancel instead.
@@ -40,9 +40,9 @@ public class RedStoneWireBlockMixin {
 			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/world/level/block/state/BlockState;"
 		)
 	)
-	private void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, CallbackInfo ci) {
+	private void alternate_current$onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerLevel)level).getWireHandler().onWireAdded(pos);
+			((IServerLevel)level).alternate_current$getWireHandler().onWireAdded(pos);
 		}
 	}
 
@@ -53,9 +53,9 @@ public class RedStoneWireBlockMixin {
 			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/world/level/block/state/BlockState;"
 		)
 	)
-	private void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston, CallbackInfo ci) {
+	private void alternate_current$onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerLevel)level).getWireHandler().onWireRemoved(pos, state);
+			((IServerLevel)level).alternate_current$getWireHandler().onWireRemoved(pos, state);
 		}
 	}
 
@@ -66,9 +66,9 @@ public class RedStoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void onNeighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, BlockPos neighborPos, boolean movedByPiston, CallbackInfo ci) {
+	private void alternate_current$onNeighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, BlockPos neighborPos, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (((IServerLevel)level).getWireHandler().onWireUpdated(pos)) {
+			if (((IServerLevel)level).alternate_current$getWireHandler().onWireUpdated(pos)) {
 				ci.cancel(); // needed to fix duplication bugs
 			}
 		}
