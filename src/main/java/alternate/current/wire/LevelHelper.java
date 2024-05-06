@@ -9,7 +9,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 
-public class LevelHelper {
+class LevelHelper {
 
 	private static final int Y_MIN = 0;
 	private static final int Y_MAX = 256;

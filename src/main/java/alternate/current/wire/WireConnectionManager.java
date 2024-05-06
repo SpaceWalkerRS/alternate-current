@@ -52,24 +52,22 @@ public class WireConnectionManager {
 
 			if (neighbor.isWire()) {
 				add(neighbor.asWire(), iDir, true, true);
+			} else {
+				boolean sideIsConductor = neighbor.isConductor();
 
-				continue;
-			}
+				if (!sideIsConductor) {
+					Node node = nodes.getNeighbor(neighbor, Directions.DOWN);
 
-			boolean sideIsConductor = neighbor.isConductor();
-
-			if (!sideIsConductor) {
-				Node node = nodes.getNeighbor(neighbor, Directions.DOWN);
-
-				if (node.isWire()) {
-					add(node.asWire(), iDir, belowIsConductor, true);
+					if (node.isWire()) {
+						add(node.asWire(), iDir, belowIsConductor, true);
+					}
 				}
-			}
-			if (!aboveIsConductor) {
-				Node node = nodes.getNeighbor(neighbor, Directions.UP);
+				if (!aboveIsConductor) {
+					Node node = nodes.getNeighbor(neighbor, Directions.UP);
 
-				if (node.isWire()) {
-					add(node.asWire(), iDir, true, sideIsConductor);
+					if (node.isWire()) {
+						add(node.asWire(), iDir, true, sideIsConductor);
+					}
 				}
 			}
 		}
@@ -126,8 +124,8 @@ public class WireConnectionManager {
 	 * Iterate over all connections. Use this method if the iteration order is
 	 * important.
 	 */
-	void forEach(Consumer<WireConnection> consumer, int iFlowDir) {
-		for (int iDir : WireHandler.CARDINAL_UPDATE_ORDERS[iFlowDir]) {
+	void forEach(Consumer<WireConnection> consumer, UpdateOrder updateOrder, int iFlowDir) {
+		for (int iDir : updateOrder.cardinalNeighbors(iFlowDir)) {
 			for (WireConnection c = heads[iDir]; c != null && c.iDir == iDir; c = c.next) {
 				consumer.accept(c);
 			}
