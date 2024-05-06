@@ -3,7 +3,6 @@ package alternate.current.wire;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
-import java.util.function.Consumer;
 
 //import alternate.current.AlternateCurrentMod;
 import alternate.current.util.BlockPos;
@@ -14,6 +13,7 @@ import alternate.current.util.Redstone;
 
 import net.minecraft.block.Block;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.storage.WorldStorage;
 
 /**
  * This class handles power changes for redstone wire. The algorithm was
@@ -226,36 +226,9 @@ public class WireHandler {
 		-1,               // 0b1111: west/north/east/south -> x
 	};
 	/**
-	 * Update orders of all directions. Given that the index encodes the direction
-	 * that is to be considered 'forward', the resulting update order is
-	 * { front, back, right, left, down, up }.
+	 * Update order of shape updates, matching that of Vanilla.
 	 */
-	static final int[][] FULL_UPDATE_ORDERS = {
-		{ Directions.WEST , Directions.EAST , Directions.NORTH, Directions.SOUTH, Directions.DOWN, Directions.UP },
-		{ Directions.NORTH, Directions.SOUTH, Directions.EAST , Directions.WEST , Directions.DOWN, Directions.UP },
-		{ Directions.EAST , Directions.WEST , Directions.SOUTH, Directions.NORTH, Directions.DOWN, Directions.UP },
-		{ Directions.SOUTH, Directions.NORTH, Directions.WEST , Directions.EAST , Directions.DOWN, Directions.UP }
-	};
-	/**
-	 * The default update order of all directions. It is equivalent to the order of
-	 * shape updates in vanilla Minecraft.
-	 */
-	static final int[] DEFAULT_FULL_UPDATE_ORDER = FULL_UPDATE_ORDERS[0];
-	/**
-	 * Update orders of cardinal directions. Given that the index encodes the
-	 * direction that is to be considered 'forward', the resulting update order is
-	 * { front, back, right, left }.
-	 */
-	static final int[][] CARDINAL_UPDATE_ORDERS = {
-		{ Directions.WEST , Directions.EAST , Directions.NORTH, Directions.SOUTH },
-		{ Directions.NORTH, Directions.SOUTH, Directions.EAST , Directions.WEST  },
-		{ Directions.EAST , Directions.WEST , Directions.SOUTH, Directions.NORTH },
-		{ Directions.SOUTH, Directions.NORTH, Directions.WEST , Directions.EAST  }
-	};
-	/**
-	 * The default update order of all cardinal directions.
-	 */
-	static final int[] DEFAULT_CARDINAL_UPDATE_ORDER = CARDINAL_UPDATE_ORDERS[0];
+	static final int[] SHAPE_UPDATE_ORDER = { Directions.WEST, Directions.EAST, Directions.NORTH, Directions.SOUTH, Directions.DOWN, Directions.UP };
 
 	private static final int POWER_MIN = Redstone.SIGNAL_MIN;
 	private static final int POWER_MAX = Redstone.SIGNAL_MAX;
@@ -266,6 +239,7 @@ public class WireHandler {
 	// worlds at the same time. There are already mods that add multi-threading
 	// as well.
 	private final ServerWorld world;
+	private final Config config;
 
 	/** Map of wires and neighboring blocks. */
 	private final Map<BlockPos, Node> nodes;
@@ -282,8 +256,11 @@ public class WireHandler {
 	/** Is this WireHandler currently working through the update queue? */
 	private boolean updating;
 
-	public WireHandler(ServerWorld world) {
+	public WireHandler(ServerWorld world, WorldStorage storage) {
 		this.world = world;
+		this.config = Config.forLevel(world, storage);
+
+		this.config.load();
 
 		this.nodes = new HashMap<>();
 		this.search = new SimpleQueue();
@@ -291,6 +268,10 @@ public class WireHandler {
 
 		this.nodeCache = new Node[16];
 		this.fillNodeCache(0, 16);
+	}
+
+	public Config getConfig() {
+		return config;
 	}
 
 	/**
@@ -428,80 +409,6 @@ public class WireHandler {
 	}
 
 	/**
-	 * Iterate over all neighboring nodes of the given wire. The iteration order is
-	 * designed to be an extension of the default block update order, and is
-	 * determined as follows:
-	 * <br>
-	 * 1. The direction of power flow through the wire is to be considered
-	 * 'forward'. The iteration order depends on the neighbors' relative positions
-	 * to the wire.
-	 * <br>
-	 * 2. Each neighbor is identified by the step(s) you must take, starting at the
-	 * wire, to reach it. Each step is 1 block, thus the position of a neighbor is
-	 * encoded by the direction(s) of the step(s), e.g. (right), (down), (up, left),
-	 * etc.
-	 * <br>
-	 * 3. Neighbors are iterated over in pairs that lie on opposite sides of the
-	 * wire.
-	 * <br>
-	 * 4. Neighbors are iterated over in order of their distance from the wire. This
-	 * means they are iterated over in 3 groups: direct neighbors first, then
-	 * diagonal neighbors, and last are the far neighbors that are 2 blocks directly
-	 * out.
-	 * <br>
-	 * 5. The order within each group is determined using the following basic order:
-	 * { front, back, right, left, down, up }. This order was chosen because it
-	 * converts to the following order of absolute directions when west is said to
-	 * be 'forward': { west, east, north, south, down, up } - this is the order of
-	 * shape updates.
-	 */
-	private void forEachNeighbor(WireNode wire, Consumer<Node> consumer) {
-		int forward   = wire.iFlowDir;
-		int rightward = (forward + 1) & 0b11;
-		int backward  = (forward + 2) & 0b11;
-		int leftward  = (forward + 3) & 0b11;
-		int downward  = Directions.DOWN;
-		int upward    = Directions.UP;
-
-		Node front = getNeighbor(wire, forward);
-		Node right = getNeighbor(wire, rightward);
-		Node back  = getNeighbor(wire, backward);
-		Node left  = getNeighbor(wire, leftward);
-		Node below = getNeighbor(wire, downward);
-		Node above = getNeighbor(wire, upward);
-
-		// direct neighbors (6)
-		consumer.accept(front);
-		consumer.accept(back);
-		consumer.accept(right);
-		consumer.accept(left);
-		consumer.accept(below);
-		consumer.accept(above);
-
-		// diagonal neighbors (12)
-		consumer.accept(getNeighbor(front, rightward));
-		consumer.accept(getNeighbor(back, leftward));
-		consumer.accept(getNeighbor(front, leftward));
-		consumer.accept(getNeighbor(back, rightward));
-		consumer.accept(getNeighbor(front, downward));
-		consumer.accept(getNeighbor(back, upward));
-		consumer.accept(getNeighbor(front, upward));
-		consumer.accept(getNeighbor(back, downward));
-		consumer.accept(getNeighbor(right, downward));
-		consumer.accept(getNeighbor(left, upward));
-		consumer.accept(getNeighbor(right, upward));
-		consumer.accept(getNeighbor(left, downward));
-
-		// far neighbors (6)
-		consumer.accept(getNeighbor(front, forward));
-		consumer.accept(getNeighbor(back, backward));
-		consumer.accept(getNeighbor(right, rightward));
-		consumer.accept(getNeighbor(left, leftward));
-		consumer.accept(getNeighbor(below, downward));
-		consumer.accept(getNeighbor(above, upward));
-	}
-
-	/**
 	 * This method should be called whenever a wire receives a block update.
 	 */
 	public boolean onWireUpdated(BlockPos pos) {
@@ -619,7 +526,7 @@ public class WireHandler {
 			return;
 		}
 
-		for (int iDir : FULL_UPDATE_ORDERS[wire.iFlowDir]) {
+		for (int iDir : config.getUpdateOrder().directNeighbors(wire.iFlowDir)) {
 			Node neighbor = getNeighbor(wire, iDir);
 
 			if (neighbor.isConductor() || neighbor.isSignalSource()) {
@@ -934,7 +841,7 @@ public class WireHandler {
 				if (needsUpdate(neighbor)) {
 					search(neighbor, false, connection.iDir);
 				}
-			}, wire.iFlowDir);
+			}, config.getUpdateOrder(), wire.iFlowDir);
 		}
 	}
 
@@ -1038,16 +945,14 @@ public class WireHandler {
 			if (neighbor.offerPower(power, iDir)) {
 				queueWire(neighbor);
 			}
-		}, wire.iFlowDir);
+		}, config.getUpdateOrder(), wire.iFlowDir);
 	}
 
 	/**
 	 * Queue block updates to nodes around the given wire.
 	 */
 	private void queueNeighbors(WireNode wire) {
-		forEachNeighbor(wire, neighbor -> {
-			queueNeighbor(neighbor, wire);
-		});
+		config.getUpdateOrder().forEachNeighbor(this::getNeighbor, wire, wire.iFlowDir, neighbor -> queueNeighbor(neighbor, wire));
 	}
 
 	/**
