@@ -8,7 +8,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 
-public class LevelHelper {
+class LevelHelper {
 
 	/**
 	 * An optimized version of {@link net.minecraft.world.level.Level#setBlock

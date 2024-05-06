@@ -30,7 +30,7 @@ public class CommandsMixin {
 			target = "Lcom/mojang/brigadier/CommandDispatcher;setConsumer(Lcom/mojang/brigadier/ResultConsumer;)V"
 		)
 	)
-	private void registerCommands(CommandSelection selection, CommandBuildContext context, CallbackInfo ci) {
+	private void alternate_current$registerCommands(CommandSelection selection, CommandBuildContext context, CallbackInfo ci) {
 		AlternateCurrentCommand.register(dispatcher);
 	}
 }
