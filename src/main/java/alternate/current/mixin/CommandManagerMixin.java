@@ -22,7 +22,7 @@ public abstract class CommandManagerMixin extends CommandRegistry {
 			target = "Lnet/minecraft/server/command/Command;setListener(Lnet/minecraft/server/command/handler/CommandListener;)V"
 		)
 	)
-	private void registerCommands(CallbackInfo ci) {
+	private void alternate_current$registerCommands(CallbackInfo ci) {
 		register(new AlternateCurrentCommand());
 	}
 }
