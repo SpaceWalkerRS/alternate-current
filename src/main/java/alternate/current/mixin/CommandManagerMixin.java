@@ -28,7 +28,7 @@ public class CommandManagerMixin {
 			target = "Lcom/mojang/brigadier/CommandDispatcher;findAmbiguities(Lcom/mojang/brigadier/AmbiguityConsumer;)V"
 		)
 	)
-	private void registerCommands(boolean isDedicatedServer, CallbackInfo ci) {
+	private void alternate_current$registerCommands(boolean isDedicatedServer, CallbackInfo ci) {
 		AlternateCurrentCommand.register(dispatcher);
 	}
 }
