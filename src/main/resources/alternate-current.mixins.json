@@ -5,7 +5,9 @@
 	"compatibilityLevel": "JAVA_8",
 	"mixins": [
 		"CommandManagerMixin",
+		"MinecraftServerMixin",
 		"RedstoneWireBlockMixin",
+		"RegionWorldStorageAccessor",
 		"ServerWorldMixin"
 	],
 	"injectors": {
