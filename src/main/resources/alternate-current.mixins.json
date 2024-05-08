@@ -2,7 +2,7 @@
 	"required": true,
 	"minVersion": "0.8",
 	"package": "alternate.current.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_16",
 	"mixins": [
 		"CommandsMixin",
 		"MinecraftServerMixin",

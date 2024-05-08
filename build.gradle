@@ -3,8 +3,8 @@ plugins {
 	id 'maven-publish'
 }
 
-sourceCompatibility = JavaVersion.VERSION_21
-targetCompatibility = JavaVersion.VERSION_21
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
 
 base {
 	archivesName = "${project.archives_base_name}-mc${project.minecraft_version}"
@@ -30,8 +30,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	// Minecraft 1.20.5 upwards uses Java 21.
-	it.options.release = 21
+	it.options.release = 17
 }
 
 java {
