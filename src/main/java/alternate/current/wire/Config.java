@@ -42,7 +42,7 @@ public interface Config {
 		private boolean modified;
 
 		public Primary(LevelStorageAccess storage) {
-			this.path = storage.getLevelDirectory().resourcePath(LevelResource.ROOT).resolve("alternate-current.conf");
+			this.path = storage.getLevelPath(LevelResource.ROOT).resolve("alternate-current.conf");
 		}
 
 		public UpdateOrder getUpdateOrder() {
