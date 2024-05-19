@@ -39,13 +39,13 @@ public class AlternateCurrentCommand {
 		LiteralArgumentBuilder<CommandSourceStack> builder = Commands.
 			literal("alternatecurrent").
 			requires(source -> source.hasPermission(2)).
-			executes(context -> query(context.getSource())).
+			executes(context -> queryEnabled(context.getSource())).
 			then(Commands.
 				literal("on").
-				executes(context -> set(context.getSource(), true))).
+				executes(context -> setEnabled(context.getSource(), true))).
 			then(Commands.
 				literal("off").
-				executes(context -> set(context.getSource(), false))).
+				executes(context -> setEnabled(context.getSource(), false))).
 			then(Commands.
 				literal("updateOrder").
 				executes(context -> queryUpdateOrder(context.getSource())).
@@ -71,17 +71,23 @@ public class AlternateCurrentCommand {
 		}
 	}
 
-	private static int query(CommandSourceStack source) {
-		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
+	private static int queryEnabled(CommandSourceStack source) {
+		ServerLevel level = source.getLevel();
+		WireHandler wireHandler = ((IServerLevel) level).alternate_current$getWireHandler();
+
+		String state = wireHandler.getConfig().getEnabled() ? "enabled" : "disabled";
 		source.sendSuccess(() -> Component.literal(String.format("Alternate Current is currently %s", state)), false);
 
 		return Command.SINGLE_SUCCESS;
 	}
 
-	private static int set(CommandSourceStack source, boolean on) {
-		AlternateCurrentMod.on = on;
+	private static int setEnabled(CommandSourceStack source, boolean on) {
+		ServerLevel level = source.getLevel();
+		WireHandler wireHandler = ((IServerLevel) level).alternate_current$getWireHandler();
 
-		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
+		wireHandler.getConfig().setEnabled(on);
+
+		String state = wireHandler.getConfig().getEnabled() ? "enabled" : "disabled";
 		source.sendSuccess(() -> Component.literal(String.format("Alternate Current has been %s!", state)), true);
 
 		return Command.SINGLE_SUCCESS;
