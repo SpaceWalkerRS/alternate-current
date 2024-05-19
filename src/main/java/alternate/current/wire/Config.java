@@ -25,6 +25,10 @@ public interface Config {
 		}
 	}
 
+	boolean getEnabled();
+
+	void setEnabled(boolean enabled);
+
 	UpdateOrder getUpdateOrder();
 
 	void setUpdateOrder(UpdateOrder updateOrder);
@@ -37,6 +41,7 @@ public interface Config {
 
 		private final Path path;
 
+		private boolean enabled = true;
 		private UpdateOrder updateOrder = UpdateOrder.HORIZONTAL_FIRST_OUTWARD;
 
 		private boolean modified;
@@ -45,15 +50,29 @@ public interface Config {
 			this.path = storage.getDir().toPath().resolve("alternate-current.conf");
 		}
 
+		@Override
+		public boolean getEnabled() {
+			return enabled;
+		}
+
+		@Override
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
+			AlternateCurrentMod.on = enabled;
+		}
+
+		@Override
 		public UpdateOrder getUpdateOrder() {
 			return updateOrder;
 		}
 
+		@Override
 		public void setUpdateOrder(UpdateOrder updateOrder) {
 			this.updateOrder = Objects.requireNonNull(updateOrder);
 			this.modified = true;
 		}
 
+		@Override
 		public void load() {
 			if (Files.exists(path)) {
 				try (BufferedReader br = Files.newBufferedReader(path)) {
@@ -69,6 +88,9 @@ public interface Config {
 
 								try {
 									switch (key) {
+									case "enabled":
+										this.enabled = Boolean.getBoolean(value);
+										break;
 									case "update-order":
 										this.updateOrder = UpdateOrder.byId(value);
 										break;
@@ -89,6 +111,7 @@ public interface Config {
 			}
 		}
 
+		@Override
 		public void save(boolean silent) {
 			if (modified) {
 				if (!silent) {
@@ -96,6 +119,8 @@ public interface Config {
 				}
 
 				try (BufferedWriter bw = Files.newBufferedWriter(path)) {
+					bw.write("enabled");
+					bw.write(Boolean.toString(enabled));
 					bw.write("update-order");
 					bw.write('=');
 					bw.write(updateOrder.id());
@@ -115,6 +140,16 @@ public interface Config {
 
 		public Derived(Config delegate) {
 			this.delegate = delegate;
+		}
+
+		@Override
+		public boolean getEnabled() {
+			return delegate.getEnabled();
+		}
+
+		@Override
+		public void setEnabled(boolean enabled) {
+			delegate.setEnabled(enabled);
 		}
 
 		@Override
