@@ -34,15 +34,15 @@ public class AlternateCurrentCommand extends Command {
 	public void run(CommandSource source, String[] args) throws CommandException {
 		switch (args.length) {
 		case 0:
-			query(source);
+			queryEnabled(source);
 			return;
 		case 1:
 			switch (args[0]) {
 			case "on":
-				set(source, true);
+				setEnabled(source, true);
 				return;
 			case "off":
-				set(source, false);
+				setEnabled(source, false);
 				return;
 			case "updateOrder":
 				queryUpdateOrder(source);
@@ -107,15 +107,22 @@ public class AlternateCurrentCommand extends Command {
 		return null;
 	}
 
-	private void query(CommandSource source) {
-		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
+
+	private void queryEnabled(CommandSource source) {
+		World world = getWorld(source);
+		WireHandler wireHandler = ((IServerWorld) world).alternate_current$getWireHandler();
+
+		String state = wireHandler.getConfig().getEnabled()? "enabled" : "disabled";
 		source.sendMessage(String.format("Alternate Current is currently %s", state));
 	}
 
-	private void set(CommandSource source, boolean on) {
-		AlternateCurrentMod.on = on;
+	private void setEnabled(CommandSource source, boolean on) {
+		World world = getWorld(source);
+		WireHandler wireHandler = ((IServerWorld) world).alternate_current$getWireHandler();
 
-		String state = AlternateCurrentMod.on ? "enabled" : "disabled";
+		wireHandler.getConfig().setEnabled(on);
+
+		String state = wireHandler.getConfig().getEnabled() ? "enabled" : "disabled";
 		sendSuccess(source, String.format("Alternate Current has been %s!", state));
 	}
 
