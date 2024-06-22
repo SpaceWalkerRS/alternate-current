@@ -28,7 +28,7 @@
 	],
 
 	"depends": {
-		"minecraft": "1.20.x"
+		"minecraft": "1.21.x"
 	},
 	"breaks": {
 		"alternate-current-plus": "*"

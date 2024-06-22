@@ -1060,7 +1060,7 @@ public class WireHandler {
 		// positions of the network to a set and filter out block updates to wires in
 		// the network that way.
 		if (!state.isAir() && !state.is(Blocks.REDSTONE_WIRE)) {
-			state.neighborChanged(level, pos, neighborBlock, neighborPos, false);
+			state.handleNeighborChanged(level, pos, neighborBlock, pos, updating);
 		}
 	}
 
