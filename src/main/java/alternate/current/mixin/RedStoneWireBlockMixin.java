@@ -13,6 +13,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.redstone.Orientation;
 
 @Mixin(RedStoneWireBlock.class)
 public class RedStoneWireBlockMixin {
@@ -24,7 +25,7 @@ public class RedStoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void alternate_current$onUpdate(Level level, BlockPos pos, BlockState state, CallbackInfo ci) {
+	private void alternate_current$onUpdate(Level level, BlockPos pos, BlockState state, Orientation orientation, boolean added, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			// Using redirects for calls to this method makes conflicts with
 			// other mods more likely, so we inject-cancel instead.
@@ -36,7 +37,7 @@ public class RedStoneWireBlockMixin {
 		method = "onPlace",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V"
+			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V"
 		)
 	)
 	private void alternate_current$onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, CallbackInfo ci) {
@@ -49,7 +50,7 @@ public class RedStoneWireBlockMixin {
 		method = "onRemove",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V"
+			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V"
 		)
 	)
 	private void alternate_current$onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston, CallbackInfo ci) {
@@ -65,9 +66,9 @@ public class RedStoneWireBlockMixin {
 			value = "HEAD"
 		)
 	)
-	private void alternate_current$onNeighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, BlockPos neighborPos, boolean movedByPiston, CallbackInfo ci) {
+	private void alternate_current$onNeighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, Orientation orientation, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (((IServerLevel)level).alternate_current$getWireHandler().onWireUpdated(pos, state, neighborPos)) {
+			if (((IServerLevel)level).alternate_current$getWireHandler().onWireUpdated(pos, state, orientation)) {
 				ci.cancel(); // needed to fix duplication bugs
 			}
 		}
