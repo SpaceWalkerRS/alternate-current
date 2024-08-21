@@ -5,6 +5,7 @@
 	"compatibilityLevel": "JAVA_16",
 	"mixins": [
 		"CommandsMixin",
+		"ExperimentalRedstoneUtilsMixin",
 		"MinecraftServerMixin",
 		"RedStoneWireBlockMixin",
 		"ServerLevelMixin"

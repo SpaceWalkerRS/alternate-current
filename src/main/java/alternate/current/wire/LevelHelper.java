@@ -19,7 +19,7 @@ class LevelHelper {
 	static boolean setWireState(ServerLevel level, BlockPos pos, BlockState state, boolean updateNeighborShapes) {
 		int y = pos.getY();
 
-		if (y < level.getMinBuildHeight() || y >= level.getMaxBuildHeight()) {
+		if (y < level.getMinY() || y >= level.getMaxY()) {
 			return false;
 		}
 
@@ -43,7 +43,7 @@ class LevelHelper {
 		// notify clients of the BlockState change
 		level.getChunkSource().blockChanged(pos);
 		// mark the chunk for saving
-		chunk.setUnsaved(true);
+		chunk.markUnsaved();
 
 		if (updateNeighborShapes) {
 			prevState.updateIndirectNeighbourShapes(level, pos, Block.UPDATE_CLIENTS);

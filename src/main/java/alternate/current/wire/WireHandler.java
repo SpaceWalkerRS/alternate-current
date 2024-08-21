@@ -17,9 +17,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-
 import net.minecraft.world.level.redstone.InstantNeighborUpdater;
 import net.minecraft.world.level.redstone.NeighborUpdater;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.level.redstone.Redstone;
 import net.minecraft.world.level.storage.LevelStorageSource.LevelStorageAccess;
 
@@ -162,31 +162,10 @@ public class WireHandler {
 			return iDir ^ (0b10 >>> (iDir >>> 2));
 		}
 
-		public static int fromNeighborPos(BlockPos pos, BlockPos neighborPos) {
-			int dx = pos.getX() - neighborPos.getX();
-			int dy = pos.getY() - neighborPos.getY();
-			int dz = pos.getZ() - neighborPos.getZ();
-
-			if (dx == 0 && dy == 0) {
-				if (dz == 1) {
-					return SOUTH;
-				}
-				if (dz == -1) {
-					return NORTH;
-				}
-			} else if (dx == 0 && dz == 0) {
-				if (dy == 1) {
-					return UP;
-				}
-				if (dy == -1) {
-					return DOWN;
-				}
-			} else if (dy == 0 && dz == 0) {
-				if (dx == 1) {
-					return EAST;
-				}
-				if (dx == -1) {
-					return WEST;
+		public static int index(Direction dir) {
+			for (int i = 0; i < ALL.length; i++) {
+				if (dir == ALL[i]) {
+					return i;
 				}
 			}
 
@@ -437,7 +416,7 @@ public class WireHandler {
 	/**
 	 * This method should be called whenever a wire receives a block update.
 	 */
-	public boolean onWireUpdated(BlockPos pos, BlockState state, BlockPos neighborPos) {
+	public boolean onWireUpdated(BlockPos pos, BlockState state, Orientation orientation) {
 		Node node = getOrAddNode(pos, state);
 
 		if (!node.isWire()) {
@@ -448,7 +427,7 @@ public class WireHandler {
 
 		invalidate();
 		revalidateNode(wire);
-		findRoots(wire, neighborPos);
+		findRoots(wire, orientation);
 		tryUpdate();
 
 		return true;
@@ -548,18 +527,16 @@ public class WireHandler {
 	 * from multiple points at once, checking for common cases like the one
 	 * described above is relatively straight-forward.
 	 */
-	private void findRoots(WireNode wire, BlockPos neighborPos) {
-		// direction from neighboring pos where the update came from
-		int orientation = -1;
+	private void findRoots(WireNode wire, Orientation orientation) {
 		// horizontal direction bias for update order purposes
 		int iDirBias = -1;
 
-		if (neighborPos != null) {
-			orientation = Directions.fromNeighborPos(wire.pos, neighborPos);
-		}
-		// we're looking for a horizontal bias
-		if (orientation != -1 && (orientation & 0b100) == 0) {
-			iDirBias = orientation;
+		if (orientation != null) {
+			Direction dir = orientation.getFront().getAxis().isHorizontal()
+				? orientation.getFront()
+				: orientation.getUp();
+
+			iDirBias = Directions.index(dir);
 		}
 
 		findRoot(wire, iDirBias);
@@ -570,14 +547,14 @@ public class WireHandler {
 			return;
 		}
 
-		if (orientation == -1) {
+		if (orientation == null) {
 			// no neighborChanged orientation present, look around in all sides
 			for (int iDir : config.getUpdateOrder().directNeighbors(wire.iFlowDir)) {
 				findRootsAround(wire, iDir);
 			}
 		} else {
 			// use the orientation from the neighborChanged update to look for roots only behind
-			findRootsAround(wire, Directions.iOpposite(orientation));
+			findRootsAround(wire, Directions.index(orientation.getFront().getOpposite()));
 		}
 	}
 
@@ -1101,7 +1078,9 @@ public class WireHandler {
 	 * Emit a block update to the given node.
 	 */
 	private void updateBlock(Node node, BlockPos neighborPos, Block neighborBlock) {
-		neighborUpdater.neighborChanged(node.pos, neighborBlock, neighborPos);
+		// redstone wire is the only block that uses the neighborChanged orientation
+		// so leaving it as null should not be an issue
+		neighborUpdater.neighborChanged(node.pos, neighborBlock, null);
 	}
 
 	@FunctionalInterface
