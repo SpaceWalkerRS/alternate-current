@@ -59,6 +59,7 @@ public interface Config {
 		public void setEnabled(boolean enabled) {
 			this.enabled = enabled;
 			AlternateCurrentMod.on = enabled;
+			this.modified = true;
 		}
 
 		@Override
@@ -89,10 +90,10 @@ public interface Config {
 								try {
 									switch (key) {
 									case "enabled":
-										this.enabled = Boolean.getBoolean(value);
+										setEnabled(Boolean.parseBoolean(value));
 										break;
 									case "update-order":
-										this.updateOrder = UpdateOrder.byId(value);
+										setUpdateOrder(UpdateOrder.byId(value));
 										break;
 									default:
 										AlternateCurrentMod.LOGGER.info("skipping unknown option \'" + key + "\' in Alternate Current config");
@@ -103,8 +104,11 @@ public interface Config {
 							}
 						}
 					}
+
+					modified = false;
 				} catch (IOException e) {
 					AlternateCurrentMod.LOGGER.info("unable to load Alternate Current config!", e);
+					modified = true;
 				}
 			} else {
 				modified = true;
