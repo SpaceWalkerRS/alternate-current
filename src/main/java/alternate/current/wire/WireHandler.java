@@ -982,7 +982,11 @@ public class WireHandler {
 		for (int iDir : SHAPE_UPDATE_ORDER) {
 			Node neighbor = getNeighbor(wire, iDir);
 
-			if (!neighbor.isWire()) {
+			// The current block state at this position *could* be wrong, but if you somehow
+			// manage to place a block where an observer used to be during the execution of
+			// an observer update I am very impressed and you deserve to have some broken
+			// behavior
+			if (!neighbor.isWire() && neighbor.state.getBlock() == Blocks.OBSERVER) {
 				int iOpp = Directions.iOpposite(iDir);
 				Direction opp = Directions.ALL[iOpp];
 
@@ -993,7 +997,7 @@ public class WireHandler {
 
 	private void updateObserver(Node node, Direction dir, BlockPos neighborPos, Block neighborBlock) {
 		BlockPos pos = node.pos;
-		BlockState state = world.getBlockState(pos);
+		BlockState state = world.getBlockState(node.pos);
 		Block block = state.getBlock();
 
 		if (block == Blocks.OBSERVER) {
@@ -1013,7 +1017,20 @@ public class WireHandler {
 	 */
 	private void queueNeighbor(Node node, WireNode neighborWire) {
 		// Updates to wires are queued when power is transmitted.
-		if (!node.isWire()) {
+		// While this check makes sure wires in the network are not given block
+		// updates, it also prevents block updates to wires in neighboring networks.
+		// While this should not make a difference in theory, in practice, it is
+		// possible to force a network into an invalid state without updating it, even
+		// if it is relatively obscure.
+		// While I was willing to make this compromise in return for some significant
+		// performance gains in certain setups, if you are not, you can add all the
+		// positions of the network to a set and filter out block updates to wires in
+		// the network that way.
+		// Block updates to air do nothing, so those are skipped as well.
+		// The current block state at this position *could* be wrong, but if you somehow
+		// manage to place a block where air used to be during the execution of a block
+		// update I am very impressed and you deserve to have some broken behavior.
+		if (!node.isWire() && node.state.getBlock() != Blocks.AIR) {
 			node.neighborWire = neighborWire;
 			updates.offer(node);
 		}
@@ -1039,20 +1056,7 @@ public class WireHandler {
 	private void updateBlock(Node node, BlockPos neighborPos, Block neighborBlock) {
 		BlockPos pos = node.pos;
 		BlockState state = world.getBlockState(pos);
-		Block block = state.getBlock();
-
-		// While this check makes sure wires in the network are not given block
-		// updates, it also prevents block updates to wires in neighboring networks.
-		// While this should not make a difference in theory, in practice, it is
-		// possible to force a network into an invalid state without updating it, even
-		// if it is relatively obscure.
-		// While I was willing to make this compromise in return for some significant
-		// performance gains in certain setups, if you are not, you can add all the
-		// positions of the network to a set and filter out block updates to wires in
-		// the network that way.
-		if (block != Blocks.AIR && block != Blocks.REDSTONE_WIRE) {
-			state.neighborChanged(world, pos, neighborBlock, neighborPos);
-		}
+		state.neighborChanged(world, pos, neighborBlock, neighborPos);
 	}
 
 	@FunctionalInterface
