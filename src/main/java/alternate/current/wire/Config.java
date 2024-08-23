@@ -90,7 +90,7 @@ public interface Config {
 								try {
 									switch (key) {
 									case "enabled":
-										setEnabled(Boolean.getBoolean(value));
+										setEnabled(Boolean.parseBoolean(value));
 										break;
 									case "update-order":
 										setUpdateOrder(UpdateOrder.byId(value));
