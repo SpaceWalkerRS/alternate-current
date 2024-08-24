@@ -20,12 +20,22 @@ public class Config {
 
 	private final Path path;
 
+	private boolean enabled = true;
 	private UpdateOrder updateOrder = UpdateOrder.HORIZONTAL_FIRST_OUTWARD;
 
 	private boolean modified;
 
 	public Config(WorldStorage storage) {
 		this.path = ((RegionWorldStorageAccessor) storage).alternate_current$getDirectory().toPath().resolve("alternate-current.conf");
+	}
+
+	public boolean getEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+		AlternateCurrentMod.on = enabled;
 	}
 
 	public UpdateOrder getUpdateOrder() {
@@ -52,6 +62,9 @@ public class Config {
 
 							try {
 								switch (key) {
+								case "enabled":
+									this.enabled = Boolean.getBoolean(value);
+									break;
 								case "update-order":
 									this.updateOrder = UpdateOrder.byId(value);
 									break;
@@ -79,6 +92,8 @@ public class Config {
 			}
 
 			try (BufferedWriter bw = Files.newBufferedWriter(path)) {
+				bw.write("enabled");
+				bw.write(Boolean.toString(enabled));
 				bw.write("update-order");
 				bw.write('=');
 				bw.write(updateOrder.id());
