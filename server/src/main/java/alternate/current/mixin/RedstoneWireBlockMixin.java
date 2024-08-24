@@ -6,7 +6,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.interfaces.mixin.IWorld;
+import alternate.current.interfaces.mixin.IServerWorld;
 import alternate.current.util.BlockPos;
 import alternate.current.util.BlockState;
 
@@ -46,7 +46,7 @@ public abstract class RedstoneWireBlockMixin extends Block {
 	)
 	private void onAdded(World world, int x, int y, int z, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IWorld)world).getWireHandler().onWireAdded(new BlockPos(x, y, z));
+			((IServerWorld)world).alternate_current$getWireHandler().onWireAdded(new BlockPos(x, y, z));
 		}
 	}
 
@@ -59,7 +59,7 @@ public abstract class RedstoneWireBlockMixin extends Block {
 	)
 	private void onRemoved(World world, int x, int y, int z, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IWorld)world).getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(id, world.getBlockMetadata(x, y, z)));
+			((IServerWorld)world).alternate_current$getWireHandler().onWireRemoved(new BlockPos(x, y, z), new BlockState(id, world.getBlockMetadata(x, y, z)));
 		}
 	}
 
@@ -72,7 +72,7 @@ public abstract class RedstoneWireBlockMixin extends Block {
 	)
 	private void onNeighborChanged(World world, int x, int y, int z, int neighborBlockId, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (((IWorld)world).getWireHandler().onWireUpdated(new BlockPos(x, y, z))) {
+			if (((IServerWorld)world).alternate_current$getWireHandler().onWireUpdated(new BlockPos(x, y, z))) {
 				ci.cancel(); // needed to fix duplication bugs
 			}
 		}

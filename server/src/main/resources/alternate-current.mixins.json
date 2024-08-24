@@ -4,7 +4,10 @@
 	"package": "alternate.current.mixin",
 	"compatibilityLevel": "JAVA_8",
 	"mixins": [
+		"MinecraftServerMixin",
 		"RedstoneWireBlockMixin",
+		"RegionWorldStorageAccessor",
+		"ServerWorldMixin",
 		"WorldMixin"
 	],
 	"injectors": {
