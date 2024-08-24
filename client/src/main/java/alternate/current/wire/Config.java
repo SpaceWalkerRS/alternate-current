@@ -93,7 +93,10 @@ public class Config {
 
 			try (BufferedWriter bw = Files.newBufferedWriter(path)) {
 				bw.write("enabled");
+				bw.write('=');
 				bw.write(Boolean.toString(enabled));
+				bw.newLine();
+
 				bw.write("update-order");
 				bw.write('=');
 				bw.write(updateOrder.id());
