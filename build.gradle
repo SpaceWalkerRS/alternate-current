@@ -18,6 +18,8 @@ dependencies {
 	mappings ploceus.featherMappings(project.feather_build)
 
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	ploceus.addCommonLibraries()
 }
 
 processResources {
