@@ -7,7 +7,7 @@ plugins {
 base {
 	archivesName = project.archives_base_name
 }
-version = "${project.version}+${project.minecraft_version}"
+version = "mc${project.minecraft_version}-${project.version}"
 group = project.maven_group
 
 repositories {
