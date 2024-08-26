@@ -4,7 +4,6 @@
 	"package": "alternate.current.mixin",
 	"compatibilityLevel": "JAVA_16",
 	"mixins": [
-		"CommandsMixin",
 		"MinecraftServerMixin",
 		"RedStoneWireBlockMixin",
 		"ServerLevelMixin"

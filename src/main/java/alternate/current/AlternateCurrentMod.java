@@ -3,14 +3,19 @@ package alternate.current;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import alternate.current.command.AlternateCurrentCommand;
 import alternate.current.util.profiler.ACProfiler;
 import alternate.current.util.profiler.Profiler;
 
-import net.fabricmc.api.ModInitializer;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
-public class AlternateCurrentMod implements ModInitializer {
+@Mod(AlternateCurrentMod.MOD_ID)
+public class AlternateCurrentMod {
 
-	public static final String MOD_ID = "alternate-current";
+	public static final String MOD_ID = "alternate_current";
 	public static final String MOD_NAME = "Alternate Current";
 	public static final String MOD_VERSION = "1.9.0";
 	public static final Logger LOGGER = LogManager.getLogger(MOD_NAME);
@@ -18,14 +23,16 @@ public class AlternateCurrentMod implements ModInitializer {
 
 	public static boolean on = true;
 
-	@Override
-	public void onInitialize() {
-		if (DEBUG) {
-			LOGGER.warn(String.format("You are running a DEBUG version of %s!", MOD_NAME));
-		}
-	}
-
 	public static Profiler createProfiler() {
 		return DEBUG ? new ACProfiler() : Profiler.DUMMY;
+	}
+
+	@EventBusSubscriber(modid = MOD_ID)
+	public static class ModEvents {
+
+		@SubscribeEvent
+		public static void onRegisterCommands(RegisterCommandsEvent event) {
+			AlternateCurrentCommand.register(event.getDispatcher());
+		}
 	}
 }

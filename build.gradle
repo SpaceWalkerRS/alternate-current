@@ -1,60 +1,122 @@
 plugins {
-	id 'fabric-loom' version '1.7-SNAPSHOT'
-	id 'maven-publish'
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.gradle.userdev' version '7.0.145'
 }
 
-sourceCompatibility = JavaVersion.VERSION_21
-targetCompatibility = JavaVersion.VERSION_21
-
-base {
-	archivesName = "${project.archives_base_name}-mc${project.minecraft_version}"
+tasks.named('wrapper', Wrapper).configure {
+    // Define wrapper values here so as to not have to always do so when updating gradlew.properties.
+    // Switching this to Wrapper.DistributionType.ALL will download the full gradle sources that comes with
+    // documentation attached on cursor hover of gradle classes and methods. However, this comes with increased
+    // file size for Gradle. If you do switch this to ALL, run the Gradle wrapper task twice afterwards.
+    // (Verify by checking gradle/wrapper/gradle-wrapper.properties to see if distributionUrl now points to `-all`)
+    distributionType = Wrapper.DistributionType.BIN
 }
-version = project.mod_version
-group = project.maven_group
+
+version = mod_version
+group = mod_group_id
 
 repositories {
 }
 
-dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+base {
+    archivesName = "${mod_id}-mc${minecraft_version}"
 }
 
-processResources {
-	inputs.property "version", project.version
+// Mojang ships Java 21 to end users starting in 1.20.5, so mods should target Java 21.
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
-	}
+//minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
+//minecraft.accessTransformers.entry public net.minecraft.client.Minecraft textureManager # textureManager
+
+// Default run configurations.
+// These can be tweaked, removed, or duplicated as needed.
+runs {
+    // applies to all the run configs below
+    configureEach {
+        // Recommended logging data for a userdev environment
+        // The markers can be added/remove as needed separated by commas.
+        // "SCAN": For mods scan.
+        // "REGISTRIES": For firing of registry events.
+        // "REGISTRYDUMP": For getting the contents of all registries.
+        systemProperty 'forge.logging.markers', 'REGISTRIES'
+
+        // Recommended logging level for the console
+        // You can set various levels here.
+        // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+        systemProperty 'forge.logging.console.level', 'debug'
+
+        modSource project.sourceSets.main
+    }
+}
+
+// Sets up a dependency configuration called 'localRuntime'.
+// This configuration should be used instead of 'runtimeOnly' to declare
+// a dependency that will be present for runtime testing but that is
+// "optional", meaning it will not be pulled by dependents of this mod.
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    // Specify the version of Minecraft to use.
+    // Depending on the plugin applied there are several options. We will assume you applied the userdev plugin as shown above.
+    // The group for userdev is net.neoforged, the module name is neoforge, and the version is the same as the neoforge version.
+    // You can however also use the vanilla plugin (net.neoforged.gradle.vanilla) to use a version of Minecraft without the neoforge loader.
+    // And its provides the option to then use net.minecraft as the group, and one of; client, server or joined as the module name, plus the game version as version.
+    // For all intends and purposes: You can treat this dependency as if it is a normal library you would use.
+    implementation "net.neoforged:neoforge:${neo_version}"
+}
+
+// This block of code expands all declared replace properties in the specified resource targets.
+// A missing property will result in an error. Properties are expanded using ${} Groovy notation.
+// When "copyIdeResources" is enabled, this will also run before the game launches in IDE environments.
+// See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+// Example configuration to allow publishing using the maven-publish plugin
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
 
-java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	withSourcesJar()
-}
-
-jar {
-	from("LICENSE") {
-		rename { "${it}_${project.base.archivesName.get()}"}
-	}
-}
-
-// configure the maven publication
-publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			from components.java
-		}
-	}
-
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-	repositories {
-	}
+// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
 }
