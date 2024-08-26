@@ -19,6 +19,8 @@ dependencies {
 	nests ploceus.nests(project.nests_build)
 
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	ploceus.addCommonLibraries()
 }
 
 processResources {
