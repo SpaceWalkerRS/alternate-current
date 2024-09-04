@@ -298,16 +298,22 @@ public class WireHandler {
 		return config;
 	}
 
+	private Node getOrAddNode(BlockPos pos) {
+		// just pass in null, then the state will only be retrieved
+		// if there is no node as this position yet
+		return getOrAddNode(pos, null);
+	}
+
 	/**
 	 * Retrieve the {@link alternate.current.wire.Node Node} that represents the
 	 * block at the given position in the level.
 	 */
-	private Node getOrAddNode(BlockPos pos) {
+	private Node getOrAddNode(BlockPos pos, BlockState state) {
 		return nodes.compute(pos.asLong(), (key, node) -> {
 			if (node == null) {
 				// If there is not yet a node at this position, retrieve and
 				// update one from the cache.
-				return getNextNode(pos);
+				return getNextNode(pos, state != null ? state : level.getBlockState(pos));
 			}
 			if (node.invalid) {
 				return revalidateNode(node);
@@ -323,14 +329,6 @@ public class WireHandler {
 	 */
 	private Node removeNode(BlockPos pos) {
 		return nodes.remove(pos.asLong());
-	}
-
-	/**
-	 * Return a {@link alternate.current.wire.Node Node} that represents the block
-	 * at the given position.
-	 */
-	private Node getNextNode(BlockPos pos) {
-		return getNextNode(pos, level.getBlockState(pos));
 	}
 
 	/**
@@ -379,6 +377,10 @@ public class WireHandler {
 	 * Otherwise, the node can be quickly revalidated with the new block state.
 	 */
 	private Node revalidateNode(Node node) {
+		if (!node.invalid) {
+			return node;
+		}
+
 		BlockPos pos = node.pos;
 		BlockState state = level.getBlockState(pos);
 
@@ -435,21 +437,28 @@ public class WireHandler {
 	/**
 	 * This method should be called whenever a wire receives a block update.
 	 */
-	public boolean onWireUpdated(BlockPos pos, BlockPos neighborPos) {
-		Node node = getOrAddNode(pos);
+	public boolean onWireUpdated(BlockPos pos, BlockState state, BlockPos neighborPos) {
+		Node node = getOrAddNode(pos, state);
+
+		if (!node.isWire()) {
+			return false; // we should never get here
+		}
+
+		WireNode wire = node.asWire();
 
 		invalidate();
-		findRoots(node, neighborPos);
+		revalidateNode(wire);
+		findRoots(wire, neighborPos);
 		tryUpdate();
 
-		return node.isWire();
+		return true;
 	}
 
 	/**
 	 * This method should be called whenever a wire is placed.
 	 */
-	public void onWireAdded(BlockPos pos) {
-		Node node = getOrAddNode(pos);
+	public void onWireAdded(BlockPos pos, BlockState state) {
+		Node node = getOrAddNode(pos, state);
 
 		if (!node.isWire()) {
 			return; // we should never get here
@@ -539,20 +548,14 @@ public class WireHandler {
 	 * from multiple points at once, checking for common cases like the one
 	 * described above is relatively straight-forward.
 	 */
-	private void findRoots(Node node, BlockPos neighborPos) {
-		if (!node.isWire()) {
-			return; // we should never get here
-		}
-
-		WireNode wire = node.asWire();
-
+	private void findRoots(WireNode wire, BlockPos neighborPos) {
 		// direction from neighboring pos where the update came from
 		int orientation = -1;
 		// horizontal direction bias for update order purposes
 		int iDirBias = -1;
 
 		if (neighborPos != null) {
-			orientation = Directions.fromNeighborPos(node.pos, neighborPos);
+			orientation = Directions.fromNeighborPos(wire.pos, neighborPos);
 		}
 		// we're looking for a horizontal bias
 		if (orientation != -1 && (orientation & 0b100) == 0) {

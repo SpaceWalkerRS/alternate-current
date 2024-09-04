@@ -41,7 +41,7 @@ public class RedStoneWireBlockMixin {
 	)
 	private void alternate_current$onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			((IServerLevel)level).alternate_current$getWireHandler().onWireAdded(pos);
+			((IServerLevel)level).alternate_current$getWireHandler().onWireAdded(pos, state);
 		}
 	}
 
@@ -67,7 +67,7 @@ public class RedStoneWireBlockMixin {
 	)
 	private void alternate_current$onNeighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, BlockPos neighborPos, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
-			if (((IServerLevel)level).alternate_current$getWireHandler().onWireUpdated(pos, neighborPos)) {
+			if (((IServerLevel)level).alternate_current$getWireHandler().onWireUpdated(pos, state, neighborPos)) {
 				ci.cancel(); // needed to fix duplication bugs
 			}
 		}
