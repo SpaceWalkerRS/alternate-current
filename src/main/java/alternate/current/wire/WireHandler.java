@@ -162,24 +162,36 @@ public class WireHandler {
 			return iDir ^ (0b10 >>> (iDir >>> 2));
 		}
 
-		// Each array is placed at the index that encodes the direction that is missing
-		// from the array.
-		private static final int[][] I_EXCEPT = {
-			{       NORTH, EAST, SOUTH, DOWN, UP },
-			{ WEST,        EAST, SOUTH, DOWN, UP },
-			{ WEST, NORTH,       SOUTH, DOWN, UP },
-			{ WEST, NORTH, EAST,        DOWN, UP },
-			{ WEST, NORTH, EAST, SOUTH,       UP },
-			{ WEST, NORTH, EAST, SOUTH, DOWN     }
-		};
-		private static final int[][] I_EXCEPT_CARDINAL = {
-			{       NORTH, EAST, SOUTH },
-			{ WEST,        EAST, SOUTH },
-			{ WEST, NORTH,       SOUTH },
-			{ WEST, NORTH, EAST,       },
-			{ WEST, NORTH, EAST, SOUTH },
-			{ WEST, NORTH, EAST, SOUTH }
-		};
+		public static int fromNeighborPos(BlockPos pos, BlockPos neighborPos) {
+			int dx = pos.getX() - neighborPos.getX();
+			int dy = pos.getY() - neighborPos.getY();
+			int dz = pos.getZ() - neighborPos.getZ();
+
+			if (dx == 0 && dy == 0) {
+				if (dz == 1) {
+					return SOUTH;
+				}
+				if (dz == -1) {
+					return NORTH;
+				}
+			} else if (dx == 0 && dz == 0) {
+				if (dy == 1) {
+					return UP;
+				}
+				if (dy == -1) {
+					return DOWN;
+				}
+			} else if (dy == 0 && dz == 0) {
+				if (dx == 1) {
+					return EAST;
+				}
+				if (dx == -1) {
+					return WEST;
+				}
+			}
+
+			return -1;
+		}
 	}
 
 	/**
@@ -423,11 +435,11 @@ public class WireHandler {
 	/**
 	 * This method should be called whenever a wire receives a block update.
 	 */
-	public boolean onWireUpdated(BlockPos pos) {
+	public boolean onWireUpdated(BlockPos pos, BlockPos neighborPos) {
 		Node node = getOrAddNode(pos);
 
 		invalidate();
-		findRoots(pos);
+		findRoots(node, neighborPos);
 		tryUpdate();
 
 		return node.isWire();
@@ -527,15 +539,27 @@ public class WireHandler {
 	 * from multiple points at once, checking for common cases like the one
 	 * described above is relatively straight-forward.
 	 */
-	private void findRoots(BlockPos pos) {
-		Node node = getOrAddNode(pos);
-
+	private void findRoots(Node node, BlockPos neighborPos) {
 		if (!node.isWire()) {
 			return; // we should never get here
 		}
 
 		WireNode wire = node.asWire();
-		findRoot(wire);
+
+		// direction from neighboring pos where the update came from
+		int orientation = -1;
+		// horizontal direction bias for update order purposes
+		int iDirBias = -1;
+
+		if (neighborPos != null) {
+			orientation = Directions.fromNeighborPos(node.pos, neighborPos);
+		}
+		// we're looking for a horizontal bias
+		if (orientation != -1 && (orientation & 0b100) == 0) {
+			iDirBias = orientation;
+		}
+
+		findRoot(wire, iDirBias);
 
 		// If the wire at the given position is not in an invalid state
 		// we can exit early.
@@ -543,33 +567,43 @@ public class WireHandler {
 			return;
 		}
 
-		for (int iDir : config.getUpdateOrder().directNeighbors(wire.iFlowDir)) {
-			Node neighbor = getNeighbor(wire, iDir);
-
-			if (neighbor.isConductor() || neighbor.isSignalSource()) {
-				findRootsAround(neighbor, Directions.iOpposite(iDir));
+		if (orientation == -1) {
+			// no neighborChanged orientation present, look around in all sides
+			for (int iDir : config.getUpdateOrder().directNeighbors(wire.iFlowDir)) {
+				findRootsAround(wire, iDir);
 			}
+		} else {
+			// use the orientation from the neighborChanged update to look for roots only behind
+			findRootsAround(wire, Directions.iOpposite(orientation));
 		}
 	}
 
 	/**
-	 * Look for wires around the given node that require power changes.
+	 * Look for wires around a neighbor of the given wire that require power changes.
 	 */
-	private void findRootsAround(Node node, int except) {
-		for (int iDir : Directions.I_EXCEPT_CARDINAL[except]) {
-			Node neighbor = getNeighbor(node, iDir);
+	private void findRootsAround(WireNode wire, int iDir) {
+		Node node = getNeighbor(wire, iDir);
 
-			if (neighbor.isWire()) {
-				findRoot(neighbor.asWire());
+		if (node.isConductor() || node.isSignalSource()) {
+			for (int iSide : config.getUpdateOrder().cardinalNeighbors(wire.iFlowDir)) {
+				Node neighbor = getNeighbor(node, iSide);
+
+				if (neighbor.isWire()) {
+					findRoot(neighbor.asWire(), iSide);
+				}
 			}
 		}
+	}
+
+	private void findRoot(WireNode wire) {
+		findRoot(wire, -1);
 	}
 
 	/**
 	 * Check if the given wire requires power changes. If it does, queue it for the
 	 * breadth-first search as a root.
 	 */
-	private void findRoot(WireNode wire) {
+	private void findRoot(WireNode wire, int iDiscoveryDir) {
 		// Each wire only needs to be checked once.
 		if (wire.discovered) {
 			return;
@@ -580,7 +614,7 @@ public class WireHandler {
 		findPower(wire, false);
 
 		if (needsUpdate(wire)) {
-			searchRoot(wire);
+			searchRoot(wire, iDiscoveryDir);
 		}
 	}
 
@@ -696,7 +730,7 @@ public class WireHandler {
 			// Since 1.16 there is a block that is both a conductor and a signal
 			// source: the target block!
 			if (neighbor.isConductor()) {
-				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
+				power = Math.max(power, getDirectSignalTo(wire, neighbor));
 			}
 			if (neighbor.isSignalSource()) {
 				power = Math.max(power, neighbor.state.getSignal(level, neighbor.pos, Directions.ALL[iDir]));
@@ -714,10 +748,10 @@ public class WireHandler {
 	 * Determine the direct signal the given wire receives from neighboring blocks
 	 * through the given conductor node.
 	 */
-	private int getDirectSignalTo(WireNode wire, Node node, int except) {
+	private int getDirectSignalTo(WireNode wire, Node node) {
 		int power = POWER_MIN;
 
-		for (int iDir : Directions.I_EXCEPT[except]) {
+		for (int iDir = 0; iDir < Directions.ALL.length; iDir++) {
 			Node neighbor = getNeighbor(node, iDir);
 
 			if (neighbor.isSignalSource()) {
@@ -742,13 +776,13 @@ public class WireHandler {
 	/**
 	 * Queue the given wire for the breadth-first search as a root.
 	 */
-	private void searchRoot(WireNode wire) {
-		int iBackupFlowDir;
-
-		if (wire.connections.iFlowDir < 0) {
-			iBackupFlowDir = 0;
-		} else {
+	private void searchRoot(WireNode wire, int iBackupFlowDir) {
+		if (wire.connections.iFlowDir >= 0) {
+			// power flow direction takes precedent
 			iBackupFlowDir = wire.connections.iFlowDir;
+		} else if (iBackupFlowDir < 0) {
+			// use default value if none is given
+			iBackupFlowDir = 0;
 		}
 
 		search(wire, true, iBackupFlowDir);
