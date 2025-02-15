@@ -19,7 +19,7 @@ class LevelHelper {
 	static boolean setWireState(ServerLevel level, BlockPos pos, BlockState state, boolean updateNeighborShapes) {
 		int y = pos.getY();
 
-		if (y < level.getMinY() || y >= level.getMaxY()) {
+		if (y < level.getMinY() || y > level.getMaxY()) {
 			return false;
 		}
 
