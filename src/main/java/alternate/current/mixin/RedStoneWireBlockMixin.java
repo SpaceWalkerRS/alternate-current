@@ -9,6 +9,7 @@ import alternate.current.AlternateCurrentMod;
 import alternate.current.interfaces.mixin.IServerLevel;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RedStoneWireBlock;
@@ -47,13 +48,13 @@ public class RedStoneWireBlockMixin {
 	}
 
 	@Inject(
-		method = "onRemove",
+		method = "affectNeighborsAfterRemoval",
 		at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V"
 		)
 	)
-	private void alternate_current$onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston, CallbackInfo ci) {
+	private void alternate_current$onRemove(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston, CallbackInfo ci) {
 		if (AlternateCurrentMod.on) {
 			((IServerLevel)level).alternate_current$getWireHandler().onWireRemoved(pos, state);
 		}
