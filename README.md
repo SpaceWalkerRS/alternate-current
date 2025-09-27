@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=SpaceWalkerRS&project=alternate-current&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 # Alternate Current
 
 Alternate Current is an efficient and non-locational redstone dust implementation. Its main focus lies in reducing the lag caused by redstone dust, by optimizing the power calculations and reducing the number of shape and block updates emitted. As a side effect of these changes the block update order of redstone dust networks is predictable and intuitive rather than locational and chaotic.
