@@ -19,6 +19,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.permissions.Permissions;
 
 public class AlternateCurrentCommand {
 
@@ -38,7 +39,7 @@ public class AlternateCurrentCommand {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		LiteralArgumentBuilder<CommandSourceStack> builder = Commands.
 			literal("alternatecurrent").
-			requires(source -> source.hasPermission(2)).
+			requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR)).
 			executes(context -> queryEnabled(context.getSource())).
 			then(Commands.
 				literal("on").
