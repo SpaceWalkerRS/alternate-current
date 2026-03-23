@@ -14,7 +14,6 @@ import alternate.current.wire.WireHandler;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.RandomSequences;
 import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.LevelStem;
@@ -32,7 +31,7 @@ public class ServerLevelMixin implements IServerLevel {
 			value = "TAIL"
 		)
 	)
-	private void alternate_current$parseConfig(MinecraftServer server, Executor executor, LevelStorageSource.LevelStorageAccess storage, ServerLevelData data, ResourceKey<Level> key, LevelStem stem, boolean clientSide, long seed, List<CustomSpawner> customSpawners, boolean tickTime, RandomSequences randomSequences, CallbackInfo ci) {
+	private void alternate_current$parseConfig(MinecraftServer server, Executor executor, LevelStorageSource.LevelStorageAccess storage, ServerLevelData data, ResourceKey<Level> key, LevelStem stem, boolean debug, long seed, List<CustomSpawner> customSpawners, boolean tickTime, CallbackInfo ci) {
 		this.wireHandler = new WireHandler((ServerLevel)(Object)this, storage);
 	}
 
