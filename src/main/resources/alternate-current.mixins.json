@@ -2,7 +2,6 @@
 	"required": true,
 	"minVersion": "0.8",
 	"package": "alternate.current.mixin",
-	"compatibilityLevel": "JAVA_16",
 	"mixins": [
 		"ExperimentalRedstoneUtilsMixin",
 		"MinecraftServerMixin",
