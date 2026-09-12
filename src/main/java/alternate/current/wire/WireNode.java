@@ -5,7 +5,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.redstone.Redstone;
 
@@ -54,7 +54,7 @@ public class WireNode extends Node {
 
 		this.connections = new WireConnectionManager(this);
 
-		this.virtualPower = this.currentPower = this.state.getValue(RedStoneWireBlock.POWER);
+		this.virtualPower = this.currentPower = this.state.getValue(RedstoneWireBlock.POWER);
 		this.priority = priority();
 	}
 
@@ -115,7 +115,7 @@ public class WireNode extends Node {
 		}
 
 		currentPower = Mth.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
-		state = state.setValue(RedStoneWireBlock.POWER, currentPower);
+		state = state.setValue(RedstoneWireBlock.POWER, currentPower);
 
 		return LevelHelper.setWireState(level, pos, state, added);
 	}

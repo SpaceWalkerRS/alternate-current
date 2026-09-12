@@ -7,7 +7,7 @@
 		"CommandsMixin",
 		"ExperimentalRedstoneUtilsMixin",
 		"MinecraftServerMixin",
-		"RedStoneWireBlockMixin",
+		"RedstoneWireBlockMixin",
 		"ServerLevelMixin"
 	],
 	"injectors": {

@@ -12,12 +12,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.redstone.Orientation;
 
-@Mixin(RedStoneWireBlock.class)
-public class RedStoneWireBlockMixin {
+@Mixin(RedstoneWireBlock.class)
+public class RedstoneWireBlockMixin {
 
 	@Inject(
 		method = "updatePowerStrength",
@@ -38,7 +38,7 @@ public class RedStoneWireBlockMixin {
 		method = "onPlace",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V"
+			target = "Lnet/minecraft/world/level/block/RedstoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V"
 		)
 	)
 	private void alternate_current$onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, CallbackInfo ci) {
@@ -51,7 +51,7 @@ public class RedStoneWireBlockMixin {
 		method = "affectNeighborsAfterRemoval",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/level/block/RedStoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V"
+			target = "Lnet/minecraft/world/level/block/RedstoneWireBlock;updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V"
 		)
 	)
 	private void alternate_current$onRemove(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston, CallbackInfo ci) {
