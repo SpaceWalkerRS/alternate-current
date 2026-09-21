@@ -35,7 +35,7 @@ displayName="${mod_name}" #mandatory
 displayURL="https://modrinth.com/mod/alternate-current" #optional
 
 # A file name (in the root of the mod JAR) containing a logo for display
-logoFile="assets.alternate.current.icon.png" #optional
+iconFile="assets.alternate.current.icon.png" #optional
 
 # A text field displayed in the mod UI
 #credits="" #optional
